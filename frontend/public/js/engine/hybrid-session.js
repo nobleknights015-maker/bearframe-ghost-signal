@@ -1,0 +1,54 @@
+// Data-only bridge between Ghost Signal exploration, authored stealth zones, and JRPG combat.
+// The live Ghost Signal mission loop, renderer, menus and local-storage keys are untouched.
+import { compileAreaPolicy, securityAt, securityTransition } from './area-policy.js';
+import { beginEncounter, finishEncounter } from './encounter-handoff.js';
+import { startBattle, combatAction, battleResultPatch } from './rpg-combat.js';
+const object = x => x !== null && typeof x === 'object' && !Array.isArray(x);
+const copy = x => JSON.parse(JSON.stringify(x));
+const seal = x => { if (x && typeof x === 'object' && !Object.isFrozen(x)) { Object.values(x).forEach(seal); Object.freeze(x); } return x; };
+const location = loc => object(loc) && typeof loc.mapId === 'string' && loc.mapId && Number.isFinite(loc.x) && Number.isFinite(loc.y);
+
+export function createHybridSession(exploration, areaSpec = {}) {
+  if (!object(exploration) || !location(exploration.location) || !Array.isArray(exploration.party) ||
+      !object(exploration.inventory) || !object(exploration.equipment) || !object(exploration.quests) ||
+      !object(exploration.progression)) throw new TypeError('Invalid hybrid exploration state');
+  const policy = compileAreaPolicy(areaSpec);
+  const state = copy(exploration);
+  return seal({ phase:'exploration', exploration:state, policy,
+    security:securityAt(policy,state.location.x,state.location.y), battle:null, handoff:null, event:null });
+}
+
+export function moveHybrid(session, destination) {
+  if (!object(session) || session.phase !== 'exploration' || !location(destination) ||
+      destination.mapId !== session.exploration.location.mapId) throw new TypeError('Invalid in-map movement');
+  const before=session.exploration.location;
+  const boundary=securityTransition(session.policy,before.x,before.y,destination.x,destination.y);
+  const next=copy(session.exploration);
+  next.location=copy(destination);
+  return seal({...session, exploration:next, security:boundary.to,
+    event:boundary.changed ? {type:'security.boundary',from:boundary.from,to:boundary.to} : null });
+}
+
+export function detectHybrid(session, encounter = null) {
+  if (!object(session) || session.phase !== 'exploration' || session.security?.mode !== 'stealth')
+    throw new TypeError('Detection requires active stealth');
+  const response=session.security.onDetection || 'alarm';
+  if (response !== 'encounter') return seal({...session,event:{type:'security.'+response,zoneId:session.security.zoneId}});
+  if (!object(encounter) || !Array.isArray(encounter.enemies)) throw new TypeError('Missing authored encounter');
+  const handoff=beginEncounter(session.exploration,{id:encounter.id,enemies:encounter.enemies.map(e=>e.id)});
+  const battle=startBattle({party:session.exploration.party,enemies:encounter.enemies,
+    inventory:session.exploration.inventory,canFlee:encounter.canFlee !== false,rewards:encounter.rewards || {}});
+  return seal({...session, phase:'battle',battle,handoff,event:{type:'battle.start',encounterId:encounter.id}});
+}
+
+export function actHybrid(session, action) {
+  if (!object(session) || session.phase !== 'battle' || !session.battle || !session.handoff)
+    throw new TypeError('No active battle');
+  const battle=combatAction(session.battle,action);
+  if (battle.status === 'active') return seal({...session,battle,event:{type:'battle.turn',round:battle.round}});
+  const patch=battleResultPatch(battle,session.handoff.snapshot.party,session.handoff.snapshot.progression);
+  const restored=finishEncounter(session.handoff,battle.status,patch);
+  return seal({phase:'exploration',exploration:restored.exploration,policy:session.policy,
+    security:securityAt(session.policy,restored.exploration.location.x,restored.exploration.location.y),
+    battle:null,handoff:null,event:{type:'battle.end',outcome:battle.status,log:battle.log.slice()}});
+}
