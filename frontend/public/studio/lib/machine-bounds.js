@@ -3,11 +3,13 @@ import {validateRig} from './rig-safety.js';
 // Expands margins at fixed design scale; edited pixels follow the same root translation.
 export function fitMachineProject(p){
  if(p.kind!=='machine')throw Error('Select a machine project');validateRig(p.rig);const r=p.rig,ow=r.w,oh=r.h;
+ for(const s of Object.values(p.sets)){const k=Math.min(s.fw/ow,s.fh/oh);if(Math.abs(s.fw-ow*k)>1||Math.abs(s.fh-oh*k)>1)throw Error('Fit margins requires a proportional design canvas; keep the current custom canvas unchanged.');}
  let left=0,top=0,right=ow,bottom=oh;
  for(const s of Object.values(p.sets))for(const d of s.dirs)for(const a of s.anims)for(let i=0;i<a.frames;i++){
   const b=renderRig(null,r,d,a.type,i,a.frames,ow,oh,{boundsOnly:true});left=Math.min(left,b.left);top=Math.min(top,b.top);right=Math.max(right,b.right);bottom=Math.max(bottom,b.bottom);
  }
- const px=Math.ceil(Math.max(-left,right-ow)),pt=Math.ceil(-top),pb=Math.ceil(bottom-oh);
+ // Even design margins retain integer registration at native, 1.5x and 2x export scales.
+ const even=x=>Math.ceil(x/2)*2;const px=even(Math.max(-left,right-ow)),pt=even(-top),pb=even(bottom-oh);
  if(!px&&!pt&&!pb)return false;
  const nw=ow+2*px,nh=oh+pt+pb;if(nw>2048||nh>2048)throw Error('Fitted rig exceeds the 2048 design-pixel limit');
  // JSON cloning breaks shared preset references across views, just as project serialization does.
