@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bearframe Sprite Studio</title>
+  <link rel="stylesheet" href="studio.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">BEARFRAME <b>SPRITE STUDIO</b></div>
+    <input id="pname" data-testid="project-name" title="Project name" />
+    <select id="set-sel" data-testid="set-select" title="Sprite set"><option value="exploration">Exploration set</option><option value="battle">Battle set</option></select>
+    <select id="examples" data-testid="examples-select"><option value="">Open example…</option></select>
+    <button id="btn-new" data-testid="new-project">New</button>
+    <button id="btn-open" data-testid="open-project">Open project</button><input type="file" id="file-proj" accept=".json" hidden data-testid="file-project" />
+    <button id="btn-save" data-testid="save-project">Save project</button>
+    <span class="sep"></span>
+    <button id="btn-import" data-testid="import-sheet">Import PNG sheet</button><input type="file" id="file-sheet" accept="image/*" hidden data-testid="file-sheet" />
+    <label class="mini">frame <input id="imp-w" type="number" value="32" min="1" data-testid="import-fw" />×<input id="imp-h" type="number" value="56" min="1" data-testid="import-fh" /></label>
+    <span class="sep"></span>
+    <button id="btn-export" class="go" data-testid="export-sheet">Export sheet PNG + JSON</button>
+    <button id="btn-zip" class="go" data-testid="export-frames">Export frames ZIP</button>
+  </header>
+  <main>
+    <aside id="left">
+      <h3>Asset</h3>
+      <label>Type <select id="kind" data-testid="kind-select"><option value="humanoid">Humanoid android rig</option><option value="machine">Machine rig (any shape)</option><option value="blank">Blank canvas (hand-drawn)</option></select></label>
+      <div id="cfg" data-testid="config-panel"></div>
+      <h3>Canvas</h3>
+      <div class="row">Frame <input id="fw" type="number" min="4" max="512" data-testid="frame-w" />×<input id="fh" type="number" min="4" max="512" data-testid="frame-h" /></div>
+      <div class="row"><button id="btn-regen-size" data-testid="apply-size-regen" title="Re-render the rig at this resolution: new pixel detail, not a scale-up">Re-render at size</button><button id="btn-resize" data-testid="apply-size-keep" title="Keep pixels 1:1, add or crop canvas">Resize canvas only</button></div>
+      <div class="row">Footprint (32px tiles) <input id="tw" type="number" min="1" max="16" data-testid="tiles-w" />×<input id="th" type="number" min="1" max="16" data-testid="tiles-h" /></div>
+      <h3>Procedural assist</h3>
+      <button id="gen-all" data-testid="generate-all">Generate all frames</button>
+      <button id="gen-unedited" data-testid="generate-unedited">Regenerate unedited frames</button>
+      <button id="gen-frame" data-testid="generate-frame">Regenerate this frame</button>
+      <div id="status" data-testid="status"></div>
+      <div id="rigpanel" data-testid="rig-panel">
+        <h3>Rig parts</h3>
+        <label>View <select id="rig-view" data-testid="rig-view"></select></label>
+        <select id="rig-parts" size="7" data-testid="rig-parts"></select>
+        <div class="row"><button id="rig-add" data-testid="rig-add">Add part</button><button id="rig-del" data-testid="rig-delete">Delete</button></div>
+        <label>Part (shape, pivot, size, rotation, parent)</label><textarea id="rig-part-json" rows="7" spellcheck="false" data-testid="rig-part-json"></textarea>
+        <label>Motion in "<span id="rig-anim-name"></span>"</label><textarea id="rig-chan-json" rows="3" spellcheck="false" data-testid="rig-channel-json"></textarea>
+        <button id="rig-apply" data-testid="rig-apply">Apply to rig</button>
+      </div>
+    </aside>
+    <section id="center">
+      <div id="tools">
+        <button data-tool="pencil" class="on" data-testid="tool-pencil">Pencil</button><button data-tool="eraser" data-testid="tool-eraser">Eraser</button><button data-tool="fill" data-testid="tool-fill">Fill</button><button data-tool="pick" data-testid="tool-pick">Pick</button>
+        <input type="color" id="color" value="#ff3b30" data-testid="color-input" /><div id="palette" data-testid="palette"></div>
+        <span class="sep"></span>
+        <button id="undo" data-testid="undo">Undo</button><button id="copy" data-testid="copy-frame">Copy</button><button id="paste" data-testid="paste-frame">Paste</button><button id="mirror" data-testid="mirror-frame">Flip</button><button id="clear" data-testid="clear-frame">Clear</button>
+        <button data-nudge="-1,0" data-testid="nudge-left">←</button><button data-nudge="1,0" data-testid="nudge-right">→</button><button data-nudge="0,-1" data-testid="nudge-up">↑</button><button data-nudge="0,1" data-testid="nudge-down">↓</button>
+        <span class="sep"></span>
+        <label class="mini"><input type="checkbox" id="onion" checked data-testid="onion-toggle" />Onion</label><label class="mini"><input type="checkbox" id="grid" checked data-testid="grid-toggle" />Grid</label><label class="mini"><input type="checkbox" id="guides" checked data-testid="guides-toggle" />Guides</label>
+        <label class="mini">Zoom <input id="zoom" type="range" min="1" max="20" data-testid="zoom" /></label>
+      </div>
+      <div id="stage"><canvas id="edit" data-testid="edit-canvas"></canvas></div>
+      <div id="dirs" data-testid="direction-tabs"></div>
+      <div id="animbar">
+        <div id="anims" data-testid="animation-tabs"></div>
+        <label class="mini">name <input id="a-name" data-testid="anim-name" /></label>
+        <label class="mini">motion <select id="a-type" data-testid="anim-type"></select></label>
+        <label class="mini">frames <input id="a-frames" type="number" min="1" max="32" data-testid="anim-frames" /></label>
+        <label class="mini">fps <input id="a-fps" type="number" min="1" max="30" data-testid="anim-fps" /></label>
+        <button id="a-add" data-testid="anim-add">+ Animation</button><button id="a-del" data-testid="anim-delete">Remove</button>
+      </div>
+      <div id="strip" data-testid="frame-strip"></div>
+    </section>
+    <aside id="right">
+      <h3>Preview <button id="play" data-testid="play-toggle">Pause</button></h3>
+      <div id="pwrap"><canvas id="preview" data-testid="preview-canvas"></canvas></div>
+      <div id="dirprev" data-testid="direction-previews"></div>
+      <h3>Reference image <button id="btn-ref" data-testid="import-reference">Load</button><input type="file" id="file-ref" accept="image/*" hidden data-testid="file-reference" /></h3>
+      <label class="mini"><input type="checkbox" id="ref-overlay" data-testid="ref-overlay" />Trace under canvas</label> <label class="mini">opacity <input id="ref-op" type="range" min="5" max="90" value="35" data-testid="ref-opacity" /></label>
+      <canvas id="refcv" data-testid="reference-canvas" title="Click to pick a colour from the reference"></canvas>
+      <p class="hint">Reference images guide the design: trace over them, or click to sample colours. Sprites are drawn or generated as real pixels, never by scaling the reference.</p>
+    </aside>
+  </main>
+  <script type="module" src="studio.js"></script>
+</body>
+</html>
