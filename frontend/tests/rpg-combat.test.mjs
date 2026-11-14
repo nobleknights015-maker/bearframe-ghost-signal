@@ -51,12 +51,13 @@ test('authored party skill catalogs are enforced by the battle rules, not just b
  assert.throws(()=>combatAction(s,{actor:'party:sleeper',type:'repair',target:'party:sleeper'}),/Ability unavailable/);
  assert.deepEqual(currentCombatant(s),'party:sleeper');
  s=combatAction(s,{actor:'party:sleeper',type:'pulse',target:'enemy:drone'});
- s=combatAction(s,enemyDecision(s));
- assert.equal(currentCombatant(s),'party:echo');
+ assert.equal(currentCombatant(s),'party:echo','Echo acts before the slower enemy');
  assert.throws(()=>combatAction(s,{actor:'party:echo',type:'pulse',target:'enemy:drone'}),/Ability unavailable/);
  assert.equal(s.party.find(u=>u.id==='echo').ep,10,'Rejected skill cannot spend EP');
  s=combatAction(s,{actor:'party:echo',type:'repair',target:'party:sleeper'});
  assert.equal(s.party.find(u=>u.id==='echo').ep,5);
+ assert.equal(currentCombatant(s),'enemy:drone');
+ s=combatAction(s,enemyDecision(s));
  assert.throws(()=>startBattle({...units(),party:[{...units().party[0],skills:['pulse','pulse']}]}),/Invalid combatant skills/);
  assert.throws(()=>startBattle({...units(),party:[{...units().party[0],skills:['hack-world']}]}),/Invalid combatant skills/);
 });
