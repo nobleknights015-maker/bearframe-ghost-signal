@@ -15,7 +15,7 @@ Continuation of the isolated `sprite-studio-sleek-copy` generator. Original main
 | Damage pattern | Worn scratches, cracked plates, exposed inner mechanism, scorching |
 | Damage amount | Existing 0–3 control sets severity |
 
-These are independent configuration fields, not pre-baked outfits. Existing color controls recolor fabric, armor and lights. Four new presets demonstrate Sleeper field scarves/salvage mantles, an Echo relay pilgrim and a Ghost Grid archive cowl. They are generic native studies, not recreations of reference characters. Being old or damaged remains configurable rather than an automatic effect applied to every Bearframe.
+These are independent configuration fields, not pre-baked outfits. Separate scarf, hood and drapery color controls allow an ivory hood with plum scarf/drapes, while existing controls recolor armor and lights. Four new presets demonstrate Sleeper field scarves/salvage mantles, an Echo relay pilgrim and a Ghost Grid archive cowl. They are generic native studies, not recreations of reference characters. Being old or damaged remains configurable rather than an automatic effect applied to every Bearframe.
 
 New humanoids default to a smooth visor. Existing Sleek visor projects also render the connected panel unless explicitly set to Split. On opening an older Sleek project with no face choice, unedited frames are refreshed automatically; hand-edited frames remain protected. Old Classic projects with no new properties retain original pixels. The requested change removes the bright center nose/face divider; the dark display spans the front and profile, with a connected V expression on the front. The back helmet's mechanical strip is separate from the face and is preserved.
 

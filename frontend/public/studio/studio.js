@@ -59,7 +59,8 @@ function colors(obj, keys) { const w = el('div'); keys.forEach(k => { const i = 
 function buildCfg() {
   const box = $('cfg'); box.innerHTML = '';
   if (P.kind === 'humanoid') {
-    const c = P.cfg, up = (k, v) => { c[k] = v; regenSoon(); };
+    const c = P.cfg; for (const role of ['scarf','hood','drapery']) c.colors[role] ??= c.colors.cloak;
+    const up = (k, v) => { c[k] = v; regenSoon(); };
     box.append(field('Preset', sel(['—', ...Object.keys(PRESETS)], '—', v => { if (PRESETS[v]) { P.cfg = JSON.parse(JSON.stringify(PRESETS[v])); buildCfg(); buildPalette(); regenSoon(); } }, 'humanoid-preset')),
       field('Style', sel(['classic', 'sleek'], c.style || 'classic', v => up('style', v), 'cfg-style')),
       field('Head', sel(['visor', 'mono', 'band', 'display'], c.head, v => up('head', v), 'cfg-head')), field('Armor', sel(['light', 'plated', 'heavy'], c.armor, v => up('armor', v), 'cfg-armor')),
