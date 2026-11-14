@@ -5,7 +5,7 @@ import { Sfx } from './engine/audio.js';
 import { store } from './engine/save.js';
 import { UI } from './ui.js';
 import { MISSIONS, FIRST_MISSION } from './missions/index.js';
-import { FW, FH } from './art/wraith.js';
+import { FW, FH, IDLE0, IDLEN } from './art/wraith.js';
 
 const $ = id => document.getElementById(id);
 const settings = store.loadSettings();
@@ -32,13 +32,16 @@ function showTitle() {
   ui.show('title', true); $('btn-continue').disabled = !store.load(); ui.show('btn-m2', !!store.loadProgress().unlocked.m2); refreshTouch();
 }
 function titleSprite(now) {
-  const c = $('title-sprite').getContext('2d'), f = 4 + (Math.floor(now / 700) % 2); c.clearRect(0, 0, FW, FH); c.drawImage(game.sheet, f * FW, 0, FW, FH, 0, 0, FW, FH);
+  const c = $('title-sprite').getContext('2d'), f = IDLE0 + (Math.floor(now / 320) % IDLEN); c.clearRect(0, 0, FW, FH); c.drawImage(game.sheet, f * FW, 0, FW, FH, 0, 0, FW, FH);
 }
 function begin(snap, missionId) {
   sfx.init(); ui.show('title', false); ui.show('ending', false);
   const id = (snap && snap.mission) || missionId || FIRST_MISSION; let carry = null;
   if (!snap && id !== FIRST_MISSION) { const pc = store.loadProgress().case; if (pc) carry = { ev: pc.ev.filter(e => e.m !== id), logs: pc.logs.filter(l => l.m !== id) }; }
+  ui.fade(true);
   game.start(MISSIONS[id], snap, carry); refreshTouch();
+  setTimeout(() => ui.fade(false), 120);
+  if (!snap) { $('card-num').textContent = 'MISSION ' + (id === 'm2' ? '02' : '01'); $('card-title').textContent = MISSIONS[id].title; const cd = $('card'); cd.classList.remove('play'); void cd.offsetWidth; cd.classList.add('play'); }
   try { if (coarse && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {}); } catch (_) {}
 }
 
@@ -82,9 +85,10 @@ input.bindPad($('dpad'));
 input.bindButton($('t-act'), 'interact'); input.bindButton($('t-light'), 'light'); input.bindButton($('t-scan'), 'scan');
 document.addEventListener('visibilitychange', () => { if (document.hidden && game.mode === 'play') game.onPause(); });
 
-let last = performance.now();
+let last = performance.now(), slow = 0, frames = 0;
 function loop(now) {
-  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  const raw = now - last, dt = Math.min(.05, raw / 1000); last = now;
+  if (game.mode === 'play' && !game.lowFx) { frames++; if (raw > 26) slow++; if (frames >= 180) { if (slow > 90) game.lowFx = true; frames = slow = 0; } }
   game.update(dt); if (game.mode === 'title') titleSprite(now); else game.render();
   $('t-light').classList.toggle('on', !!(game.player && game.player.light));
   requestAnimationFrame(loop);

@@ -16,7 +16,12 @@ function floor(c, x, y, shadow) {
   for (let i = 0; i < 16; i++) R(c, hsh(x, y, i + 7) > .5 ? '#161d20' : '#242e33', X + 1 + hsh(x + i, y, 1) * 30, Y + 1 + hsh(x, y + i, 2) * 30, 1, 1);
   if (hsh(x, y, 3) > .68) rust(c, X, Y, x, y, 3);
   if (hsh(x, y, 5) > .9) for (let i = 0; i < 14; i++) R(c, '#141a1d', X + 8 + hsh(x, y, 60 + i) * 14, Y + 8 + hsh(x, y, 80 + i) * 12, 3, 2);
-  if (shadow) { R(c, 'rgba(0,0,0,.4)', X, Y, T, 4); R(c, 'rgba(0,0,0,.2)', X, Y + 4, T, 4); }
+  // large-scale grime / tint variation so plates do not read as a repeating grid
+  const big = (hsh(x >> 2, y >> 2, 11) + hsh((x + 2) >> 2, (y + 1) >> 2, 12)) / 2;
+  R(c, `rgba(0,0,0,${(big * .22).toFixed(3)})`, X, Y, T, T); if (big > .62) R(c, 'rgba(40,110,105,.05)', X, Y, T, T); if (big < .3) R(c, 'rgba(120,60,30,.05)', X, Y, T, T);
+  if (hsh(x, y, 13) > .8) { for (let i = 0; i < 9; i++) R(c, 'rgba(120,160,175,.10)', X + 5 + i * 2 + hsh(x, y, 70 + i) * 4, Y + 20 + Math.sin(i + x) * 2, 3, 1); R(c, 'rgba(160,200,215,.14)', X + 10, Y + 21, 5, 1); } // damp sheen
+  if (hsh(x, y, 14) > .9) { let px = 4 + hsh(x, y, 15) * 10, py = 3; for (let i = 0; i < 16; i++) { R(c, '#0d1215', X + px, Y + py, 1, 2); py += 1.6; px += hsh(x, y, 90 + i) > .5 ? 1 : -.4; } } // crack
+  if (shadow) { R(c, 'rgba(0,0,0,.5)', X, Y, T, 3); R(c, 'rgba(0,0,0,.3)', X, Y + 3, T, 4); R(c, 'rgba(0,0,0,.14)', X, Y + 7, T, 5); if (hsh(x, y, 16) > .6) R(c, 'rgba(90,50,32,.5)', X + 4 + hsh(x, y, 17) * 22, Y, 1, 5 + hsh(x, y, 18) * 6); }
 }
 function wallFace(c, x, y) {
   const X = x * T, Y = y * T, v = hsh(x, y, 9);
@@ -32,6 +37,8 @@ function wallFace(c, x, y) {
     ['#7a2b2b', '#2b5a6a', '#85752c'].forEach((col, i) => { R(c, col, X + 10 + i * 4, Y + 11, 1, 8 + i * 3); R(c, col, X + 10 + i * 4, Y + 18 + i * 3, 2, 1); });
   }
   for (let i = 0; i < 3; i++) if (hsh(x, y, 20 + i) > .5) R(c, '#5a3220', X + 2 + hsh(x, y, 30 + i) * 28, Y + 4, 1, 4 + hsh(x, y, 33 + i) * 14);
+  [2, 13, 18, 29].forEach(a => { R(c, '#4a5a63', X + a, Y + 8, 1, 1); R(c, '#151c20', X + a, Y + 9, 1, 1); R(c, '#4a5a63', X + a, Y + 23, 1, 1); });
+  R(c, 'rgba(160,190,200,.10)', X + 1, Y + 4, 30, 1); R(c, 'rgba(0,0,0,.14)', X, Y + 14, T, 6); R(c, 'rgba(0,0,0,.26)', X, Y + 20, T, 7);
 }
 function wallTop(c, x, y, at) {
   const X = x * T, Y = y * T;
@@ -87,15 +94,60 @@ function rack(c, p) {
 export function bakeMap(map, mission) {
   const cv = document.createElement('canvas'); cv.width = map.w * T; cv.height = map.h * T;
   const c = cv.getContext('2d');
-  R(c, '#030405', 0, 0, cv.width, cv.height);
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const g = at(x, y);
     if (g === 2) floor(c, x, y, at(x, y - 1) === 1);
     else if (g === 1) { if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
   }
+  // soft ambient occlusion where floor meets side / lower walls
+  for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) if (at(x, y) === 2) {
+    const X = x * T, Y = y * T;
+    if (at(x - 1, y) !== 2) { R(c, 'rgba(0,0,0,.32)', X, Y, 3, T); R(c, 'rgba(0,0,0,.15)', X + 3, Y, 4, T); }
+    if (at(x + 1, y) !== 2) { R(c, 'rgba(0,0,0,.32)', X + T - 3, Y, 3, T); R(c, 'rgba(0,0,0,.15)', X + T - 7, Y, 4, T); }
+    if (at(x, y + 1) !== 2) { R(c, 'rgba(0,0,0,.3)', X, Y + T - 3, T, 3); R(c, 'rgba(0,0,0,.14)', X, Y + T - 7, T, 4); }
+  }
   const draw = { machine, crate, debris, cable, hazard, rack };
+  for (const p of mission.props) if (p.solid) { R(c, 'rgba(0,0,0,.34)', p.x * T + 5, (p.y + (p.h || 1)) * T - 1, (p.w || 1) * T - 2, 5); R(c, 'rgba(0,0,0,.2)', (p.x + (p.w || 1)) * T - 1, p.y * T + 8, 4, (p.h || 1) * T - 6); }
   for (const p of mission.props) draw[p.t](c, p);
+  return cv;
+}
+
+// Foreground layer drawn above characters: overhead conduits and hanging cables (depth / layered scenery).
+export function bakeOver(map) {
+  const cv = document.createElement('canvas'); cv.width = map.w * T; cv.height = map.h * T; const c = cv.getContext('2d');
+  const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
+  for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
+    const X = x * T, Y = y * T;
+    if (at(x, y) === 2 && y % 6 === 2 && hsh(y, 3, 5) > .25) { // overhead conduit run
+      R(c, 'rgba(4,6,8,.5)', X, Y + 9, T, 6); R(c, 'rgba(70,90,100,.22)', X, Y + 9, T, 1); R(c, 'rgba(0,0,0,.16)', X, Y + 15, T, 4);
+      if (x % 3 === 0) { R(c, 'rgba(4,6,8,.62)', X + 12, Y + 7, 5, 10); R(c, 'rgba(110,101,55,.3)', X + 12, Y + 7, 5, 1); }
+    }
+    if (at(x, y) === 1 && at(x, y + 1) === 2 && hsh(x, y, 41) > .8) { // cable drooping from a wall face
+      const len = 14 + hsh(x, y, 42) * 22, ox = 6 + hsh(x, y, 43) * 18;
+      for (let i = 0; i < len; i++) R(c, 'rgba(5,6,8,.85)', X + ox + Math.round(Math.sin(i / 6 + x) * 2), Y + 26 + i, 1, 1);
+      R(c, 'rgba(122,43,43,.9)', X + ox + Math.round(Math.sin(len / 6 + x) * 2), Y + 26 + len, 2, 2);
+    }
+    if (at(x, y) === 1 && at(x, y - 1) === 2) R(c, 'rgba(0,0,0,.28)', X, Y - 4, T, 4); // lower wall lip shades the floor above it
+  }
+  return cv;
+}
+// Parallax under-structure seen through the void around rooms.
+export function bakeDeep() {
+  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S; const c = cv.getContext('2d');
+  R(c, '#030507', 0, 0, S, S);
+  for (let i = 0; i < 4; i++) { R(c, '#070b0f', 0, 20 + i * 64, S, 9); R(c, '#0b1116', 0, 20 + i * 64, S, 1); R(c, '#070b0f', 30 + i * 64, 0, 7, S); R(c, '#0b1116', 30 + i * 64, 0, 1, S); }
+  for (let i = 0; i < S; i += 2) { R(c, '#060a0d', i, (i * 2 + 40) % S, 2, 2); R(c, '#060a0d', S - i, (i * 2 + 104) % S, 2, 2); }
+  for (let i = 0; i < 22; i++) { const x = hsh(i, 1, 2) * S, y = hsh(i, 2, 3) * S; R(c, '#0a1014', x, y, 10 + hsh(i, 3) * 26, 3); R(c, i % 5 ? '#101a20' : '#3a1512', x + 2, y + 1, 2, 1); }
+  return cv;
+}
+// Soft drifting haze texture (drawn additively at very low alpha).
+export function bakeFog() {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128; const c = cv.getContext('2d');
+  for (let i = 0; i < 26; i++) for (const ox of [0, -256, 256]) {
+    const x = hsh(i, 5) * 256 + ox, y = hsh(i, 6) * 128, r = 22 + hsh(i, 7) * 40, g = c.createRadialGradient(x, y, 1, x, y, r);
+    g.addColorStop(0, 'rgba(150,180,190,.5)'); g.addColorStop(1, 'rgba(150,180,190,0)'); c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2);
+  }
   return cv;
 }
 

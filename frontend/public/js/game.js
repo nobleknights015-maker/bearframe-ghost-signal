@@ -1,8 +1,8 @@
 // Core engine: world, player, drone AI, Ghost Signal trace + archived trace echoes, lighting, scanning,
 // evidence / case file, hiding, hazards, checkpoints.
 // Mission-specific content lives in js/missions/* and talks to this class through a small API.
-import { buildWraith, FW, FH } from './art/wraith.js';
-import { bakeMap, drawEntity, drawDrone, drawLamp } from './art/tiles.js';
+import { buildWraith, FW, FH, WALK, IDLE0, IDLEN, SCAN0 } from './art/wraith.js';
+import { bakeMap, bakeOver, bakeDeep, bakeFog, drawEntity, drawDrone, drawLamp } from './art/tiles.js';
 
 export const T = 32, VW = 480, VH = 270;
 const DV = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -19,10 +19,12 @@ export class Game {
     this.light = document.createElement('canvas'); this.light.width = VW; this.light.height = VH; this.lc = this.light.getContext('2d');
     const w = buildWraith(); this.sheet = w.sheet; this.ghostSheet = w.ghost; this.echoSheet = w.echo;
     this.mode = 'title'; this.caseFile = { ev: [], logs: [] };
+    this.deep = bakeDeep(); this.fog = bakeFog(); this.lowFx = false; this.cam = null;
+    this.motes = Array.from({ length: 34 }, (_, i) => ({ x: Math.random() * VW, y: Math.random() * VH, vx: (Math.random() - .5) * 5, vy: -1 - Math.random() * 3, ph: i }));
   }
 
   start(mission, snap, carry) {
-    this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission);
+    this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission); this.over = bakeOver(this.map); this.cam = null;
     this.ents = mission.entities().map(e => ({ w: 1, h: 1, open: 0, ...e }));
     this.flags = {}; this.inv = {}; this.stats = { scans: 0, hits: 0, restores: 0, logs: 0, ev: 0 };
     this.caseFile = carry ? clone(carry) : { ev: [], logs: [] };
@@ -82,7 +84,7 @@ export class Game {
     this.caseFile = s.case ? clone(s.case) : { ev: [], logs: [] };
     Object.assign(this.player, s.player, { energy: Math.max(s.player.energy, minEnergy), hurt: 0, moving: false, hidden: null, scanT: 0 });
     for (const e of this.ents) { e.pingT = 0; e.offT = 0; if (s.es[e.id]) Object.assign(e, s.es[e.id]); if (e.type === 'door') e.open = this.m.doorOpen(e.id, this) ? 1 : 0; }
-    this.hist = []; this.scan = null; this.plateT = 0; this.drones = this.makeDrones(); this.onPad = null; this.echo = null; this.detectFx = 0;
+    this.hist = []; this.scan = null; this.plateT = 0; this.drones = this.makeDrones(); this.onPad = null; this.echo = null; this.detectFx = 0; this.cam = null;
     if (this.m.migrate) this.m.migrate(this);
   }
   restore() {
@@ -120,7 +122,9 @@ export class Game {
     if (acts.includes('pause')) { this.onPause(); return; }
     if (acts.includes('case')) { this.openCase(); return; }
     this.time += dt;
-    const p = this.player;
+    const p = this.player, ct = this.camTarget();
+    if (!this.cam) this.cam = ct; else { const k = 1 - Math.exp(-dt * 5); this.cam.x += (ct.x - this.cam.x) * k; this.cam.y += (ct.y - this.cam.y) * k; }
+    for (const m of this.motes) { m.x = (m.x + m.vx * dt + VW) % VW; m.y = (m.y + m.vy * dt + VH) % VH; }
     if (p.hidden) {
       if (acts.includes('interact') || this.input.dir) { p.hidden = null; p.x = p.hx; p.y = p.hy; this.sfx.door(); acts.length = 0; }
     } else {
@@ -191,7 +195,8 @@ export class Game {
     const st = `LIGHT ${p.light ? '<b>ON</b>' : 'OFF'} &middot; SCAN ${this.scanCd > 0 ? '...' : p.energy > SCAN_COST ? '<b>READY</b>' : 'LOW'}${this.inv.cell ? ' &middot; <b>POWER CELL</b>' : ''}${this.inv.spindle ? ' &middot; <b>RECORD SPINDLE</b>' : ''}`;
     this.ui.hud(p.energy, this.m.objective(this), st, p.hidden ? key + 'LEAVE ALCOVE' : e ? key + this.label(e) : '', this.stealth());
   }
-  frame() { const p = this.player; return p.scanT > 0 ? 6 : p.moving ? Math.floor(p.anim) % 4 : 4 + (Math.floor(this.time / .7) % 2); }
+  frame() { const p = this.player; return p.scanT > 0 ? SCAN0 + (p.scanT > .3 ? 0 : 1) : p.moving ? Math.floor(p.anim) % WALK : IDLE0 + (Math.floor(this.time / .32) % IDLEN); }
+  camTarget() { const p = this.player, v = p.hidden ? [0, 0] : DV[p.dir]; return { x: Math.max(0, Math.min(this.map.w * T - VW, p.x + v[0] * 22 - VW / 2)), y: Math.max(0, Math.min(this.map.h * T - VH, p.y - 24 + v[1] * 16 - VH / 2)) }; }
   updatePlayer(dt) {
     const p = this.player, d = this.input.dir; p.moving = false;
     if (d) {
@@ -203,7 +208,7 @@ export class Game {
         if (ok) { if (this.tryMove(p, ox * sp, oy * sp)) p.moving = true; break; }
       }
     }
-    if (p.moving) { const a = Math.floor(p.anim); p.anim += dt * 8; if (Math.floor(p.anim) !== a && Math.floor(p.anim) % 2) this.sfx.step(); } else p.anim = 0;
+    if (p.moving) { const a = Math.floor(p.anim); p.anim += dt * 11; if (Math.floor(p.anim) !== a && Math.floor(p.anim) % 3 === 1) this.sfx.step(); } else p.anim = 0;
   }
   toggleLight() {
     const p = this.player; if (!p.light && p.energy <= 5) { this.toast('INSUFFICIENT ENERGY', 2); this.sfx.deny(); return; }
@@ -347,9 +352,12 @@ export class Game {
   render() {
     if (!this.m) return;
     const c = this.ctx, p = this.player, f = this.flags, t = this.time, flick = this.settings.flicker;
-    const cx = Math.max(0, Math.min(this.map.w * T - VW, Math.round(p.x - VW / 2))), cy = Math.max(0, Math.min(this.map.h * T - VH, Math.round(p.y - 20 - VH / 2)));
+    if (!this.cam) this.cam = this.camTarget();
+    const cx = Math.round(this.cam.x), cy = Math.round(this.cam.y), fx = !this.lowFx;
     const vis = (x, y, r) => x > cx - r && y > cy - r && x < cx + VW + r && y < cy + VH + r;
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+    const ox = -((cx * .45) % 256), oy = -((cy * .45) % 256);
+    for (let y = oy; y < VH; y += 256) for (let x = ox; x < VW; x += 256) c.drawImage(this.deep, Math.round(x), Math.round(y));
     c.drawImage(this.base, cx, cy, VW, VH, 0, 0, VW, VH);
     c.save(); c.translate(-cx, -cy);
     const lampsOn = !!f.lights, lk = l => f.power ? 1 : flick ? (Math.sin(t * 7 + l.x * 3) > -.6 && Math.sin(t * 23 + l.y) > -.9 ? .75 + .25 * Math.sin(t * 3 + l.x) : .15) : .8;
@@ -362,24 +370,25 @@ export class Game {
     const g = this.ghost, ec = this.echo;
     if (g) {
       const gl = flick && Math.sin(t * 31) > .93 ? 3 : 0; c.globalAlpha = flick ? .5 + .2 * Math.sin(t * 13) : .6;
-      c.drawImage(this.ghostSheet, g.f * FW, ROW[g.dir] * FH, FW, FH, Math.round(g.x) - 12 + gl, Math.round(g.y) - 36, FW, FH); c.globalAlpha = 1;
+      c.drawImage(this.ghostSheet, g.f * FW, ROW[g.dir] * FH, FW, FH, Math.round(g.x) - 16 + gl, Math.round(g.y) - 52, FW, FH); c.globalAlpha = 1;
     }
     if (ec) {
-      const gl = flick && Math.sin(t * 27) > .85 ? -2 : 0, fr = ec.pts[ec.i + 1] ? Math.floor(ec.anim) % 4 : 4; c.globalAlpha = flick ? .55 + .25 * Math.sin(t * 9) : .65;
-      c.drawImage(this.echoSheet, fr * FW, ROW[ec.dir] * FH, FW, FH, Math.round(ec.x) - 12 + gl, Math.round(ec.y) - 36, FW, FH); c.globalAlpha = 1;
+      const gl = flick && Math.sin(t * 27) > .85 ? -2 : 0, fr = ec.pts[ec.i + 1] ? Math.floor(ec.anim * 1.4) % WALK : IDLE0; c.globalAlpha = flick ? .55 + .25 * Math.sin(t * 9) : .65;
+      c.drawImage(this.echoSheet, fr * FW, ROW[ec.dir] * FH, FW, FH, Math.round(ec.x) - 16 + gl, Math.round(ec.y) - 52, FW, FH); c.globalAlpha = 1;
     }
     const drawP = () => {
       if (p.hidden) return;
-      c.fillStyle = 'rgba(0,0,0,.4)'; c.fillRect(Math.round(p.x) - 7, Math.round(p.y) + 1, 14, 3);
-      if (!(p.hurt > 0 && (t * 14 | 0) % 2)) c.drawImage(this.sheet, this.frame() * FW, ROW[p.dir] * FH, FW, FH, Math.round(p.x) - 12, Math.round(p.y) - 36, FW, FH);
+      const X = Math.round(p.x), Y = Math.round(p.y); c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(X - 10, Y, 20, 4); c.fillStyle = 'rgba(0,0,0,.34)'; c.fillRect(X - 8, Y - 1, 16, 6); c.fillRect(X - 5, Y - 2, 10, 8);
+      if (!(p.hurt > 0 && (t * 14 | 0) % 2)) c.drawImage(this.sheet, this.frame() * FW, ROW[p.dir] * FH, FW, FH, X - 16, Y - 52, FW, FH);
     };
     for (const d of this.drones) if (d.y < p.y) drawDrone(c, d, t);
     drawP();
     for (const d of this.drones) if (d.y >= p.y) drawDrone(c, d, t);
     c.restore();
+    c.drawImage(this.over, cx, cy, VW, VH, 0, 0, VW, VH);
 
     // darkness + light sources
-    const lc = this.lc, sx = p.x - cx, sy = p.y - cy - 16;
+    const lc = this.lc, sx = p.x - cx, sy = p.y - cy - 24;
     lc.globalCompositeOperation = 'source-over'; lc.clearRect(0, 0, VW, VH); lc.fillStyle = `rgba(2,4,7,${f.power ? .45 : .9})`; lc.fillRect(0, 0, VW, VH);
     lc.globalCompositeOperation = 'destination-out';
     const hole = (x, y, r, a) => { if (x < -r || y < -r || x > VW + r || y > VH + r) return; const gr = lc.createRadialGradient(x, y, 2, x, y, r); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); lc.fillStyle = gr; lc.fillRect(x - r, y - r, r * 2, r * 2); };
@@ -398,7 +407,7 @@ export class Game {
       else if (e.pingT > t) hole(ex, ey, 34, .7 * Math.min(1, e.pingT - t));
     }
     for (const d of this.drones) if (d.state !== 'disabled') hole(d.x - cx, d.y - 10 - cy, 36, .7);
-    if (g) hole(g.x - cx, g.y - 16 - cy, 28, .55);
+    if (g) hole(g.x - cx, g.y - 22 - cy, 30, .55);
     if (ec) hole(ec.x - cx, ec.y - 16 - cy, 30, .6);
     if (this.scan) hole(this.scan.x - cx, this.scan.y - cy, this.scan.r + 10, .5);
     c.drawImage(this.light, 0, 0);
@@ -407,6 +416,17 @@ export class Game {
     const glow = (x, y, r, col) => { if (x < -r || y < -r || x > VW + r || y > VH + r) return; const gr = c.createRadialGradient(x, y, 1, x, y, r); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gr; c.fillRect(x - r, y - r, r * 2, r * 2); };
     const wedge = (x, y, a, half, r, col) => { if (x < -r || y < -r || x > VW + r || y > VH + r) return; c.fillStyle = col; c.beginPath(); c.moveTo(x, y); c.arc(x, y, r, a - half, a + half); c.closePath(); c.fill(); };
     if (lampsOn && !f.power) for (const l of this.m.lamps) glow(l.x * T + 16 - cx, l.y * T + 14 - cy, 64, `rgba(255,40,30,${.2 * lk(l)})`);
+    if (fx) {
+      if (lampsOn) for (const l of this.m.lamps) wedge(l.x * T + 16 - cx, l.y * T + 12 - cy, Math.PI / 2, .5, 120, f.power ? 'rgba(170,220,215,.035)' : `rgba(255,60,40,${(.05 * lk(l)).toFixed(3)})`);
+      for (const e of this.ents) { if (e.hidden || e.gone) continue; const ex = (e.tx + e.w / 2) * T - cx, ey = (e.ty + e.h / 2) * T - cy;
+        if (e.type === 'terminal') glow(ex, ey - 6, 46, 'rgba(125,255,176,.13)'); else if (e.type === 'pad' || e.type === 'projector' || e.type === 'item') glow(ex, ey, 30, 'rgba(255,176,32,.12)'); else if (e.type === 'npc') glow(ex, ey - 26, 22, 'rgba(191,233,255,.16)'); }
+      if (!p.hidden) { glow(sx, sy - 18, 12, 'rgba(255,59,48,.20)'); glow(sx, sy - 2, 10, 'rgba(255,59,48,.14)'); }
+      for (const d of this.drones) if (d.state !== 'disabled') glow(d.x - cx, d.y - 12 - cy, 18, d.state === 'chase' ? 'rgba(255,90,31,.22)' : 'rgba(255,176,32,.16)');
+      c.globalAlpha = .07; const fo = (t * 6 + cx * .8) % 256, fy0 = Math.round(Math.sin(t * .2) * 10);
+      for (let x = -fo; x < VW; x += 256) { c.drawImage(this.fog, Math.round(x), 40 + fy0); c.drawImage(this.fog, Math.round(x + 128), 150 - fy0); }
+      c.globalAlpha = 1;
+      for (const m of this.motes) { const dd = Math.hypot(m.x - sx, m.y - sy), a = (dd < 70 ? .5 : p.light && dd < 150 ? .3 : .1) * (.6 + .4 * Math.sin(t * 2 + m.ph)); c.fillStyle = `rgba(200,215,220,${a.toFixed(2)})`; c.fillRect(Math.round((m.x - cx * .3 % VW + VW) % VW), Math.round(m.y), 1, 1); }
+    }
     if (g) glow(g.x - cx, g.y - 16 - cy, 24, 'rgba(125,255,200,.16)');
     if (ec) glow(ec.x - cx, ec.y - 16 - cy, 26, 'rgba(255,190,90,.18)');
     for (const d of this.drones) if (d.state !== 'disabled') wedge(d.x - cx, d.y - 8 - cy, ANG[d.dir], FOV, p.light ? 150 : 100, d.state === 'chase' ? 'rgba(255,60,30,.10)' : d.alert > .05 || d.state === 'investigate' ? 'rgba(255,200,60,.09)' : 'rgba(255,176,32,.05)');
