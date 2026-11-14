@@ -50,13 +50,13 @@ PORT=3000 HOST=127.0.0.1 node frontend/serve.js &
 GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab.mjs
 \`\`\`
 
-A GitHub Actions Chromium workflow was committed for the browser smoke and original entry-point checks; **a passed run has not yet been observed** from the available tooling. A physical Moto G (2025) has not been tested. User-paid art is not bundled; the lab currently renders the **existing Ghost Signal Wraith procedural sprite**, which is a temporary visual reference, not the canonical Sleeper artwork.
+**Verified GitHub Actions Chromium CI:** commit `d2b8f13` [run 43627895700](https://github.com/nobleknights015-maker/bearframe-ghost-signal/actions/runs/43627895700) passed the full 43-test Node suite and real browser scenario: keyboard movement into stealth security, actual sentry detection, turn-based victory, exactly-once XP/salvage, battle-to-field restoration, persistence across reload, a directly invoked (harness-only) relay interaction alternate resolution, original Mission 01 start and Sprite Studio entry. A later successful run `830730f` validated the live ally-targeting source with the earlier browser script; the enhanced browser test that explicitly selects Echo's repair recipient is separate and requires its own observed pass. A physical Moto G (2025) has not been tested. User-paid art is not bundled; the lab currently renders the **existing Ghost Signal Wraith procedural sprite**, which is a temporary visual reference, not the canonical Sleeper artwork.
 
 ## Verification boundaries and known gaps
 
 - **Verified in this session:** 28 existing local module tests in a partial checkout; 15 direct isolated map/security checks against fetched GitHub source; JavaScript source syntax checks. The current branch comparison has been used to ensure original UI file paths were not modified.
-- **Committed but not yet executed in a full checkout:** new lab mission Node tests and Chromium browser smoke workflow.
-- **Not verified:** hand-played corridor/security/encounter loop, actual original Missions 01/02 full playthrough, desktop-vs-mobile rendered screenshots, Android Gradle compilation, installed APK, 4GB RAM/FPS, gamepad on real controller, save/process-kill soak, signed updates.
+- **Executed in GitHub's full checkout:** 43 Node tests and full browser scene as above. The separate targeted repair-recipient browser scenario was added afterward and is not included in the cited `d2b8f13` run.
+- **Not verified:** human-played complete mission or full physical traversal to relay, complete original Missions 01/02 playthrough, desktop-vs-mobile rendered screenshots, Android Gradle compilation, installed APK, 4GB RAM/FPS, gamepad on real controller, save/process-kill soak, signed updates.
 - **Incomplete:** battle-command planning and macros, final enemy policies/AI balance, actor-specific mechanics enforced in the battle rule layer, full content authoring APIs, equipment UI operations, canonical player sprite binding, cross-version migration, native SAF export.
 
 ## Next mandatory gates
