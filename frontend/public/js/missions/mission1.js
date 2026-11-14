@@ -50,7 +50,29 @@ LAST RESTART PERFORMED BY:
 [SEE INTAKE REGISTER]`;
 
 export const mission1 = {
-  id: 'm1', title: 'THE SILENT FACILITY',
+  id: 'm1', title: 'THE SILENT FACILITY', next: 'm2',
+  logs: {
+    logA: { title: 'TERMINAL 01 // INTAKE', text: LOG_A }, logB: { title: 'TERMINAL 02 // MACHINE HALL', text: LOG_B }, logC: { title: 'TERMINAL 03 // AUXILIARY POWER', text: LOG_C },
+  },
+  evidence: {
+    e1_prints: { cat: 'CLUE', title: 'Dust prints, intake bay', text: 'Boot prints under the dust layer, leading from the hatch to the intake terminal.\n\nSole pattern is consistent with Watchtower reconnaissance plating (WTR-07). The dust settled on top of them is far deeper than one visit can explain.\n\nAssessment: consistent with the register claim that a matching gait profile was "already on file". Age unverified.' },
+    e1_drag: { cat: 'CLUE', title: 'Drag marks, machine hall', text: 'Parallel scoring in the floor plating. Something heavy and cylindrical was dragged from the direction of the auxiliary room and left in the debris at the south-west corner of the hall.\n\nAssessment: the missing power cell. Someone, or something, removed it deliberately.' },
+    e1_cradle: { cat: 'MACHINERY', title: 'Damaged unit cradle', text: 'Charging cradle for the automated security unit. Guidance board is cracked; the unit cannot complete its return cycle and loops its "disturbance" routine instead.\n\nIts forward sensor is the only one still working: it is close to blind from behind and slow to resolve a target in the dark.\n\nAssessment: obsolete, malfunctioning, non-sentient. A machine stuck in a loop, not an enemy.' },
+    e1_carrier: { cat: 'SIGNAL', title: 'Carrier leak at the final door', text: 'A weak carrier wave leaks through the seal of bulkhead 0. Same modulation as the transmission that used my voiceprint.\n\nAssessment: the voice originates from, or is relayed through, whatever lies behind the final door. This does not establish who is speaking.' },
+    e1_echo: { cat: 'SIGNAL', title: 'Archived trace, machine hall', text: 'The hall projector holds an older recording than the five-second trace that follows me.\n\nThe archived figure crosses the hall, stops in front of the final door, waits, and withdraws without touching it. Height and stride match my own profile.\n\nAssessment: a recorded trace. Not a person, not proof of anything about when it was captured. But whoever was recorded made the same decision I did.' },
+  },
+  migrate(g) { for (const k of ['logA', 'logB', 'logC']) if (g.flags[k]) g.addLog(k); g.stats.logs = g.caseFile.logs.filter(l => l.m === 'm1').length; },
+  onEvidence(id, g) {
+    if (id === 'e1_drag') { const c = g.ent('cell'); if (c.hidden) { c.hidden = false; c.pingT = g.time + 4; g.toast('THE DRAG MARKS END IN THE DEBRIS — POWER CELL LOCATED', 3.5); } }
+    if (id === 'e1_cradle') g.say([{ s: 'WRAITH', t: 'A loop, not a hunter. It sees forward, poorly, and worse in the dark. I can work with that.' }]);
+  },
+  onEcho(id, g) {
+    g.addEvidence('e1_echo'); const c = g.ent('c_carrier'); c.hidden = false; c.scanned = true; c.pingT = g.time + 4;
+    g.say([{ s: 'WRAITH', t: 'An older recording. It walked to the final door, stopped, and left it shut. Something by the door is still transmitting.' }]);
+  },
+  ending(g) {
+    return { title: 'SECTOR ONE: EXITED', lines: [`EVIDENCE LOGGED ......... ${g.evCount('m1')} / 5`, `DATA LOGS RECOVERED ..... ${g.caseFile.logs.filter(l => l.m === 'm1').length} / 3`, '', 'FACILITY ORIGIN ......... UNRESOLVED', 'TRANSMISSION SOURCE ..... INSIDE THE SECTOR', 'FINAL DOOR .............. SEALED', '', 'MISSION 02 AUTHORIZED: BELOW THE SILENCE'] };
+  },
   start: { x: 3.5 * T, y: 14 * T, dir: 'right' },
 
   buildMap() {
@@ -99,6 +121,13 @@ export const mission1 = {
       { id: 'mark', type: 'marking', tx: 39, ty: 10, w: 2, hidden: true },
       { id: 'lever', type: 'lever', tx: 37, ty: 19, solid: true, interact: true },
       { id: 'padC', type: 'pad', tx: 43, ty: 20 },
+      { id: 'lockA', type: 'locker', tx: 30, ty: 4, solid: true, interact: true },
+      { id: 'lockB', type: 'locker', tx: 16, ty: 17, solid: true, interact: true },
+      { id: 'c_prints', type: 'clue', kind: 'clue', ev: 'e1_prints', name: 'DUST PRINTS', tx: 5, ty: 14, hidden: true, interact: true },
+      { id: 'c_drag', type: 'clue', kind: 'clue', ev: 'e1_drag', name: 'DRAG MARKS', tx: 20, ty: 20, hidden: true, interact: true },
+      { id: 'c_cradle', type: 'clue', kind: 'machine', ev: 'e1_cradle', name: 'UNIT CRADLE', tx: 33, ty: 4, solid: true, interact: true },
+      { id: 'c_carrier', type: 'clue', kind: 'signal', ev: 'e1_carrier', name: 'CARRIER LEAK', tx: 26, ty: 5, hidden: true, interact: true },
+      { id: 'proj', type: 'projector', tx: 22, ty: 4, solid: true, interact: true, path: [[17, 14], [17, 10], [24, 10], [24, 5], [24, 7]] },
     ];
   },
 
@@ -147,7 +176,8 @@ export const mission1 = {
         { s: 'WRAITH', t: 'Movement. Behind me. ...Same height. Same stride. It is walking where I walked, five seconds late.' },
         { s: 'WRAITH', t: 'No frame. No mind. Not a person: a projection. The facility is recording my movements and playing them back.' },
         { s: 'SYSTEM', t: 'Automated security unit detected. Obsolete, malfunctioning, non-sentient. It investigates disturbances, including the trace.' },
-        { s: 'WRAITH', t: 'A scanner pulse at close range should disrupt it for a few seconds. Lights off makes me harder to track.' },
+        { s: 'WRAITH', t: 'A scanner pulse at close range should disrupt it for a few seconds. Lights off makes me harder to track. The wall alcoves are deep enough to stand in.' },
+        { s: 'SYSTEM', t: 'Scanner also marks anomalies as evidence. EXAMINE marked evidence to log it in the case file (C).' },
       ], () => g.checkpoint(true));
     }
     if (!f.cRoom && p.x > 37 * T + 4) {
@@ -187,7 +217,7 @@ export const mission1 = {
 
   interact(e, g) {
     const f = g.flags, W1 = (t) => g.say([{ s: 'WRAITH', t }]);
-    const readLog = (key) => { if (!f[key]) { f[key] = true; g.stats.logs++; return true; } return false; };
+    const readLog = (key) => { g.addLog(key); if (!f[key]) { f[key] = true; return true; } return false; };
     switch (e.id) {
       case 'hatch': return g.say([{ s: 'SYSTEM', t: 'ENTRY HATCH: SEALED. No command was issued from this side.' }, { s: 'WRAITH', t: 'Then I find another way out. Mira will want the long route documented anyway.' }]);
       case 'termA': return g.terminal('TERMINAL 01 // INTAKE', LOG_A, () => {

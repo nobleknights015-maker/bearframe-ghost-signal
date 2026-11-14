@@ -28,21 +28,28 @@ addEventListener('resize', fit); addEventListener('orientationchange', () => set
 function refreshTouch() { ui.show('touch', touchMode() && game.mode !== 'title' && game.mode !== 'ending'); }
 function showTitle() {
   game.mode = 'title'; ['pause', 'settings', 'ending', 'hud', 'dialog', 'terminal'].forEach(id => ui.show(id, false));
-  ui.show('title', true); $('btn-continue').disabled = !store.load(); refreshTouch();
-  const c = $('title-sprite').getContext('2d'); c.clearRect(0, 0, FW, FH); c.drawImage(game.sheet, 0, 0, FW, FH, 0, 0, FW, FH);
+  ['casefile'].forEach(id => ui.show(id, false));
+  ui.show('title', true); $('btn-continue').disabled = !store.load(); ui.show('btn-m2', !!store.loadProgress().unlocked.m2); refreshTouch();
 }
-function begin(snap) {
-  sfx.init(); ui.show('title', false);
-  game.start(MISSIONS[(snap && snap.mission) || FIRST_MISSION], snap); refreshTouch();
+function titleSprite(now) {
+  const c = $('title-sprite').getContext('2d'), f = 4 + (Math.floor(now / 700) % 2); c.clearRect(0, 0, FW, FH); c.drawImage(game.sheet, f * FW, 0, FW, FH, 0, 0, FW, FH);
+}
+function begin(snap, missionId) {
+  sfx.init(); ui.show('title', false); ui.show('ending', false);
+  const id = (snap && snap.mission) || missionId || FIRST_MISSION; let carry = null;
+  if (!snap && id !== FIRST_MISSION) { const pc = store.loadProgress().case; if (pc) carry = { ev: pc.ev.filter(e => e.m !== id), logs: pc.logs.filter(l => l.m !== id) }; }
+  game.start(MISSIONS[id], snap, carry); refreshTouch();
   try { if (coarse && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {}); } catch (_) {}
 }
 
 game.onPause = () => { game.mode = 'pause'; ui.objectives(game.m.objectives(game)); $('pause-note').textContent = ''; ui.show('pause', true); sfx.blip(); };
 game.onResume = () => { ui.show('pause', false); ui.show('settings', false); game.mode = 'play'; };
-game.onEnd = (stats, time) => {
+game.onEnd = (g) => {
+  const time = g.time, stats = g.stats, e = g.m.ending(g);
   const mm = String(Math.floor(time / 60)).padStart(2, '0'), ss = String(Math.floor(time % 60)).padStart(2, '0');
-  $('ending-stats').textContent = `TIME INSIDE ............. ${mm}:${ss}\nDATA LOGS RECOVERED ..... ${stats.logs} / 3\nSCANNER PULSES .......... ${stats.scans}\nSECURITY UNIT CONTACTS .. ${stats.hits}\nCHECKPOINT RESTORES ..... ${stats.restores}\n\nFACILITY ORIGIN ......... UNRESOLVED\nTRANSMISSION SOURCE ..... UNRESOLVED\nFINAL DOOR .............. SEALED\n\nTO BE CONTINUED.`;
-  ui.show('ending', true); refreshTouch();
+  $('ending-title').textContent = e.title;
+  $('ending-stats').textContent = `TIME INSIDE ............. ${mm}:${ss}\nSCANNER PULSES .......... ${stats.scans}\nSECURITY UNIT CONTACTS .. ${stats.hits}\nCHECKPOINT RESTORES ..... ${stats.restores}\n` + e.lines.join('\n');
+  ui.show('btn-next', !!g.m.next); ui.show('ending', true); refreshTouch();
 };
 
 $('btn-new').onclick = () => begin(null);
@@ -52,6 +59,10 @@ $('btn-resume').onclick = () => game.onResume();
 $('btn-save').onclick = () => { $('pause-note').textContent = game.checkpoint(true) ? 'Field record saved to this device.' : 'Could not write to device storage.'; };
 $('btn-quit').onclick = () => { game.checkpoint(true); showTitle(); };
 $('btn-ending-title').onclick = showTitle;
+$('btn-m2').onclick = () => begin(null, 'm2');
+$('btn-next').onclick = () => begin(null, game.m.next);
+$('btn-case').onclick = () => game.openCase();
+$('btn-pause-case').onclick = () => game.openCase();
 
 let settingsFrom = 'title';
 const openSettings = from => { settingsFrom = from; ui.show(from, false); syncSettings(); ui.show('settings', true); };
@@ -74,7 +85,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && gam
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
-  game.update(dt); game.render();
+  game.update(dt); if (game.mode === 'title') titleSprite(now); else game.render();
   $('t-light').classList.toggle('on', !!(game.player && game.player.light));
   requestAnimationFrame(loop);
 }

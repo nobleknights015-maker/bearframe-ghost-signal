@@ -1,6 +1,6 @@
 // Keyboard + touch input. Movement is strictly four-directional (last pressed direction wins).
 const MOVE = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
-const ACT = { KeyE: 'interact', Space: 'interact', Enter: 'interact', KeyF: 'light', KeyQ: 'scan', ShiftLeft: 'scan', Escape: 'pause', KeyP: 'pause' };
+const ACT = { KeyE: 'interact', Space: 'interact', Enter: 'interact', KeyF: 'light', KeyQ: 'scan', ShiftLeft: 'scan', Escape: 'pause', KeyP: 'pause', KeyC: 'case', Digit1: 'opt1', Digit2: 'opt2' };
 
 export class Input {
   constructor() {

@@ -21,12 +21,14 @@
         <div class="hud-label">WTR-07 // ENERGY <span id="energy-value" data-testid="energy-value">100</span></div>
         <div class="bar"><div id="energy-fill" data-testid="energy-fill"></div></div>
         <div id="hud-status" data-testid="hud-status"></div>
+        <div id="hud-stealth" data-testid="hud-stealth">UNDETECTED</div>
       </div>
       <div class="hud-obj">
         <div class="hud-label">OBJECTIVE</div>
         <div id="objective-text" data-testid="objective-text"></div>
       </div>
       <button id="btn-pause" class="pix-btn" data-testid="pause-button" aria-label="Pause">II</button>
+      <button id="btn-case" class="pix-btn case" data-testid="case-button" aria-label="Case file">CF</button>
       <div id="prompt" class="hidden" data-testid="interact-prompt"></div>
       <div id="toast" class="hidden" data-testid="toast"></div>
     </div>
@@ -43,6 +45,7 @@
     <div id="dialog" class="hidden" data-testid="dialog-box">
       <div id="dialog-speaker" data-testid="dialog-speaker"></div>
       <div id="dialog-text" data-testid="dialog-text"></div>
+      <div id="dialog-choices" data-testid="dialog-choices"></div>
       <div class="dialog-next">&#9660;</div>
     </div>
 
@@ -63,6 +66,7 @@
         <div class="menu">
           <button id="btn-continue" class="menu-btn" data-testid="continue-button">CONTINUE</button>
           <button id="btn-new" class="menu-btn" data-testid="new-game-button">NEW RECONNAISSANCE</button>
+          <button id="btn-m2" class="menu-btn hidden" data-testid="mission2-button">MISSION 02 &mdash; BELOW THE SILENCE</button>
           <button id="btn-title-settings" class="menu-btn" data-testid="title-settings-button">SETTINGS</button>
         </div>
         <div class="motto">"Different department. Same objective."</div>
@@ -75,6 +79,7 @@
         <div class="col">
           <h2>RECON SUSPENDED</h2>
           <button id="btn-resume" class="menu-btn" data-testid="resume-button">RESUME</button>
+          <button id="btn-pause-case" class="menu-btn" data-testid="pause-case-button">CASE FILE &amp; LOG ARCHIVE</button>
           <button id="btn-pause-settings" class="menu-btn" data-testid="pause-settings-button">SETTINGS</button>
           <button id="btn-save" class="menu-btn" data-testid="save-button">SAVE FIELD RECORD</button>
           <button id="btn-quit" class="menu-btn" data-testid="quit-button">SAVE &amp; EXIT TO TITLE</button>
@@ -83,7 +88,7 @@
         <div class="col">
           <h2>OBJECTIVES</h2>
           <ul id="objective-list" data-testid="objective-list"></ul>
-          <div class="fine keys">MOVE WASD / ARROWS &middot; USE E &middot; LIGHT F &middot; SCAN Q &middot; PAUSE ESC</div>
+          <div class="fine keys">MOVE WASD / ARROWS &middot; USE E &middot; LIGHT F &middot; SCAN Q &middot; CASE FILE C &middot; PAUSE ESC</div>
         </div>
       </div>
     </div>
@@ -101,9 +106,20 @@
     <div id="ending" class="overlay hidden" data-testid="ending-screen">
       <div class="panel">
         <div class="kicker">WATCHTOWER FIELD RECORD &mdash; CLOSED PENDING REVIEW</div>
-        <h2>SECTOR ONE: EXITED</h2>
+        <h2 id="ending-title" data-testid="ending-title">SECTOR ONE: EXITED</h2>
         <pre id="ending-stats" data-testid="ending-stats"></pre>
-        <button id="btn-ending-title" class="menu-btn" data-testid="ending-title-button">RETURN TO TITLE</button>
+        <div class="btn-row">
+          <button id="btn-next" class="menu-btn hidden" data-testid="next-mission-button">PROCEED TO MISSION 02</button>
+          <button id="btn-ending-title" class="menu-btn" data-testid="ending-title-button">RETURN TO TITLE</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="casefile" class="overlay hidden" data-testid="case-file">
+      <div class="panel case">
+        <div class="case-head"><h2>WATCHTOWER CASE FILE // WTR-07</h2><button id="case-close" class="menu-btn sm" data-testid="case-close">CLOSE</button></div>
+        <div class="btn-row"><button id="tab-ev" class="menu-btn sm" data-testid="case-tab-evidence"></button><button id="tab-logs" class="menu-btn sm" data-testid="case-tab-logs"></button></div>
+        <div class="case-body"><ul id="case-list" data-testid="case-list"></ul><pre id="case-detail" data-testid="case-detail"></pre></div>
       </div>
     </div>
 

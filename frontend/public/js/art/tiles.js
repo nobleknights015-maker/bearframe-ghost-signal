@@ -75,6 +75,15 @@ function hazard(c, p) {
   }
 }
 
+function rack(c, p) {
+  const X = p.x * T, Y = p.y * T, W = p.w * T, H = p.h * T;
+  R(c, '#0d0e0a', X + 2, Y + 1, W - 4, H - 2); R(c, '#2a2d20', X + 2, Y + 1, W - 4, 2);
+  for (let y = 5; y < H - 6; y += 9) {
+    R(c, '#3b3f2c', X + 3, Y + y + 7, W - 6, 1);
+    for (let x = 4; x < W - 7; x += 5) { const v = hsh(p.x * 9 + x, p.y * 9 + y, 2); if (v < .18) continue; R(c, v > .6 ? '#6e6537' : '#4f6b5c', X + x, Y + y, 4, 7); R(c, v > .6 ? '#8a7f49' : '#6b8a78', X + x, Y + y, 1, 7); if (v > .85) R(c, '#c9b860', X + x + 1, Y + y + 3, 2, 1); }
+  }
+}
+
 export function bakeMap(map, mission) {
   const cv = document.createElement('canvas'); cv.width = map.w * T; cv.height = map.h * T;
   const c = cv.getContext('2d');
@@ -85,7 +94,7 @@ export function bakeMap(map, mission) {
     if (g === 2) floor(c, x, y, at(x, y - 1) === 1);
     else if (g === 1) { if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
   }
-  const draw = { machine, crate, debris, cable, hazard };
+  const draw = { machine, crate, debris, cable, hazard, rack };
   for (const p of mission.props) draw[p.t](c, p);
   return cv;
 }
@@ -173,6 +182,99 @@ export function drawEntity(c, e, g) {
       R(c, `rgba(255,176,32,${.35 + .35 * Math.sin(t * 1.3)})`, X + W / 2 + 6, Y + 10, 3, 3);
       break;
     }
+    case 'locker': {
+      R(c, '#15170f', X + 2, Y, 28, 31); R(c, '#3b3f2c', X + 3, Y + 1, 26, 2); R(c, '#3b3f2c', X + 3, Y + 1, 3, 29); R(c, '#3b3f2c', X + 26, Y + 1, 3, 29);
+      R(c, '#050607', X + 6, Y + 3, 20, 27);
+      for (let i = 0; i < 5; i++) R(c, i % 2 ? '#85752c' : '#15171a', X + 6 + i * 4, Y + 28, 4, 2);
+      if (g.player.hidden === e) { R(c, '#ff3b30', X + 12, Y + 9, 2, 1); R(c, '#ff3b30', X + 17, Y + 9, 2, 1); R(c, '#7a1410', X + 15, Y + 17, 2, 3); R(c, '#2a2a30', X + 11, Y + 6, 9, 1); }
+      break;
+    }
+    case 'clue': {
+      const bl = !e.done && (t * 3 | 0) % 2, mk = e.done ? '#2f6b4a' : '#ff3b30';
+      if (e.kind === 'machine') {
+        R(c, '#15170f', X + 2, Y + 2, 28, 29); R(c, '#3b3f2c', X + 3, Y + 3, 26, 14); R(c, '#2a2d20', X + 3, Y + 17, 26, 13);
+        R(c, '#07090a', X + 8, Y + 7, 14, 9); R(c, '#7a2b2b', X + 10, Y + 9, 1, 9); R(c, '#2b5a6a', X + 14, Y + 9, 1, 12); R(c, '#85752c', X + 18, Y + 9, 1, 7);
+        R(c, '#5a3220', X + 5, Y + 20, 6, 3); R(c, '#6b3a22', X + 20, Y + 24, 5, 2);
+        if ((t * 9 + e.tx | 0) % 7 === 0) R(c, '#fff3c0', X + 9 + hsh(t * 9 | 0, e.tx) * 10, Y + 8 + hsh(e.ty, t * 9 | 0) * 6, 2, 2);
+        R(c, e.done ? '#7dffb0' : e.scanned ? (bl ? '#ff3b30' : '#7a1410') : '#3a1512', X + 24, Y + 5, 2, 2);
+      } else if (e.kind === 'signal') {
+        const k = e.done ? .3 : .5 + .5 * Math.sin(t * 5), col = `rgba(125,255,176,${k})`;
+        for (let i = 0; i < 3; i++) { const s = 4 + i * 5 + (e.done ? 0 : (t * 6 | 0) % 3); R(c, col, X + 16 - s, Y + 16 - s, s * 2, 1); R(c, col, X + 16 - s, Y + 16 + s, s * 2 + 1, 1); R(c, col, X + 16 - s, Y + 16 - s, 1, s * 2); R(c, col, X + 16 + s, Y + 16 - s, 1, s * 2); }
+        R(c, '#7dffb0', X + 15, Y + 15, 2, 2);
+      } else {
+        const col = e.done ? '#4a5258' : '#9aa3aa';
+        [[8, 8], [15, 14], [9, 20], [17, 25]].forEach(([a, b], i) => { R(c, col, X + a, Y + b, 4, 2); R(c, col, X + a + (i % 2 ? -1 : 1), Y + b + 2, 3, 2); });
+        if (!e.done) { R(c, bl ? mk : '#7a1410', X + 3, Y + 3, 5, 1); R(c, bl ? mk : '#7a1410', X + 3, Y + 3, 1, 5); R(c, bl ? mk : '#7a1410', X + 24, Y + 28, 5, 1); R(c, bl ? mk : '#7a1410', X + 28, Y + 24, 1, 5); }
+      }
+      break;
+    }
+    case 'projector': {
+      const on = g.echo && g.echo.id === e.id, k = on ? 1 : .4 + .2 * Math.sin(t * 2);
+      R(c, '#15170f', X + 5, Y + 6, 22, 25); R(c, '#3b3f2c', X + 6, Y + 7, 20, 10); R(c, '#2a2d20', X + 6, Y + 17, 20, 13);
+      R(c, '#0d0e0a', X + 10, Y + 9, 12, 6); R(c, `rgba(255,190,90,${k})`, X + 12, Y + 10, 8, 4); R(c, '#6e6537', X + 8, Y + 21, 16, 2);
+      for (let i = 0; i < 3; i++) R(c, on && ((t * 8 | 0) + i) % 3 === 0 ? '#ffbe5a' : '#6b4a12', X + 9 + i * 5, Y + 25, 3, 2);
+      break;
+    }
+    case 'jet': {
+      const s = g.jetState(e);
+      R(c, '#0c1012', X + 9, Y + 9, 14, 14); R(c, '#3b3f2c', X + 9, Y + 9, 14, 1); R(c, '#3b3f2c', X + 9, Y + 22, 14, 1); R(c, '#3b3f2c', X + 9, Y + 9, 1, 14); R(c, '#3b3f2c', X + 22, Y + 9, 1, 14);
+      R(c, s ? '#85752c' : '#2a2d20', X + 14, Y + 14, 4, 4);
+      if (s) for (let i = 0; i < (s === 2 ? 14 : 3); i++) { const q = (t * 12 | 0) + i * 7; R(c, `rgba(220,230,235,${s === 2 ? .25 + hsh(q, i) * .5 : .3})`, X + 4 + hsh(q, e.tx + i) * (s === 2 ? 22 : 12) + (s === 2 ? 0 : 6), Y + (s === 2 ? -6 : 8) + hsh(e.ty + i, q) * (s === 2 ? 30 : 10), 3 + (i % 3), 3 + (i % 2)); }
+      break;
+    }
+    case 'steamwall': {
+      R(c, '#3b3f2c', X + 12, Y, 8, 3); R(c, '#3b3f2c', X + 12, Y + H - 3, 8, 3);
+      if (g.m.blocked(e, g)) for (let i = 0; i < 46; i++) { const q = (t * 14 | 0) + i * 5; R(c, `rgba(220,230,235,${.2 + hsh(q, i) * .5})`, X - 4 + hsh(q, i + 3) * (W + 2), Y + hsh(i, q) * (H - 4), 4 + (i % 4), 3 + (i % 3)); }
+      break;
+    }
+    case 'lens': {
+      const off = e.offT > t;
+      R(c, '#15170f', X + 11, Y + 4, 10, 26); R(c, '#3b3f2c', X + 12, Y + 5, 8, 24); R(c, '#15170f', X + 7, Y + 6, 18, 12); R(c, '#4d5136', X + 8, Y + 7, 16, 10);
+      const a = e.ang === undefined ? e.base : e.ang, lx = Math.round(Math.cos(a) * 4), ly = Math.round(Math.sin(a) * 2);
+      R(c, '#0d0e0a', X + 12 + lx, Y + 9 + ly, 8, 6); R(c, off ? '#1c1e15' : e.al > 0 ? '#ff5a1f' : '#ffb020', X + 13 + lx, Y + 10 + ly, 6, 4);
+      if (off && (t * 10 | 0) % 3 === 0) R(c, '#fff3c0', X + 9 + hsh(t * 10 | 0, 2) * 12, Y + 6 + hsh(3, t * 10 | 0) * 8, 2, 2);
+      break;
+    }
+    case 'valve': {
+      const on = (f.v || [])[e.n - 1];
+      R(c, '#15170f', X + 4, Y + 1, 24, 30); R(c, '#3b3f2c', X + 5, Y + 2, 22, 28); R(c, '#6e6537', X, Y + 20, 32, 5); R(c, '#8a7f49', X, Y + 20, 32, 1);
+      R(c, '#0d0e0a', X + 9, Y + 7, 14, 14);
+      if (on) { R(c, '#b02a36', X + 15, Y + 8, 2, 12); R(c, '#b02a36', X + 10, Y + 13, 12, 2); } else for (let i = 0; i < 11; i++) { R(c, '#8a1a26', X + 10 + i, Y + 8 + i, 2, 2); R(c, '#8a1a26', X + 20 - i, Y + 8 + i, 2, 2); }
+      R(c, '#c9b860', X + 15, Y + 13, 2, 2); R(c, f.vent ? '#7dffb0' : on ? '#ffb020' : '#3a1512', X + 23, Y + 4, 2, 2); roman(c, X + 7, Y + 23, e.n, '#15170f');
+      break;
+    }
+    case 'sensor': {
+      const safe = (f.safe || []).includes(e.k), bad = e.badT > t;
+      R(c, bad ? '#b02a20' : safe ? '#2f6b4a' : '#2c383d', X + 3, Y + 3, 26, 1); R(c, bad ? '#b02a20' : safe ? '#2f6b4a' : '#2c383d', X + 3, Y + 28, 26, 1);
+      R(c, bad ? '#b02a20' : safe ? '#2f6b4a' : '#2c383d', X + 3, Y + 3, 1, 26); R(c, bad ? '#b02a20' : safe ? '#2f6b4a' : '#2c383d', X + 28, Y + 3, 1, 26);
+      R(c, bad ? '#ff5a1f' : safe ? '#7dffb0' : '#3a474f', X + 15, Y + 15, 2, 2);
+      break;
+    }
+    case 'item': {
+      R(c, '#15170f', X + 7, Y + 14, 18, 16); R(c, '#3b3f2c', X + 8, Y + 15, 16, 5); R(c, '#2a2d20', X + 8, Y + 20, 16, 9);
+      R(c, '#15170f', X + 11, Y + 3, 10, 13); R(c, '#6e6537', X + 12, Y + 4, 8, 11); R(c, '#8a7f49', X + 12, Y + 4, 2, 11); R(c, '#4f6b5c', X + 12, Y + 8, 8, 2);
+      R(c, `rgba(255,190,90,${.5 + .5 * Math.sin(t * 4)})`, X + 15, Y + 5, 2, 2);
+      break;
+    }
+    case 'grate': {
+      R(c, '#0c1012', X + 3, Y + 3, 26, 26);
+      for (let i = 5; i < 27; i += 4) R(c, '#3a474f', X + 4 + (i % 8 ? 0 : 1), Y + i, 24, 2);
+      R(c, '#5a3220', X + 3, Y + 3, 3, 3); R(c, '#85752c', X + 25, Y + 25, 3, 3);
+      break;
+    }
+    case 'npc': {
+      const sw = Math.round(Math.sin(t * 1.1) * 1), bx = X + 6 + sw, by = Y - 16, k = .55 + .45 * Math.sin(t * 1.7);
+      R(c, 'rgba(0,0,0,.45)', X + 6, Y + 27, 20, 4);
+      R(c, '#1d2a26', bx + 4, by + 12, 12, 24); R(c, '#4f6b5c', bx + 5, by + 13, 10, 12); R(c, '#6b8a78', bx + 5, by + 13, 2, 12); R(c, '#3d5448', bx + 6, by + 25, 8, 10);
+      R(c, '#8a7f49', bx + 3, by + 12, 14, 2); R(c, '#6e6537', bx + 9, by + 16, 2, 6);
+      R(c, '#1d2a26', bx + 1, by + 14, 3, 20); R(c, '#4f6b5c', bx + 1, by + 15, 2, 9); R(c, '#8a7f49', bx + 1, by + 24, 3, 1); R(c, '#3d5448', bx + 1, by + 25, 2, 9);
+      R(c, '#1d2a26', bx + 16, by + 14, 3, 20); R(c, '#4f6b5c', bx + 17, by + 15, 2, 9); R(c, '#8a7f49', bx + 16, by + 24, 3, 1); R(c, '#3d5448', bx + 17, by + 25, 2, 9);
+      R(c, '#1d2a26', bx + 5, by + 35, 4, 11); R(c, '#3d5448', bx + 6, by + 35, 2, 10); R(c, '#1d2a26', bx + 11, by + 35, 4, 11); R(c, '#3d5448', bx + 12, by + 35, 2, 10); R(c, '#8a7f49', bx + 5, by + 40, 4, 1); R(c, '#8a7f49', bx + 11, by + 40, 4, 1);
+      R(c, '#1d2a26', bx + 5, by, 10, 12); R(c, '#4f6b5c', bx + 6, by + 1, 8, 10); R(c, '#6b8a78', bx + 6, by + 1, 8, 1); R(c, '#0d1412', bx + 6, by + 4, 8, 3);
+      R(c, `rgba(191,233,255,${k})`, bx + 7, by + 5, 6, 1); R(c, '#5a3220', bx + 11, by + 8, 2, 2);
+      R(c, '#0a0c0d', bx + 3, by + 9, 1, 14); R(c, '#0a0c0d', bx + 16, by + 9, 1, 11); R(c, '#2b5a6a', bx + 3, by + 22, 1, 1);
+      break;
+    }
     case 'marking': {
       const k = e.pingT && e.pingT > t ? 1 : .6, col = `rgba(201,184,96,${k})`;
       roman(c, X + 10, Y + 12, 2, col); roman(c, X + 26, Y + 12, 3, col); roman(c, X + 45, Y + 12, 1, col);
@@ -194,6 +296,7 @@ export function drawDrone(c, d, t) {
   if (d.dir !== 'up') { R(c, '#0d0e0a', X + lx - 1, Y + 6, 8, 7); R(c, col, X + lx, Y + 7, 6, 5); if (!off) R(c, '#fff3c0', X + lx + 1, Y + 8, 2, 1); }
   else R(c, col, X + 9, Y + 4, 4, 1);
   if (off && (t * 10 | 0) % 3 === 0) { R(c, '#fff3c0', X + 4 + hsh(t | 0, (t * 10 | 0)) * 14, Y + 2 + hsh((t * 10 | 0), 3) * 12, 2, 2); }
+  if (d.alert > .05 && d.state !== 'chase' && !off) { R(c, '#15170f', X + 3, Y - 8, 16, 4); R(c, d.alert > .6 ? '#ff5a1f' : '#ffe070', X + 4, Y - 7, Math.round(14 * d.alert), 2); }
   if (d.state === 'chase') { R(c, '#ff3b30', X + 10, Y - 12, 2, 6); R(c, '#ff3b30', X + 10, Y - 5, 2, 2); }
-  if (d.state === 'investigate') { R(c, '#ffe070', X + 9, Y - 12, 4, 1); R(c, '#ffe070', X + 12, Y - 11, 1, 3); R(c, '#ffe070', X + 10, Y - 8, 2, 1); R(c, '#ffe070', X + 10, Y - 5, 2, 2); }
+  if (d.state === 'investigate' && !(d.alert > .05)) { R(c, '#ffe070', X + 9, Y - 12, 4, 1); R(c, '#ffe070', X + 12, Y - 11, 1, 3); R(c, '#ffe070', X + 10, Y - 8, 2, 1); R(c, '#ffe070', X + 10, Y - 5, 2, 2); }
 }
