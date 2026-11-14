@@ -8,3 +8,8 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Reproducible review intermediates (keep curated comparisons and results).
+docs/sprite-studio-sleek/frames/
+docs/sprite-studio-sleek/export-test.zip
+docs/sprite-studio-sleek/preview-index.json

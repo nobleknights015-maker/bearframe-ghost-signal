@@ -5,7 +5,7 @@ import { MACHINE_PRESETS } from './lib/machine-presets.js';
 import * as SS from './lib/sprite-sheet.js';
 import { initRefUI } from './ref-ui.js';
 
-const $ = id => document.getElementById(id), LS = 'bearframe_sprite_studio_autosave_v2';
+const $ = id => document.getElementById(id), LS = 'bearframe_sprite_studio_sleek_copy_autosave_v1';
 const EXAMPLES = ['wraith-wtr07', 'heavy-sentinel', 'hexapod-cartography-engine', 'archive-sentinel', 'micro-drone'];
 let P, S, cur = { dir: 'down', a: 0, f: 0 }, tool = 'pencil', color = '#ff3b30', zoom = 8, clip = null, undo = [], ref = null, playing = true, busy = false, pivots = [], saveT = 0;
 const A = () => S.anims[cur.a], C = () => SS.cell(S, cur.dir, A().name, cur.f), K = () => SS.key(cur.dir, A().name, cur.f);
@@ -53,7 +53,8 @@ function buildCfg() {
   if (P.kind === 'humanoid') {
     const c = P.cfg, up = (k, v) => { c[k] = v; regenSoon(); };
     box.append(field('Preset', sel(['—', ...Object.keys(PRESETS)], '—', v => { if (PRESETS[v]) { P.cfg = JSON.parse(JSON.stringify(PRESETS[v])); buildCfg(); buildPalette(); regenSoon(); } }, 'humanoid-preset')),
-      field('Head', sel(['visor', 'mono', 'band'], c.head, v => up('head', v), 'cfg-head')), field('Armor', sel(['light', 'plated', 'heavy'], c.armor, v => up('armor', v), 'cfg-armor')),
+      field('Style', sel(['classic', 'sleek'], c.style || 'classic', v => up('style', v), 'cfg-style')),
+      field('Head', sel(['visor', 'mono', 'band', 'display'], c.head, v => up('head', v), 'cfg-head')), field('Armor', sel(['light', 'plated', 'heavy'], c.armor, v => up('armor', v), 'cfg-armor')),
       field('Cloak', sel(['none', 'short', 'long'], c.cloak, v => up('cloak', v), 'cfg-cloak')), field('Limb build', range(-1, 1, 1, c.build, v => up('build', v), 'cfg-build')), field('Damage', range(0, 3, 1, c.damage, v => up('damage', v), 'cfg-damage')));
     ['fins', 'modules', 'pouches', 'harness', 'backpack', 'antenna'].forEach(k => { const i = el('input', { type: 'checkbox', checked: !!c[k] }); i.dataset.testid = 'cfg-' + k; i.onchange = () => up(k, i.checked); box.append(el('label', { className: 'chk' }, [i, k])); });
     box.append(colors(c.colors, Object.keys(c.colors)));
@@ -62,6 +63,7 @@ function buildCfg() {
     if (r.ref) box.append(el('div', { className: 'hint', textContent: 'Reference-derived rig (' + r.ref.type + '): part pixels come from the reference artwork. Fix pixels in the editor, tune joints and motion below, or re-run Reference → Sprite.' }));
     box.append(field('Rig preset', sel(['—', ...Object.keys(MACHINE_PRESETS)], '—', v => { if (MACHINE_PRESETS[v] && confirm('Replace this project with the "' + v + '" rig?')) setProject(SS.machineProject(v.split(' (')[0], MACHINE_PRESETS[v]())); }, 'machine-preset')),
       el('div', { className: 'hint', textContent: `Design grid ${r.w}×${r.h}. ${Object.keys(r.views).join(' / ')} views.` }));
+    if (!r.ref) box.append(field('Style', sel(['classic', 'sleek'], r.style || 'classic', v => { r.style = v; regenSoon(); }, 'machine-style')));
     ['rust', 'moss', 'wear'].forEach(k => box.append(field('Weathering: ' + k, range(0, 1, .05, r.weather[k] || 0, v => { r.weather[k] = v; regenSoon(); }, 'weather-' + k))));
     box.append(colors(r.colors, COLOR_ROLES));
   } else box.append(el('div', { className: 'hint', textContent: 'Hand-drawn project. Use the pixel tools, import a PNG sheet, or switch type to start from a rig.' }));

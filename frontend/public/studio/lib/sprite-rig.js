@@ -7,6 +7,7 @@
 // pixel-level detail instead of being a scaled-up small sprite.
 export const DIRS = ['down', 'up', 'right', 'left'];
 export const DEFAULT_CFG = {
+  style: 'sleek', // Omitted on older projects: retain their pixel-exact classic rendering.
   head: 'visor', fins: true, modules: true, armor: 'plated', cloak: 'long', build: 0,
   pouches: true, harness: true, backpack: false, antenna: false, damage: 0,
   colors: { armor: '#d2ccd0', trim: '#3b3c47', under: '#121117', glow: '#ff3b30', cloak: '#8f1d2a', leather: '#44342c' },
@@ -48,11 +49,39 @@ export function poseFor(anim, i, n) {
 export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
   const cv = document.createElement('canvas'); cv.width = fw; cv.height = fh; const c = cv.getContext('2d');
   const K = Math.min(fw / 32, fh / 56), ox = Math.round((fw - 32 * K) / 2) + Math.round((pose.lean || 0) * K), oy = Math.round(fh - 56 * K);
-  const P = palette(cfg.colors), hi = K >= 1.5;
+  const P = palette(cfg.colors), hi = K >= 1.5, sleek = cfg.style === 'sleek';
   const X = x => ox + Math.round(x * K), Y = y => oy + Math.round(y * K);
   const r = (x, y, w, h, col) => { const x0 = X(x), y0 = Y(y), W = Math.max(1, X(x + w) - x0), H = Math.max(1, Y(y + h) - y0); if (w > 0 && h > 0) { c.fillStyle = col; c.fillRect(x0, y0, W, H); } };
+  const module = (x, y, w, h, glow) => {
+    // Side-head display, sampled on the output grid without antialiasing.
+    const x0 = X(x), y0 = Y(y), W = X(x + w) - x0, H = Y(y + h) - y0;
+    for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+      const nx = (px + .5) / W * 2 - 1, ny = (py + .5) / H * 2 - 1, q = nx * nx + ny * ny;
+      if (q >= 1) continue;
+      c.fillStyle = q > .65 ? (nx + ny < 0 ? P.S : P.Gd) : q > .3 ? glow : P.Rd;
+      c.fillRect(x0 + px, y0 + py, 1, 1);
+    }
+  };
   const pl = (x, y, w, h, dk) => { // shaded plate with pixel-true bevels; adds seams + rivets at higher resolutions
     if (w <= 0 || h <= 0) return; const x0 = X(x), y0 = Y(y), W = Math.max(1, X(x + w) - x0), H = Math.max(1, Y(y + h) - y0);
+    if (sleek && W >= 3 && H >= 4) {
+      // Contour the armor inside its existing envelope. Joint locations, limb lengths,
+      // foot registration and animation poses are shared with the classic renderer.
+      const cut = Math.max(1, Math.floor(Math.min(W * .22, H * .2, 2 * K)));
+      for (let row = 0; row < H; row++) {
+        const corner = Math.max(0, cut - row, cut - (H - 1 - row));
+        const taper = H > W * 1.25 ? Math.floor(Math.max(0, row / (H - 1) - .45) * W * .22) : 0;
+        const inset = Math.max(corner, taper), span = W - inset * 2;
+        if (span <= 0) continue;
+        c.fillStyle = row === 0 ? (dk ? P.W : P.Wh) : row === H - 1 ? (dk ? P.D : P.S) : (dk ? P.S : P.W);
+        c.fillRect(x0 + inset, y0 + row, span, 1);
+        if (row > 0 && row < H - 1 && span > 2) {
+          c.fillStyle = dk ? P.W : P.Wh; c.fillRect(x0 + inset, y0 + row, 1, 1);
+          c.fillStyle = dk ? P.D : P.S; c.fillRect(x0 + W - inset - 1, y0 + row, Math.max(1, Math.round(K * .65)), 1);
+        }
+      }
+      return;
+    }
     c.fillStyle = dk ? P.S : P.W; c.fillRect(x0, y0, W, H); c.fillStyle = dk ? P.W : P.Wh; c.fillRect(x0, y0, W, 1); c.fillRect(x0, y0, 1, H);
     c.fillStyle = dk ? P.D : P.S; if (W > 1) c.fillRect(x0 + W - 1, y0 + 1, 1, H - 1); if (H > 1) c.fillRect(x0 + 1, y0 + H - 1, W - 1, 1);
     if (hi && W > 8 && H > 11) {
@@ -75,17 +104,21 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
   const leg = (x, l, dk, wd = lw) => {
     pl(x, 34, wd, 7 - l, dk); r(x, 36, wd, 1, P.G); r(x, 41 - l, wd, 2, P.K); r(x + 1, 42 - l, wd - 2, 1, P.G); r(x + (wd >> 1), 41 - l, 1, 1, dk ? P.Rd : P.R);
     pl(x, 43 - l, wd, 7, dk); if (heavy) r(x + wd - 2, 45 - l, 1, 3, P.D); pl(x - 1, 50 - l, wd + 1, 3, dk); r(x - 1, 53 - l, wd + 1, 1, P.K);
+    if (sleek && wd >= 4) r(x + 1, 44 - l, 1, 3, dk ? P.Rd : P.R);
     if (cfg.damage) dmg(x, 43 - l, wd, 6, x);
   };
   const helmet = (front) => {
     if (cfg.fins) { r(9, b, 1, 4, P.S); r(9, 3 + b, 2, 5, P.W); r(22, b, 1, 4, P.S); r(21, 3 + b, 2, 5, P.W); }
-    if (cfg.modules) [8, 21].forEach((mx, i) => { r(mx, 7 + b, 3, 6, P.G); r(mx, 7 + b, 3, 1, P.Gd); r(mx + (i ? 1 : 0), 9 + b, 2, 3, glow); r(mx + 1, 10 + b, 1, 1, P.Rd); });
+    if (cfg.modules) [8, 21].forEach((mx, i) => { if (sleek) return module(mx, 7 + b, 3, 6, glow); r(mx, 7 + b, 3, 6, P.G); r(mx, 7 + b, 3, 1, P.Gd); r(mx + (i ? 1 : 0), 9 + b, 2, 3, glow); r(mx + 1, 10 + b, 1, 1, P.Rd); });
     if (cfg.antenna) { r(20, b - 2, 1, 6, P.G); r(20, b - 3, 1, 1, glow); }
     pl(11, 3 + b, 10, 12); r(11, 14 + b, 10, 1, P.D); c.clearRect(X(11), Y(3 + b), 1, 1); c.clearRect(X(21) - 1, Y(3 + b), 1, 1);
     if (!front) { r(15, 4 + b, 2, 8, P.G); r(12, 12 + b, 8, 1, P.S); return; }
     if (cfg.head === 'visor') {
       r(15, 3 + b, 2, 4, P.G); r(12, 8 + b, 8, 6, P.K); r(15, 7 + b, 2, 8, P.W); r(15, 7 + b, 1, 8, P.Wh);
       r(12, 9 + b, 3, 1, glow); r(13, 10 + b, 2, 1, P.R); r(14, 11 + b, 1, 1, P.Rd); r(17, 9 + b, 3, 1, glow); r(17, 10 + b, 2, 1, P.R); r(17, 11 + b, 1, 1, P.Rd);
+    } else if (cfg.head === 'display') {
+      r(12, 5 + b, 8, 8, P.K); r(12, 13 + b, 8, 1, P.G);
+      r(13, 9 + b, 2, 1, glow); r(15, 7 + b, 1, 4, glow); r(16, 10 + b, 1, 2, glow); r(17, 9 + b, 2, 1, glow);
     } else if (cfg.head === 'mono') { r(12, 7 + b, 8, 7, P.K); r(14, 8 + b, 4, 5, P.Gd); r(15, 9 + b, 2, 3, glow); r(15, 9 + b, 1, 1, P.Rb); r(12, 13 + b, 8, 1, P.G); }
     else { r(12, 8 + b, 8, 4, P.K); r(13, 9 + b, 6, 1, glow); r(13, 10 + b, 6, 1, P.Rd); r(15, 12 + b, 2, 3, P.S); }
     if (cfg.damage >= 2) { r(18, 4 + b, 1, 3, P.D); r(19, 6 + b, 1, 2, P.K); }
@@ -130,8 +163,9 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     if (cloakLen) { r(11, 14 + b, 10, 3, P.C); r(11, 14 + b, 10, 1, P.Ch); r(8, 15 + b, 4, 3, P.C); } else r(14, 15 + b, 5, 2, P.G);
     pl(11, 3 + b, 10, 12); r(15, 14 + b, 6, 1, P.D); c.clearRect(X(11), Y(3 + b), 1, 1); c.clearRect(X(21) - 1, Y(3 + b), 1, 1);
     if (cfg.head === 'visor') { r(17, 8 + b, 4, 6, P.K); r(18, 9 + b, 3, 1, glow); r(18, 10 + b, 2, 1, P.R); r(18, 11 + b, 1, 1, P.Rd); r(20, 12 + b, 1, 3, P.W); }
+    else if (cfg.head === 'display') { r(18, 5 + b, 3, 8, P.K); r(20, 7 + b, 1, 4, glow); r(18, 13 + b, 3, 1, P.G); }
     else if (cfg.head === 'mono') { r(17, 7 + b, 4, 7, P.K); r(19, 9 + b, 2, 3, glow); r(20, 9 + b, 1, 1, P.Rb); } else { r(16, 8 + b, 5, 4, P.K); r(17, 9 + b, 4, 1, glow); r(17, 10 + b, 4, 1, P.Rd); }
-    if (cfg.modules) { r(12, 6 + b, 5, 7, P.G); r(12, 6 + b, 5, 1, P.Gd); r(13, 7 + b, 3, 5, glow); r(14, 8 + b, 1, 3, P.Rd); }
+    if (cfg.modules) { if (sleek) module(12, 6 + b, 5, 7, glow); else { r(12, 6 + b, 5, 7, P.G); r(12, 6 + b, 5, 1, P.Gd); r(13, 7 + b, 3, 5, glow); r(14, 8 + b, 1, 3, P.Rd); } }
     if (cfg.fins) { r(13, b, 1, 4, P.S); r(13, 3 + b, 2, 4, P.W); } if (cfg.antenna) { r(12, b - 2, 1, 6, P.G); r(12, b - 3, 1, 1, glow); }
   }
   if (opts.outline !== false) outline(c, fw, fh, opts.outlineColor || '#08070b');

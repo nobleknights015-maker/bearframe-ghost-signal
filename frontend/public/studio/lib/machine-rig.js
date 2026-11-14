@@ -56,6 +56,25 @@ function shadePlate(p, u, v, w, h, e, K, M, T, pal, W, sd, taper) {
   if (W.moss && p.m && v < h2(Math.floor(u * K / 2), 0, sd + 5) * W.moss * p.m * 5) col = n > .4 ? pal.moss[1] : pal.moss[2];
   return col;
 }
+// Styling changes only the procedural surface, never the part transform or texture pixels.
+function shadeSleekPlate(p, u, v, w, h, e, K, M, T, pal, W, sd, taper) {
+  if (w < 4 || h < 4) return shadePlate(p, u, v, w, h, e, K, M, T, pal, W, sd, taper);
+  const t = v / h, cu = u - w / 2;
+  const profile = taper != null ? 1 - (1 - taper) * t : h > w * 1.2 ? 1 - .18 * Math.max(0, (t - .4) / .6) : 1;
+  const hw = w / 2 * profile, dl = cu + hw, dr = hw - cu, dt = v, db = h - v;
+  const ch = Math.min(w * .2, h * .18, 3);
+  if (dl < 0 || dr < 0 || dl + dt < ch || dr + dt < ch || dl + db < ch || dr + db < ch) return null;
+  const d = Math.min(dl, dr, dt, db), pu = Math.floor(u * K), pv = Math.floor(v * K), n = h2(pu, pv, sd);
+  const nx = d === dl ? -1 : d === dr ? 1 : 0, ny = d === dt ? -1 : d === db ? 1 : 0;
+  const lit = (M.c * nx - M.s * ny) * -.6 + (M.s * nx + M.c * ny) * -.8 > 0;
+  let col = d < e ? (lit ? T[0] : T[3]) : cu / hw + t * .6 > .7 ? T[2] : T[1];
+  // Preserve age and damage controls with larger rust clusters and fewer isolated specks.
+  if (W.rust && h2(Math.floor(u / 3), Math.floor(v / 3), sd + 9) > 1 - W.rust * .26) col = n > .5 ? pal.rust[1] : pal.rust[2];
+  if (W.wear && n < W.wear * .035) col = T[3];
+  if (W.wear && d < e && h2(pu >> 1, pv >> 1, sd + 3) < W.wear * .2) return null;
+  if (W.moss && p.m && v < h2(Math.floor(u * K / 2), 0, sd + 5) * W.moss * p.m * 5) col = n > .4 ? pal.moss[1] : pal.moss[2];
+  return col;
+}
 function shadeDisc(p, u, v, w, h, e, K, M, T, pal, L) {
   const rx = w / 2, ry = h / 2, x = (u - rx) / rx, y = (v - ry) / ry, q = x * x + y * y; if (q >= 1) return null;
   const mr = Math.min(rx, ry), d = (1 - Math.sqrt(q)) * mr;
@@ -146,7 +165,7 @@ export function renderRig(ctx, rig, dir, type, i, n, fw, fh, opts = {}) {
       else if (p.s === 'disc') col = shadeDisc(p, u, v, w, h, e, K, M, T, P2, L);
       else if (p.s === 'ring') col = shadeRing(p, u, v, w, h, e, K, T, P2, L, M.st, W, sd);
       else if (p.s === 'glass') col = shadeGlass(p, u, v, w, h, e, K, P2, L, M.st, sd);
-      else col = shadePlate(p, u, v, w, h, e, K, M, T, P2, W, sd, p.s === 'taper' ? (p.t ?? .1) : null);
+      else col = (rig.style === 'sleek' ? shadeSleekPlate : shadePlate)(p, u, v, w, h, e, K, M, T, P2, W, sd, p.s === 'taper' ? (p.t ?? .1) : null);
       if (col) { const o = (py * fw + px) * 4; D[o] = col[0]; D[o + 1] = col[1]; D[o + 2] = col[2]; D[o + 3] = 255; }
     }
   }

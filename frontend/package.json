@@ -5,6 +5,13 @@
   "description": "BEARFRAME: GHOST SIGNAL - 2D sci-fi mystery / survival horror (HTML5 Canvas, no dependencies)",
   "scripts": {
     "start": "node serve.js",
-    "build": "rm -rf build && cp -r public build"
+    "build": "rm -rf build && cp -r public build",
+    "test:studio": "node tests/studio-native.mjs",
+    "test:studio:browser": "node tests/studio-regression.mjs"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.1.1",
+    "jsdom": "^31.0.1",
+    "playwright": "^1.65.1"
   }
 }

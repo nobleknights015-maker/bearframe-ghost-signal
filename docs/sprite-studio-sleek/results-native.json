@@ -1,0 +1,102 @@
+{
+  "baseline": "f6f8f09b7d6c452f158a67473ac35c2fb374da6f",
+  "status": "PASS",
+  "runtime": "@napi-rs/canvas + jsdom; no browser layout test",
+  "checks": [
+    {
+      "name": "Pixel-exact original renderer compatibility",
+      "passed": true,
+      "detail": 1320
+    },
+    {
+      "name": "Sleek binary-alpha nonempty renders",
+      "passed": true,
+      "detail": 1320
+    },
+    {
+      "name": "Original pose library and machine pivots unchanged",
+      "passed": true,
+      "detail": 360
+    },
+    {
+      "name": "Texture import renderer unchanged",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Mirror fallback",
+      "passed": true,
+      "detail": 2
+    },
+    {
+      "name": "Actual editor boot/generation",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Hand-edited pixels protected through regeneration/style changes",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Save/reopen preserves pixels, edits and style",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Transparent PNG sheet reimports pixel-exact",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "ZIP generated for independent validation",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Independent exploration/battle sets",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Display-head option generates all directions",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Original example opens and generates: wraith-wtr07",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Original example opens and generates: heavy-sentinel",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Original example opens and generates: hexapod-cartography-engine",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Original example opens and generates: archive-sentinel",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Original example opens and generates: micro-drone",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Direction control",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Separate copy autosave namespace",
+      "passed": true,
+      "detail": true
+    }
+  ]
+}
