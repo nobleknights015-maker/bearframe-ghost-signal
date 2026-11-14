@@ -110,7 +110,8 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     catch(_){session=createHybridSession(initial(),LAB_POLICY_SPEC);}
   }
   ui.show('title',false);ui.show('ending',false);
-  try { game.start(mission,valid?saved.field:null); }
+  let restored=false;
+  try { game.start(mission,valid?saved.field:null); restored=valid; }
   catch (error) {
     // Corrupt or future-incompatible snapshots never destroy the original game or brick the lab.
     console.warn('RPG lab restore invalid, starting fresh',error);
@@ -118,7 +119,7 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     game.start(mission,null);
     ui.toast('INVALID RPG TEST SAVE — STARTED A FRESH SECTOR',4);
   }
-  if(valid&&!game.flags.labResolved&&Array.isArray(saved.security)){
+  if(restored&&!game.flags.labResolved&&Array.isArray(saved.security)){
     const allowed=['x','y','dir','state','wp','alert','blind','invCd','t','lost','last','target','seen','searchN','hitCd','returning'];
     for(let i=0;i<game.drones.length;i++){
       const row=saved.security[i];if(!row||typeof row!=='object')continue;
