@@ -54,11 +54,26 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     return ok;
   };
   const originalRestore=game.restore.bind(game);
-  game.restore=()=>{
-    // Field checkpoint and RPG state must roll back atomically; no duplicated salvage/rewards.
-    session=createHybridSession(clone(checkpointRpg),LAB_POLICY_SPEC);
-    originalRestore();
+  const originalApplySnap=game.applySnap.bind(game);
+  let rollbackPending=false;
+  game.applySnap=(snapshot,minEnergy)=>{
+    const result=originalApplySnap(snapshot,minEnergy);
+    if(rollbackPending){
+      rollbackPending=false;
+      // Game.restore applies the field snapshot asynchronously (fade transition).
+      // Rewind RPG data at the exact same boundary, then persist the restored field.
+      session=createHybridSession(clone(checkpointRpg),LAB_POLICY_SPEC);
+      queueMicrotask(()=>{
+        if(!save()){
+          // Never leave an obsolete post-checkpoint journal that could resurrect loot.
+          db.clear();
+          ui.toast('CHECKPOINT RECOVERED IN MEMORY — RPG SAVE UNAVAILABLE',4);
+        }
+      });
+    }
+    return result;
   };
+  game.restore=()=>{rollbackPending=true;originalRestore();};
   const menu=overlay('rpg-lab-menu','RPG FIELD RECORD');
   const battle=overlay('rpg-lab-battle','TURN-BASED ENCOUNTER');
   const status=()=>session;
