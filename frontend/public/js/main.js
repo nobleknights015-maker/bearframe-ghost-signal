@@ -88,7 +88,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && gam
 // Controller focus follows the existing Ghost Signal overlay buttons and styling.
 let lastPadMenuDir = null;
 function navigateControllerOverlay(pad) {
-  const roots = ['settings', 'casefile', 'pause', 'terminal', 'ending', 'title', 'dialog'];
+  const roots = ['rpg-lab-battle', 'rpg-lab-menu', 'settings', 'casefile', 'pause', 'terminal', 'ending', 'title', 'dialog'];
   const root = roots.map($).find(node => node && !node.classList.contains('hidden'));
   if (!root) { lastPadMenuDir = null; return; }
   const buttons = [...root.querySelectorAll('button')].filter(b => !b.disabled && b.getClientRects().length);
@@ -120,7 +120,7 @@ function loop(now) {
   const raw = now - last, dt = Math.min(.05, raw / 1000); last = now;
   try {
     if (navigator.getGamepads) {
-      const modal = ['title','pause','settings','ending','case','terminal','choice'].includes(game.mode);
+      const modal = ['title','pause','settings','ending','case','terminal','choice','rpgmenu','battle'].includes(game.mode);
       const pad = input.pollGamepads(navigator.getGamepads(), !modal);
       if (modal) navigateControllerOverlay(pad);
       else lastPadMenuDir = null;
@@ -132,4 +132,13 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 showTitle();
+if (new URLSearchParams(location.search).get('rpg-lab') === '1') {
+  import('./engine/rpg-lab.js').then(({mountRpgLab}) => {
+    mountRpgLab({game, ui, sfx, touchMode});
+    refreshTouch();
+  }).catch(error => {
+    console.error('Noncanonical RPG integration lab failed to mount', error);
+    ui.toast('RPG LAB INIT FAILED — SEE CONSOLE', 5);
+  });
+}
 requestAnimationFrame(loop);
