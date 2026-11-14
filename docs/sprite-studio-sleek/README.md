@@ -41,7 +41,11 @@ The native suite executes production renderer, editor and save/export modules us
 - ZIP export was independently opened with Python's `zipfile`; file contents and CRC pass.
 - Static production build and `git diff --check` pass.
 
-`results-baseline.json` and `results-native.json` contain detailed outcomes. `frontend/tests/studio-regression.mjs` supplies a Playwright browser suite (`npm run test:studio:browser`; install a Playwright Chromium first). Browser launch in the current worker is blocked by a Unix-socket permission restriction, so **browser layout, real pointer input, mobile rendering and download dialogs have not been verified**. The DOM/native tests are not a substitute for those checks. A CI workflow runs native checks on this copy branch; remote CI status must be checked after pushing.
+`results-baseline.json`, `results-native.json` and `results-browser.json` contain detailed outcomes. Chromium on GitHub's runner passed **23 checks**, including a real pointer pencil edit, a downloaded project reopened through the file picker, PNG + JSON downloads, a frame ZIP download, regeneration, saved pixels and a 915×412 landscape direction-control check. The browser run also repeated all 2,640 render checks and verified 360 unchanged machine pivot sets. Both native and browser jobs plus the build passed at [CI run 43606982299](https://github.com/nobleknights015-maker/bearframe-ghost-signal/actions/runs/43606982299), commit `705cc785b116b28496a3ee68f2c9fb7ffeea0327`.
+
+The local worker cannot launch Chromium because Unix sockets are restricted; the remote CI runner supplied the real-browser verification. Run locally with `npm run test:studio:browser` after `npx playwright install --with-deps chromium`.
+
+QA screenshots are saved as `desktop-editor.png` and `phone-landscape-editor.png`. The green corner pixel in the desktop shot is the deliberate paint/save/regeneration test. Desktop controls are visible and working. The existing three-column editor is cramped at phone landscape height and leaves very little canvas space; the viewport test verifies direction switching, **not a polished mobile editor**. A real Android device has not been tested. This usability limitation remains open and is separate from the procedural art pass.
 
 ## Continuation rules
 

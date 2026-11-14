@@ -1,0 +1,147 @@
+{
+  "baseline": "f6f8f09b7d6c452f158a67473ac35c2fb374da6f",
+  "mode": "sleek copy",
+  "checks": [
+    {
+      "name": "Studio boot and initial generation",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Pixel-exact original render compatibility",
+      "detail": 1320,
+      "passed": true
+    },
+    {
+      "name": "Binary transparent nonempty native renders",
+      "detail": {
+        "classic": 1320,
+        "sleek": 1320
+      },
+      "passed": true
+    },
+    {
+      "name": "Unchanged pose library and machine pivots",
+      "detail": 360,
+      "passed": true
+    },
+    {
+      "name": "Reference-texture renderer unchanged",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Four directions and mirror fallback",
+      "detail": 2,
+      "passed": true
+    },
+    {
+      "name": "Actual pointer pencil edit",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Edited pixel protected during regeneration/style changes",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Project save/reopen roundtrip",
+      "detail": {
+        "equal": true,
+        "edited": true,
+        "style": "sleek"
+      },
+      "passed": true
+    },
+    {
+      "name": "PNG sheet + direction/animation metadata",
+      "detail": {
+        "w": 384,
+        "h": 224,
+        "rows": [
+          "down",
+          "up",
+          "right",
+          "left"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "Exported sheet reimports pixel-exact",
+      "detail": {
+        "pixels": true,
+        "edited": 48
+      },
+      "passed": true
+    },
+    {
+      "name": "ZIP export container",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Save download and file-input reopen",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Real PNG + JSON downloads",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Real frame ZIP download",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Independent battle set",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "New native display head generates",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Example opens/generates: heavy-sentinel",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Example opens/generates: hexapod-cartography-engine",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Example opens/generates: archive-sentinel",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Example opens/generates: micro-drone",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "Phone landscape generation/direction switch",
+      "detail": true,
+      "passed": true
+    },
+    {
+      "name": "No browser page errors",
+      "detail": true,
+      "passed": true
+    }
+  ],
+  "pageErrors": [],
+  "renderCounts": {
+    "classic": 1320,
+    "sleek": 1320,
+    "unchangedPivots": 360
+  },
+  "status": "PASS"
+}
