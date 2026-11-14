@@ -18,6 +18,8 @@ The tactical prototype fields two units with **different test roles**: Sleeper c
 
 Test sector uses a dedicated two-record journal \`bearframe_ghost_signal_rpg_lab_v1:A/B\`. It saves exploration party/inventory/quest flags, field snapshot and current security-unit state (positions, patrol/alert/status), never the original mission save, progress or settings keys. It refuses battle-phase saves. Original \`Game\` checkpoint writes in the test sector are redirected to a no-op in-memory adapter; only the explicit lab journal persists RPG state. The original Ghost Signal game remains unchanged when the query parameter is absent.
 
+In addition, the lab wraps Ghost Signal's existing checkpoint and restore calls: an in-session energy-depletion restore rolls back RPG party, inventory and quest data to the matching field checkpoint rather than duplicating an item collected afterward. This checkpoint rollback is source-integrated but still needs live browser failure/recovery acceptance.
+
 The initial debug Android build targets this lab through \`BuildConfig.DEBUG\`. A release-mode build continues to load the original index without the lab parameter. Both still use existing WebView HTML5 Canvas rendering and platform controls.
 
 ## How to exercise
