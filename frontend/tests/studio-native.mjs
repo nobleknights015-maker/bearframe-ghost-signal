@@ -30,8 +30,9 @@ mkdirSync(out,{recursive:true});
 try{
  for(const name of ['sprite-rig.js','machine-rig.js','machine-presets.js'])writeFileSync(path.join(old,name),execFileSync('git',['show',baseline+':frontend/public/studio/lib/'+name],{cwd:root}));
  writeFileSync(path.join(old,'package.json'),'{"type":"module"}');
- const renders=await renderChecks({beforeOnly,currentPrefix:pathToFileURL(path.join(root,'public/studio/lib/')).href,baselinePrefix:pathToFileURL(old+'/').href});
- check('Pixel-exact original renderer compatibility',renders.classic);check('Sleek binary-alpha nonempty renders',renders.sleek);check('Original pose library and machine pivots unchanged',renders.unchangedPivots);check('Texture import renderer unchanged');check('Mirror fallback',renders.mirrors);if(!beforeOnly)check('Wardrobe, wear and smooth visor render checks',renders.wardrobe);
+ const clothBefore=path.join(old,'cloth-before');mkdirSync(clothBefore);for(const name of ['sprite-rig.js','android-details.js'])writeFileSync(path.join(clothBefore,name),execFileSync('git',['show','4e69ac187653446e1235001dd3bd1d6196fd8ba0:frontend/public/studio/lib/'+name],{cwd:root}));
+ const renders=await renderChecks({beforeOnly,clothBaselinePrefix:pathToFileURL(clothBefore+'/').href,currentPrefix:pathToFileURL(path.join(root,'public/studio/lib/')).href,baselinePrefix:pathToFileURL(old+'/').href});
+ check('Pixel-exact original renderer compatibility',renders.classic);check('Sleek binary-alpha nonempty renders',renders.sleek);check('Original pose library and machine pivots unchanged',renders.unchangedPivots);check('Texture import renderer unchanged');check('Mirror fallback',renders.mirrors);if(!beforeOnly){check('Wardrobe, wear and smooth visor render checks',renders.wardrobe);check('Existing cape/body unchanged and cloth texture anchored',renders.capeMatches);}
  if(beforeOnly){mkdirSync(path.join(old,'lib'));for(const name of ['studio.js','ref-ui.js','lib/sprite-rig.js','lib/machine-rig.js','lib/machine-presets.js','lib/sprite-sheet.js','lib/ref-sprite.js'])writeFileSync(path.join(old,name),execFileSync('git',['show',baseline+':frontend/public/studio/'+name],{cwd:root}));}
  await import(pathToFileURL(beforeOnly?path.join(old,'studio.js'):path.join(root,'public/studio/studio.js')).href);
  const pause=ms=>new Promise(r=>setTimeout(r,ms));

@@ -1,4 +1,4 @@
-export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/',baselinePrefix='/__baseline__/'}={}) {
+export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/',baselinePrefix='/__baseline__/',clothBaselinePrefix='/__cloth_before__/'}={}) {
   const current = await import(currentPrefix+'sprite-rig.js'); const old = await import(baselinePrefix+'sprite-rig.js');
   const machine = await import(currentPrefix+'machine-rig.js'); const oldMachine = await import(baselinePrefix+'machine-rig.js');
   const presets = await import(currentPrefix+'machine-presets.js');
@@ -54,6 +54,19 @@ export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/
    const clean=canvas(64,112),grown=canvas(64,112);current.drawAndroid(clean.getContext('2d'),base,'down',{b:0},64,112);current.drawAndroid(grown.getContext('2d'),{...base,overgrowth:3},'down',{b:0},64,112);const cl=pixels(clean),gr=pixels(grown);for(let y=4;y<30;y++)for(let x=20;x<44;x++)for(let j=0;j<4;j++)if(cl[(y*64+x)*4+j]!==gr[(y*64+x)*4+j])throw Error('growth crossed the face');
    for(const [name,cfg] of Object.entries(current.PRESETS).filter(([n])=>/—/.test(n))){const frames=[];for(let i=0;i<6;i++)for(const dir of current.DIRS){const cv=canvas(64,112);current.drawAndroid(cv.getContext('2d'),cfg,dir,current.poseFor('walk',i,6),64,112);frames.push({dir,i,style:'wardrobe',png:cv.toDataURL()});}previews.push({name,kind:'wardrobe',w:64,h:112,frames});}
   }
-  return {classic,sleek,mirrors,unchangedPivots,wardrobe,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
+  let capeMatches=0;
+  if(!beforeOnly){
+   const beforeCloth=await import(clothBaselinePrefix+'sprite-rig.js');
+   for(const [w,h] of [[32,56],[64,112]])for(const dir of current.DIRS)for(let i=0;i<6;i++){
+    const a=canvas(w,h),b=canvas(w,h),cfg={...current.DEFAULT_CFG,scarf:'none',hood:'none',drapery:'none'},pose=current.poseFor('walk',i,6);
+    beforeCloth.drawAndroid(a.getContext('2d'),cfg,dir,pose,w,h);current.drawAndroid(b.getContext('2d'),cfg,dir,pose,w,h);
+    if(!equal(pixels(a),pixels(b)))throw Error('existing cape/body changed');capeMatches++;
+   }
+   const {appearance}=await import(currentPrefix+'android-details.js');
+   const layers=[];
+   for(const b of [0,1]){const cv=canvas(64,112);const cfg={...current.DEFAULT_CFG,cloak:'none',scarf:'cowl',hood:'raised',drapery:'tabard',clothWear:3};const layer=appearance({c:cv.getContext('2d'),cfg,dir:'down',pose:{b,ph:0},K:2,X:x=>Math.round(x*2),Y:y=>Math.round(y*2),P:{C:cfg.colors.cloak}});layer.rear();layer.front();layers.push(pixels(cv));}
+   for(let y=0;y<110;y++)for(let x=0;x<64;x++)for(let j=0;j<4;j++)if(layers[0][(y*64+x)*4+j]!==layers[1][((y+2)*64+x)*4+j])throw Error('cloth texture crawls with body bob');
+  }
+  return {classic,sleek,mirrors,unchangedPivots,wardrobe,capeMatches,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
 
 }

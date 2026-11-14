@@ -31,13 +31,14 @@ try {
   return route.fulfill({ contentType: 'application/javascript', body });
  });
  await page.route('**/__test__/render-checks.mjs', route=>route.fulfill({contentType:'application/javascript',body:readFileSync(path.join(root,'tests/render-checks.mjs'))}));
+ await page.route('**/__cloth_before__/**',route=>{const name=new URL(route.request().url()).pathname.split('/').at(-1);if(!['sprite-rig.js','android-details.js'].includes(name))return route.abort();return route.fulfill({contentType:'application/javascript',body:execFileSync('git',['show','4e69ac187653446e1235001dd3bd1d6196fd8ba0:frontend/public/studio/lib/'+name],{cwd:root})});});
  await page.goto('http://127.0.0.1:'+port+'/studio/');
  await page.waitForFunction(() => window.__studio && !window.__studio.busy && window.__studio.set.cells.size > 0);
  const wait = async () => { await page.waitForTimeout(350); await page.waitForFunction(() => !__studio.busy); };
  const check = (name, detail = true) => results.checks.push({ name, detail, passed: true });
  check('Studio boot and initial generation');
  const renders = await page.evaluate(async ({beforeOnly}) => {const {renderChecks}=await import('/__test__/render-checks.mjs');return renderChecks({beforeOnly});},{beforeOnly});
- check('Pixel-exact original render compatibility',renders.classic);check('Binary transparent nonempty native renders',{classic:renders.classic,sleek:renders.sleek});check('Unchanged pose library and machine pivots',renders.unchangedPivots);check('Reference-texture renderer unchanged');check('Four directions and mirror fallback',renders.mirrors);
+ check('Pixel-exact original render compatibility',renders.classic);check('Binary transparent nonempty native renders',{classic:renders.classic,sleek:renders.sleek});check('Unchanged pose library and machine pivots',renders.unchangedPivots);check('Reference-texture renderer unchanged');if(!beforeOnly)check('Cape/body preservation and anchored cloth texture',renders.capeMatches);check('Four directions and mirror fallback',renders.mirrors);
  // Editable frames must survive style changes and regeneration-unedited.
  await page.getByTestId('tool-pencil').click();
  await page.getByTestId('color-input').evaluate(el=>{el.value='#12ab34';el.dispatchEvent(new Event('input',{bubbles:true}));});
