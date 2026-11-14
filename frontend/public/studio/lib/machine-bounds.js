@@ -3,7 +3,7 @@ import {validateRig} from './rig-safety.js';
 // Expands margins at fixed design scale; edited pixels follow the same root translation.
 export function fitMachineProject(p){
  if(p.kind!=='machine')throw Error('Select a machine project');validateRig(p.rig);const r=p.rig,ow=r.w,oh=r.h;
- for(const s of Object.values(p.sets)){const k=Math.min(s.fw/ow,s.fh/oh);if(Math.abs(s.fw-ow*k)>1||Math.abs(s.fh-oh*k)>1)throw Error('Fit margins requires a proportional design canvas; keep the current custom canvas unchanged.');}
+ for(const s of Object.values(p.sets)){const k=Math.min(s.fw/ow,s.fh/oh);if(!Number.isInteger(k*2)||!Number.isInteger(ow*k)||!Number.isInteger(oh*k)||s.fw!==ow*k||s.fh!==oh*k)throw Error('Fit margins requires a proportional design canvas; keep the current custom canvas unchanged.');}
  let left=0,top=0,right=ow,bottom=oh;
  for(const s of Object.values(p.sets))for(const d of s.dirs)for(const a of s.anims)for(let i=0;i<a.frames;i++){
   const b=renderRig(null,r,d,a.type,i,a.frames,ow,oh,{boundsOnly:true});left=Math.min(left,b.left);top=Math.min(top,b.top);right=Math.max(right,b.right);bottom=Math.max(bottom,b.bottom);
