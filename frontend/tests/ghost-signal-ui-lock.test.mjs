@@ -10,6 +10,7 @@ const html = source('../public/index.html');
 const css = source('../public/css/game.css');
 const ui = source('../public/js/ui.js');
 const main = source('../public/js/main.js');
+const game = source('../public/js/game.js');
 
 test('canonical 480x270 stage, fonts and existing interaction targets remain', () => {
   assert.match(html, /<canvas id="screen" width="480" height="270"/);
@@ -42,6 +43,8 @@ test('existing comms, casefile, terminal, HUD and fade interface remains availab
     'caseTab', 'terminal', 'closeTerminal', 'hud', 'objectives', 'fade']) {
     assert.match(ui, new RegExp('\\b' + method + '\\s*\\('), 'Missing UI method: ' + method);
   }
-  assert.match(main, /480/);
-  assert.match(main, /270/);
+  // Canvas dimensions are exported by the core Game module and consumed by main.
+  // Do not require redundant magic-number literals in the boot script.
+  assert.match(main, /import\s*\{\s*Game,\s*VW,\s*VH\s*\}\s*from\s*'\.\/game\.js'/);
+  assert.match(game, /export const T\s*=\s*32,\s*VW\s*=\s*480,\s*VH\s*=\s*270/);
 });
