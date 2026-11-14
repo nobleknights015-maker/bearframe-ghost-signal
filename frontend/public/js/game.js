@@ -83,7 +83,7 @@ export class Game {
     this.snap = s; this.flags = clone(s.flags); this.inv = { ...s.inv }; this.time = s.time; this.stats = { ...this.stats, ...s.stats };
     this.caseFile = s.case ? clone(s.case) : { ev: [], logs: [] };
     Object.assign(this.player, s.player, { energy: Math.max(s.player.energy, minEnergy), hurt: 0, moving: false, hidden: null, scanT: 0 });
-    for (const e of this.ents) { e.pingT = 0; e.offT = 0; if (s.es[e.id]) Object.assign(e, s.es[e.id]); if (e.type === 'door') e.open = this.m.doorOpen(e.id, this) ? 1 : 0; }
+    for (const e of this.ents) { e.pingT = 0; e.offT = 0; if (s.es && s.es[e.id]) Object.assign(e, s.es[e.id]); if (e.type === 'door') e.open = this.m.doorOpen(e.id, this) ? 1 : 0; }
     this.hist = []; this.scan = null; this.plateT = 0; this.drones = this.makeDrones(); this.onPad = null; this.echo = null; this.detectFx = 0; this.cam = null;
     if (this.m.migrate) this.m.migrate(this);
   }

@@ -17,5 +17,11 @@ Title/continue/settings, 3 rooms, 3 terminals, flashlight, scan (reveal + stun),
 - Trace echo: projector entities replay archived paths (M1 hall, M2 landing + gallery sensor-floor puzzle).
 - Mission 02 Below the Silence (missions/mission2.js): landing, spine, pump room (manifold evidence gates valves), work closet (optional), trace gallery, record vault, unidentified individual (never classified), choice ending, evidence-dependent debrief.
 - Saves: save v2 (case, ent done/scanned), v1 saves migrate; progress key unlocks M2.
+## Implemented v3 visual upgrade (June 2026, tested iteration_3)
+- Wraith 32x56 sheet, 12 cols (walk 0-5, idle 6-9, scan 10-11), 3-tone shading, auto outline, cloth-wave cloak (art/wraith.js).
+- tiles.js: AO, grime/tint variation, cracks, damp sheen, prop shadows; bakeOver (foreground conduits/cables), bakeDeep (parallax void), bakeFog.
+- game.js render: parallax, overlay layer, light shafts, emissive glows, fog, dust motes, smoothed look-ahead camera (game.cam), lowFx auto fallback (main.js loop).
+- Mission title card + fades, CSS transitions. v1 save guard fixed (s.es).
+- All art is procedural code (no image assets). Not verified on a physical Android device.
 ## Backlog
 P1: Mission 03 (the unlabelled record / the label), PWA/offline install, deduction board linking evidence. P2: more drone types, music layers, gamepad support.

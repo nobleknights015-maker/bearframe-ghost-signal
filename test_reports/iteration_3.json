@@ -1,0 +1,27 @@
+{
+  "summary": "Visual-upgrade regression pass for BEARFRAME: GHOST SIGNAL. Validated 32x56 wraith sprite (sheet 384x224 = 12x4 @32x56), title screen animated preview, mission card (#card, data-testid=mission-card) fade-in then auto fade-out within ~5s with pointer-events:none, foreground overlay baked (__gs.over present), smoothed camera (clamps on reload; cam=null snap after teleport), lowFx auto-fallback hook. Core M1 loop (movement, scan 100->85 energy, scanT=0.55, terminal A interact), M2 start, continue-from-save, and v1 crafted save all exercised. Found ONE REAL REGRESSION in save-compat: applySnap() dereferenced s.es[e.id] without guarding s.es, throwing TypeError on any v1 save. Applied a one-line defensive fix (small obvious coding bug) so legacy saves migrate cleanly (logA migrated via m.migrate). No console errors after fix on load, New Reconnaissance, M2 start, or v1 load.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "None blocking. Optional: if main agent wants to keep applySnap tolerant of future partial snapshots, consider also guarding s.inv / s.flags / s.player with defaults instead of spreading undefined."
+  ],
+  "critical_code_review_comments": [
+    "game.js applySnap() previously did `if (s.es[e.id])` with no guard; v1 saves have no `es` field, so continuing from a v1 save threw 'Cannot read properties of undefined (reading <id>)' and skipped m.migrate() (which seeds e.g. the logA carry-over). Fixed to `if (s.es && s.es[e.id])` so migrate() runs and the Log Archive is populated.",
+    "game.js is now 444 lines after the visual-upgrade work. Still OK but render()/updateWorld() are the heaviest; splitting draw-passes (map, ents, actors, overlay, fog) into helpers would help future changes.",
+    "wraith.js tinted() iterates per-pixel stripes with destination-out fills; fine as a one-time bake, just worth noting that this happens on every page load (no caching across reloads).",
+    "main.js loop() auto-lowFx uses 90-of-180 slow-frame threshold measured from raw delta >26ms. Under 4x CDP CPU throttle on 844x390 the game still ran at ~58 fps with vsync so lowFx stayed false. That's expected (vsync caps RAF cadence regardless of CPU emulation) - not a bug, but means the auto-fallback is effectively a 'genuinely dropped-frames' detector, which is the right bar."
+  ],
+  "updated_files": ["/app/frontend/public/js/game.js"],
+  "success_rate": {"backend": "n/a (static site)", "frontend": "100% after 1-line fix (10/10 feature flows PASS; v1-save-compat flow PASS after fix)"},
+  "test_credentials": "none (no auth)",
+  "seed_data_creation": "Only localStorage: bearframe_ghost_signal_progress_v1 (set unlocked.m2=true to expose M2 button) and crafted bearframe_ghost_signal_save_v1 (v:1, mission:'m1', flags.logA=true) to exercise legacy load path.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Debug hook window.__gs still exposes everything (mode, player, flags, inv, ents, drones, cam, lowFx, sheet, over). Visual upgrade entities: __gs.sheet is 384x224 (12 cols x 4 rows @32x56). Title canvas #title-sprite is 32x56. Mission card node #card has data-testid='mission-card', z-index 6, pointer-events:none, 4.2s CSS animation. To force lowFx without throttling: `__gs.lowFx = true`. To smoke M2 quickly: set progress unlocked.m2=true and reload; mission2-button appears. Confirmed fixed: v1 save load (applySnap now guards s.es). Measured perf: 1920x800 M2 spine walking ~60 fps (vsync cap), 844x390 + 4x CPU throttle ~58 fps (vsync cap). Game.time advances only in mode==='play' so if you measure fps be sure to dismiss intro dialogs first (KeyE until mode==='play'). Visual review in screenshot shows cloak + harness + chest display legible, foreground conduits/pipes visible in the top band of the maintenance spine, no transparent seams.",
+  "rca of the issue": "Save-compat regression: applySnap() was rewritten to persist per-entity state in s.es (introduced in v2 save). The v1-compat branch does not inject s.es, so iterating `if (s.es[e.id])` on the first entity threw TypeError, aborting applySnap() before reaching this.m.migrate(). Repro: localStorage.setItem('bearframe_ghost_signal_save_v1', JSON.stringify({v:1, mission:'m1', time:5, stats:{scans:0,hits:0,restores:0}, player:{x:160,y:160,dir:'down',energy:100,light:false}, flags:{logA:true}, inv:{}})); reload; click CONTINUE -> Uncaught TypeError at game.js:86. Mitigation: Guard with `s.es && s.es[e.id]`. Verified post-fix: no page error, __gs.caseFile.logs == ['logA'] (migrate() ran), mode='play'."
+}
