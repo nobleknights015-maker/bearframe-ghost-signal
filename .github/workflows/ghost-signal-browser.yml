@@ -40,6 +40,9 @@ jobs:
       - name: Browser routes — real relay traversal and flee recovery
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab-routes.mjs
 
+      - name: Browser equipment — chassis compatibility and live battle stats
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab-equipment.mjs
+
       - name: Upload browser failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
