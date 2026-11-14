@@ -39,3 +39,24 @@ test('defeat triggers when all party members have zero HP',()=>{
  let s=startBattle({...units(),party:[{...units().party[0],hp:1,speed:1}],enemies:[{...units().enemies[0],speed:10}]});
  s=combatAction(s,enemyDecision(s)); assert.equal(s.status,'defeat');
 });
+
+
+test('authored party skill catalogs are enforced by the battle rules, not just by button visibility',()=>{
+ const config=units();
+ config.party=[
+   {...config.party[0],skills:['pulse','guard']},
+   {id:'echo',name:'Echo',hp:20,maxHp:20,ep:10,maxEp:10,attack:7,defense:2,speed:8,skills:['repair','guard']}
+ ];
+ let s=startBattle(config);
+ assert.throws(()=>combatAction(s,{actor:'party:sleeper',type:'repair',target:'party:sleeper'}),/Ability unavailable/);
+ assert.deepEqual(currentCombatant(s),'party:sleeper');
+ s=combatAction(s,{actor:'party:sleeper',type:'pulse',target:'enemy:drone'});
+ s=combatAction(s,enemyDecision(s));
+ assert.equal(currentCombatant(s),'party:echo');
+ assert.throws(()=>combatAction(s,{actor:'party:echo',type:'pulse',target:'enemy:drone'}),/Ability unavailable/);
+ assert.equal(s.party.find(u=>u.id==='echo').ep,10,'Rejected skill cannot spend EP');
+ s=combatAction(s,{actor:'party:echo',type:'repair',target:'party:sleeper'});
+ assert.equal(s.party.find(u=>u.id==='echo').ep,5);
+ assert.throws(()=>startBattle({...units(),party:[{...units().party[0],skills:['pulse','pulse']}]}),/Invalid combatant skills/);
+ assert.throws(()=>startBattle({...units(),party:[{...units().party[0],skills:['hack-world']}]}),/Invalid combatant skills/);
+});
