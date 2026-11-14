@@ -52,23 +52,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           emulator-boot-timeout: 600
-          script: |
-            set -eu
-            APK="$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
-            test -n "$APK"
-            PACKAGE="$(aapt dump badging "$APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n 1)"
-            test -n "$PACKAGE"
-            adb install -r "$APK"
-            adb shell am force-stop "$PACKAGE" || true
-            adb shell monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1
-            sleep 15
-            adb shell pidof "$PACKAGE" > /tmp/ghost-signal-emulator-pid
-            test -s /tmp/ghost-signal-emulator-pid
-            adb shell dumpsys activity activities > /tmp/ghost-signal-activities.txt
-            grep -F "$PACKAGE" /tmp/ghost-signal-activities.txt
-            adb shell screencap -p /sdcard/ghost-signal-launch.png
-            adb pull /sdcard/ghost-signal-launch.png ghost-signal-emulator-launch.png
-            echo "Emulator installed and process launched: $PACKAGE"
+          script: bash android/ci/emulator-smoke.sh
       - name: Upload emulator launch screenshot
         if: always()
         uses: actions/upload-artifact@v4
