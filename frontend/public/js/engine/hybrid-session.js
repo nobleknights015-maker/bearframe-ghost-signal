@@ -3,6 +3,7 @@
 import { compileAreaPolicy, securityAt, securityTransition } from './area-policy.js';
 import { beginEncounter, finishEncounter } from './encounter-handoff.js';
 import { startBattle, combatAction, battleResultPatch } from './rpg-combat.js';
+import { createParty, battleParty } from './rpg-party.js';
 const object = x => x !== null && typeof x === 'object' && !Array.isArray(x);
 const copy = x => JSON.parse(JSON.stringify(x));
 const seal = x => { if (x && typeof x === 'object' && !Object.isFrozen(x)) { Object.values(x).forEach(seal); Object.freeze(x); } return x; };
@@ -36,7 +37,16 @@ export function detectHybrid(session, encounter = null) {
   if (response !== 'encounter') return seal({...session,event:{type:'security.'+response,zoneId:session.security.zoneId}});
   if (!object(encounter) || !Array.isArray(encounter.enemies)) throw new TypeError('Missing authored encounter');
   const handoff=beginEncounter(session.exploration,{id:encounter.id,enemies:encounter.enemies.map(e=>e.id)});
-  const battle=startBattle({party:session.exploration.party,enemies:encounter.enemies,
+  // Derive combat stats from the same persisted equipment inventory shown by the menu.
+  // The encounter supplies a catalog; the world owns equipment, not a second battle loadout.
+  const combatParty=encounter.gearCatalog===undefined ? session.exploration.party :
+    battleParty(createParty({
+      members:session.exploration.party,
+      active:session.exploration.party.map(p=>p.id),
+      inventory:session.exploration.inventory,
+      equipment:session.exploration.equipment
+    }),encounter.gearCatalog);
+  const battle=startBattle({party:combatParty,enemies:encounter.enemies,
     inventory:session.exploration.inventory,canFlee:encounter.canFlee !== false,rewards:encounter.rewards || {}});
   return seal({...session, phase:'battle',battle,handoff,event:{type:'battle.start',encounterId:encounter.id}});
 }
