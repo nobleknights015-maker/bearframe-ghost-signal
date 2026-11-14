@@ -40,3 +40,20 @@ test('enemy acts and flee returns to exploration without reward',()=>{
  assert.equal(s.exploration.location.x,40);
  assert.throws(()=>actHybrid(s,{actor:'party:sleeper',type:'guard'}),TypeError);
 });
+
+
+test('equipped stats and authored skills enter live battle without changing base saved stats',()=>{
+ const world=starter();world.party[0].lineage='sleeper';world.party[0].skills=['pulse','guard'];
+ world.equipment.sleeper.weapon='old-blade';
+ const catalog={'old-blade':{slot:'weapon',attack:4,allowedLineages:['sleeper']}};
+ const s=createHybridSession({...world,location:{mapId:'ruin',x:40,y:40}},area);
+ const battle=detectHybrid(s,{...encounter(),gearCatalog:catalog,
+  enemies:[{id:'drone',hp:50,maxHp:50,attack:7,defense:2,speed:4}]});
+ assert.equal(battle.phase,'battle');
+ assert.equal(battle.battle.party[0].attack,16);
+ assert.deepEqual(battle.battle.party[0].skills,['pulse','guard']);
+ assert.equal(s.exploration.party[0].attack,12,'Equip must not mutate persisted base stats');
+ const later=actHybrid(battle,{actor:'party:sleeper',type:'flee'});
+ assert.equal(later.exploration.party[0].attack,12);
+ assert.equal(later.exploration.equipment.sleeper.weapon,'old-blade');
+});
