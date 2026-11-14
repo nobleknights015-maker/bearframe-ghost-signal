@@ -1,0 +1,10 @@
+{
+  "name": "bearframe-ghost-signal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BEARFRAME: GHOST SIGNAL - 2D sci-fi mystery / survival horror (HTML5 Canvas, no dependencies)",
+  "scripts": {
+    "start": "node serve.js",
+    "build": "rm -rf build && cp -r public build"
+  }
+}
