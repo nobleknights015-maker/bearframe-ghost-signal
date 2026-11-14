@@ -1,10 +1,11 @@
+import { createGamepadReader } from './gamepad.js';
 // Keyboard + touch input. Movement is strictly four-directional (last pressed direction wins).
 const MOVE = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
 const ACT = { KeyE: 'interact', Space: 'interact', Enter: 'interact', KeyF: 'light', KeyQ: 'scan', ShiftLeft: 'scan', Escape: 'pause', KeyP: 'pause', KeyC: 'case', Digit1: 'opt1', Digit2: 'opt2' };
 
 export class Input {
   constructor() {
-    this.stack = []; this.touchDir = null; this.q = [];
+    this.stack = []; this.touchDir = null; this.padDir = null; this.padReader = createGamepadReader(); this.q = [];
     addEventListener('keydown', e => {
       if (e.target.tagName === 'INPUT') return;
       const d = MOVE[e.code];
@@ -15,7 +16,16 @@ export class Input {
     addEventListener('blur', () => { this.stack = []; this.touchDir = null; });
     addEventListener('contextmenu', e => e.preventDefault());
   }
-  get dir() { return this.touchDir || this.stack[this.stack.length - 1] || null; }
+  get dir() { return this.touchDir || this.stack[this.stack.length - 1] || this.padDir || null; }
+  pollGamepads(pads, queueActions = true) {
+    const state = this.padReader.poll(pads);
+    this.padDir = state.dir;
+    if (queueActions) for (const action of state.actions) {
+      if (['interact','scan','light','pause','case'].includes(action)) this.q.push(action);
+      else if (action === 'back') this.q.push('pause');
+    }
+    return state;
+  }
   take() { const q = this.q; this.q = []; return q; }
   bindPad(el) {
     const set = e => {
