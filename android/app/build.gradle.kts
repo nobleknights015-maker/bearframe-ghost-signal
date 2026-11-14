@@ -5,6 +5,7 @@ plugins {
 android {
     namespace = "labs.bearframe.ghostsignal"
     compileSdk = 35
+    buildFeatures { buildConfig = true }
 
     defaultConfig {
         applicationId = "labs.bearframe.ghostsignal"
