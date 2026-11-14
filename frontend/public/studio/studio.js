@@ -1,3 +1,5 @@
+import { CHASSIS } from './lib/android-chassis.js';
+import { OUTFITS, HEADGEAR, CHARACTER_PRESETS } from './lib/android-catalog.js';
 import { RING_STYLES, RING_SIZES, RING_MOTIONS, fitRingCanvas } from './lib/android-rings.js';
 import { WARDROBE } from './lib/android-details.js';
 // Bearframe Sprite Studio — standalone editor. Depends only on ./lib (no Ghost Signal code, no network services).
@@ -56,17 +58,23 @@ let regenT = 0; const regenSoon = () => { clearTimeout(regenT); regenT = setTime
 function field(label, input) { const l = el('label', { textContent: label + ' ' }); l.append(input); return l; }
 function sel(opts, val, on, tid) { const s = el('select'); s.dataset.testid = tid; opts.forEach(o => s.append(el('option', { value: o, textContent: o }))); s.value = val; s.onchange = () => on(s.value); return s; }
 function range(min, max, step, val, on, tid) { const r = el('input', { type: 'range', min, max, step, value: val }); r.dataset.testid = tid; r.oninput = () => on(+r.value); return r; }
-function colors(obj, keys) { const w = el('div'); keys.forEach(k => { const i = el('input', { type: 'color', value: obj[k] }); i.dataset.testid = 'color-' + k; i.oninput = () => { obj[k] = i.value; buildPalette(); regenSoon(); }; w.append(el('label', { className: 'col', textContent: ({ringMaterial:'ring metal',ringGlow:'ring light'}[k]||k) }, [i])); }); return w; }
+function colors(obj, keys) { const w = el('div'); keys.forEach(k => { const i = el('input', { type: 'color', value: obj[k] }); i.dataset.testid = 'color-' + k; i.oninput = () => { obj[k] = i.value; buildPalette(); regenSoon(); }; w.append(el('label', { className: 'col', textContent: ({ringMaterial:'ring metal',ringGlow:'ring light',outfit:'outfit cloth',accent:'outfit trim'}[k]||k) }, [i])); }); return w; }
 function buildCfg() {
   const box = $('cfg'); box.innerHTML = '';
   if (P.kind === 'humanoid') {
     const c = P.cfg; for (const role of ['scarf','hood','drapery']) c.colors[role] ??= c.colors.cloak;
+    c.colors.outfit ??= c.colors.cloak;c.colors.accent ??= c.colors.glow;
     c.colors.ringMaterial ??= c.colors.armor; c.colors.ringGlow ??= c.colors.glow;
     const up = (k, v) => { c[k] = v; regenSoon(); };
     box.append(field('Preset', sel(['—', ...Object.keys(PRESETS)], '—', v => { if (PRESETS[v]) { const padding=P.cfg.ringPadding,scales=P.cfg.ringScales; P.cfg = JSON.parse(JSON.stringify(PRESETS[v])); if(padding)P.cfg.ringPadding=padding; if(scales)P.cfg.ringScales=scales; fitRingCanvas(P,SS.resizeSet); refresh(); regenSoon(); } }, 'humanoid-preset')),
       field('Style', sel(['classic', 'sleek'], c.style || 'classic', v => up('style', v), 'cfg-style')),
       field('Head', sel(['visor', 'mono', 'band', 'display'], c.head, v => up('head', v), 'cfg-head')), field('Armor', sel(['light', 'plated', 'heavy'], c.armor, v => up('armor', v), 'cfg-armor')),
       field('Cloak', sel(['none', 'short', 'long'], c.cloak, v => up('cloak', v), 'cfg-cloak')), field('Limb build', range(-1, 1, 1, c.build, v => up('build', v), 'cfg-build')), field('Damage', range(0, 3, 1, c.damage, v => up('damage', v), 'cfg-damage')));
+    box.append(field('Chassis',sel(CHASSIS,c.chassis||'standard',v=>up('chassis',v),'cfg-chassis')),
+      field('Outfit',sel(OUTFITS,c.outfit||'none',v=>up('outfit',v),'cfg-outfit')),
+      field('Helmet fitting',sel(HEADGEAR,c.headgear||'none',v=>up('headgear',v),'cfg-headgear')),
+      field('Visor expression',sel(['v','calm','friendly','focused'],c.expression||'v',v=>up('expression',v),'cfg-expression')),
+      field('Character reference',sel(['—',...Object.keys(CHARACTER_PRESETS)],'—',name=>{const def=CHARACTER_PRESETS[name];if(!def)return;const {ringPadding,ringScales}=P.cfg;P.cfg={...JSON.parse(JSON.stringify(DEFAULT_CFG)),...JSON.parse(JSON.stringify(def))};if(ringPadding)P.cfg.ringPadding=ringPadding;if(ringScales)P.cfg.ringScales=ringScales;P.name=name;fitRingCanvas(P,SS.resizeSet);refresh();regenSoon();},'character-preset')));
     box.append(field('Face panel', sel(['smooth', 'split'], c.facePanel || (c.style === 'sleek' ? 'smooth' : 'split'), v => up('facePanel', v), 'cfg-facePanel')));
     for (const k of ['scarf', 'hood', 'drapery', 'damageType']) box.append(field(k === 'damageType' ? 'Damage pattern' : k, sel(WARDROBE[k], c[k] || (k === 'damageType' ? 'worn' : 'none'), v => up(k, v), 'cfg-' + k)));
     for (const k of ['clothWear', 'overgrowth']) box.append(field(k === 'clothWear' ? 'Frayed cloth' : 'Overgrowth', range(0, 3, 1, c[k] || 0, v => up(k, v), 'cfg-' + k)));

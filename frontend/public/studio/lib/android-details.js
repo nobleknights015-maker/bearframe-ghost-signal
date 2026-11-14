@@ -119,5 +119,5 @@ export function appearance({c,cfg,dir,pose,K,X,Y,P}) {
       cloth(outer,{holes:back?[]:[opening],ragged:false,role:'hood',flow:'hood'});
     }
   };
-  return {rear,front};
+  return {rear,front,cloth};
 }

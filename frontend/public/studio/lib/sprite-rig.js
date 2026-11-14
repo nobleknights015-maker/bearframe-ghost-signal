@@ -1,3 +1,5 @@
+import { PROFILES, drawChassis } from './android-chassis.js';
+import { outfitLayers } from './android-outfits.js';
 import { drawRings } from './android-rings.js';
 import { appearance } from './android-details.js';
 // Bearframe Sprite Rig — reusable parametric humanoid-android pixel-art generator.
@@ -9,6 +11,7 @@ import { appearance } from './android-details.js';
 // pixel-level detail instead of being a scaled-up small sprite.
 export const DIRS = ['down', 'up', 'right', 'left'];
 export const DEFAULT_CFG = {
+  chassis:'standard', outfit:'none', expression:'v', headgear:'none',
   ring:'none', ringSize:'standard', ringSegments:10, ringWidth:2, ringGlow:2, ringDamage:0, ringMotion:'pulse', ringTags:false,
   facePanel: 'smooth', scarf: 'none', hood: 'none', drapery: 'none', clothWear: 0, overgrowth: 0, damageType: 'worn',
   style: 'sleek', // Omitted on older projects: retain their pixel-exact classic rendering.
@@ -137,7 +140,10 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     pl(11, 3 + b, 10, 12); r(11, 14 + b, 10, 1, P.D); c.clearRect(X(11), Y(3 + b), 1, 1); c.clearRect(X(21) - 1, Y(3 + b), 1, 1);
     if (!front) { r(15, 4 + b, 2, 8, P.G); r(12, 12 + b, 8, 1, P.S); return; }
     if (cfg.head === 'visor' && (cfg.facePanel === 'smooth' || (sleek && cfg.facePanel !== 'split'))) {
-      r(12, 7 + b, 8, 7, P.K); r(12, 9 + b, 2, 1, glow); r(14, 10 + b, 1, 1, glow); r(15, 11 + b, 2, 1, glow); r(17, 10 + b, 1, 1, glow); r(18, 9 + b, 2, 1, glow);
+      r(12, 7 + b, 8, 7, P.K);
+      if(cfg.expression==='friendly'){for(const x of [12,17]){r(x,9+b,3,1,glow);r(x,10+b,1,1,glow);r(x+2,10+b,1,1,glow);}}
+      else if(cfg.expression==='calm'||cfg.expression==='focused'){r(12,9+b,3,1,glow);r(17,9+b,3,1,glow);if(cfg.expression==='focused'){r(14,10+b,1,1,P.R);r(17,10+b,1,1,P.R);}}
+      else {r(12, 9 + b, 2, 1, glow); r(14, 10 + b, 1, 1, glow); r(15, 11 + b, 2, 1, glow); r(17, 10 + b, 1, 1, glow); r(18, 9 + b, 2, 1, glow);}
     } else if (cfg.head === 'visor') {
       r(15, 3 + b, 2, 4, P.G); r(12, 8 + b, 8, 6, P.K); r(15, 7 + b, 2, 8, P.W); r(15, 7 + b, 1, 8, P.Wh);
       r(12, 9 + b, 3, 1, glow); r(13, 10 + b, 2, 1, P.R); r(14, 11 + b, 1, 1, P.Rd); r(17, 9 + b, 3, 1, glow); r(17, 10 + b, 2, 1, P.R); r(17, 11 + b, 1, 1, P.Rd);
@@ -155,28 +161,34 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     else { r(23, 22 + b, 3, 3, P.K); r(24, 23 + b, 1, 1, P.G); pl(23, 25 + b - a, 4, 7); r(23, 32 + b - a, 4, 3, P.K); r(24, 33 + b - a, 2, 1, P.G); if (strips) r(26, 27 + b - a, 1, 3, P.R); }
   };
   const lx = 16 - lw - 1, rx = 17;
-  const details = appearance({c,cfg,dir,pose,K,X,Y,P}); drawRings(c,cfg,dir,pose,{K,X,Y}); details.rear();
+  const args={c,cfg,dir,pose,K,X,Y,P},refined=!!PROFILES[cfg.chassis];
+  const details = appearance(args),outfits=outfitLayers(args,details.cloth); drawRings(c,cfg,dir,pose,{K,X,Y}); details.rear(); outfits.rear();
 
   if (dir === 'down') {
     if (cloakLen) cols(5, 27, (x, px) => { const edge = x < 8 || x > 24; col1(px, 17 + b, cloakLen - 1 + wave(x), edge ? P.C : Math.sin(x * 1.3 + ph * .5) > .6 ? P.Cx : P.Cd); if (Math.abs(x - 6.5) < .5 || Math.abs(x - 25.5) < .5) col1(px, 19 + b, cloakLen - 7 + wave(x), P.Ch); });
+    if(refined)drawChassis(args);else {
     leg(lx, pose.lL || 0); leg(rx, pose.lR || 0); r(15, 34 + b, 2, 4, P.K);
     r(10, 17 + b, 12, 15, P.K); pl(10, 18 + b, 5, 5); pl(17, 18 + b, 5, 5); if (cfg.harness) { r(11, 17 + b, 1, 4, P.B); r(20, 17 + b, 1, 4, P.B); }
     r(14, 20 + b, 4, 4, hot ? P.R : P.Rd); r(15, 18 + b, 2, 7, glow); pl(12, 25 + b, 8, 2); r(13, 28 + b, 6, 2, P.S); r(11, 25 + b, 1, 3, P.R); r(20, 25 + b, 1, 3, P.R);
     if (heavy) { pl(9, 23 + b, 3, 6); pl(20, 23 + b, 3, 6); } if (cfg.damage) dmg(10, 18 + b, 12, 10, 1);
     r(9, 31 + b, 14, 3, P.B); r(9, 33 + b, 14, 1, P.Bd); r(15, 31 + b, 2, 3, P.S); if (cfg.pouches) { r(9, 33 + b, 3, 3, P.Bd); r(20, 33 + b, 3, 3, P.Bd); r(10, 34 + b, 1, 1, P.B); r(21, 34 + b, 1, 1, P.B); }
     arms(true); pauldrons();
+    }
     if (cloakLen) { r(10, 14 + b, 12, 3, P.C); r(10, 14 + b, 12, 1, P.Ch); r(11, 17 + b, 10, 1, P.Cd); } else r(13, 15 + b, 6, 2, P.G);
     helmet(true);
   } else if (dir === 'up') {
+    if(refined)drawChassis(args);else {
     leg(lx, pose.lL || 0); leg(rx, pose.lR || 0); arms(false);
     if (!cloakLen || cfg.cloak === 'short') { r(10, 17 + b, 12, 15, P.K); pl(11, 18 + b, 10, 8); r(15, 19 + b, 2, 11, P.G); r(9, 31 + b, 14, 3, P.B); if (cfg.damage) dmg(11, 18 + b, 10, 8, 2); }
     if (cfg.backpack) { r(11, 19 + b, 10, 10, P.Gd); pl(12, 20 + b, 8, 8, true); r(13, 22 + b, 6, 1, glow); }
+    }
     if (cloakLen) cols(7, 25, (x, px) => { const f = Math.sin(x * 1.1 + ph * .6); col1(px, 15 + b, cloakLen + 2 + wave(x), x < 8 || x > 24 ? P.Cd : f > .35 ? P.Cd : f < -.75 ? P.Ch : P.C); if (f > .8) col1(px, 22 + b, cloakLen - 9 + wave(x), P.Cx); });
-    pauldrons(); if (cloakLen) { r(10, 14 + b, 12, 3, P.Cd); r(10, 14 + b, 12, 1, P.C); } else r(13, 15 + b, 6, 2, P.G);
+    if(refined)drawChassis(args,{shouldersOnly:true});else pauldrons(); if (cloakLen) { r(10, 14 + b, 12, 3, P.Cd); r(10, 14 + b, 12, 1, P.C); } else r(13, 15 + b, 6, 2, P.G);
     helmet(false);
   } else { // right-facing profile; 'left' is mirrored afterwards
     const s = pose.s || 0;
     if (cloakLen) cols(4, 15, (x, px) => { const top = 16 + b + Math.max(0, 9 - x) * 2, len = 17 + cloakLen + wave(x) - top - (s ? 1 : 0); if (len > 0) col1(px - (s && x < 8 ? 1 : 0), top, len, x < 6 ? P.C : Math.sin(x * 1.4 + ph * .5) > .5 ? P.Cx : P.Cd); });
+    if(refined)drawChassis(args);else {
     if (cfg.backpack) { r(8, 18 + b, 4, 10, P.Gd); pl(8, 19 + b, 3, 8, true); r(8, 22 + b, 1, 2, glow); }
     const sl = (x, l, dk) => { pl(x, 34, lw + 1, 7 - l, dk); r(x, 36, lw + 1, 1, P.G); r(x, 41 - l, lw + 1, 2, P.K); r(x + 3, 41 - l, 1, 1, dk ? P.Rd : P.R); pl(x + 1, 43 - l, lw, 7, dk); pl(x, 50 - l, lw + 3, 3, dk); r(x, 53 - l, lw + 3, 1, P.K); };
     if (s) { sl(13 - s, Math.abs(s) === 2 ? 2 : 0, true); sl(13 + s, 0, false); } else { const l = pose.lL || 0; sl(13, l, false); }
@@ -186,6 +198,7 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     pl(12, 16 + b, pw, 6); r(12, 21 + b, pw, 1, P.D);
     if (pose.scan) { r(16, 22 + b, 3, 3, P.K); pl(18, 23 + b, 7, 4); r(20, 25 + b, 3, 1, P.R); r(25, 23 + b, 3, 4, P.K); r(28, 24 + b, 1, 2, pose.flare ? P.Rb : P.R); if (pose.flare) { r(29, 23 + b, 1, 1, P.R); r(29, 26 + b, 1, 1, P.R); r(30, 24 + b, 1, 2, P.R); } }
     else { r(14 + (a >> 1), 22 + b, 3, 3, P.K); pl(13 + a, 25 + b, 4, 7); r(13 + a, 27 + b, 1, 3, P.R); r(13 + a, 32 + b, 4, 3, P.K); r(14 + a, 33 + b, 2, 1, P.G); }
+    }
     if (cloakLen) { r(11, 14 + b, 10, 3, P.C); r(11, 14 + b, 10, 1, P.Ch); r(8, 15 + b, 4, 3, P.C); } else r(14, 15 + b, 5, 2, P.G);
     pl(11, 3 + b, 10, 12); r(15, 14 + b, 6, 1, P.D); c.clearRect(X(11), Y(3 + b), 1, 1); c.clearRect(X(21) - 1, Y(3 + b), 1, 1);
     if (cfg.head === 'visor' && (cfg.facePanel === 'smooth' || (sleek && cfg.facePanel !== 'split'))) { r(17, 7 + b, 4, 7, P.K); r(18, 9 + b, 3, 1, glow); r(17, 10 + b, 1, 1, glow); }
@@ -195,7 +208,7 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     if (cfg.modules) { if (sleek) module(12, 6 + b, 5, 7, glow); else { r(12, 6 + b, 5, 7, P.G); r(12, 6 + b, 5, 1, P.Gd); r(13, 7 + b, 3, 5, glow); r(14, 8 + b, 1, 3, P.Rd); } }
     if (cfg.fins) { r(13, b, 1, 4, P.S); r(13, 3 + b, 2, 4, P.W); } if (cfg.antenna) { r(12, b - 2, 1, 6, P.G); r(12, b - 3, 1, 1, glow); }
   }
-  details.front();
+  outfits.front(); details.front();
   if (opts.outline !== false) outline(c, fw, fh, opts.outlineColor || '#08070b');
   ctx.save(); if (dir === 'left') { ctx.translate(fw, 0); ctx.scale(-1, 1); } ctx.drawImage(cv, 0, 0); ctx.restore();
 }
