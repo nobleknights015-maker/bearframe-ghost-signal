@@ -54,7 +54,10 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     if(session.phase!=='exploration')return false;
     const g=game.snapshot();
     const world=clone(session.exploration);world.location=location();
-    return db.save({version:1,phase:'exploration',world,field:g});
+    const security=game.drones.map(d=>({x:d.x,y:d.y,dir:d.dir,state:d.state,wp:d.wp,
+      alert:d.alert,blind:d.blind,invCd:d.invCd,t:d.t,lost:d.lost,last:d.last,target:d.target,
+      seen:d.seen,searchN:d.searchN,hitCd:d.hitCd,returning:d.returning}));
+    return db.save({version:1,phase:'exploration',world,field:g,security});
   };
   const updateLocation=()=>{
     if(session.phase!=='exploration')return;
@@ -107,7 +110,24 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     catch(_){session=createHybridSession(initial(),LAB_POLICY_SPEC);}
   }
   ui.show('title',false);ui.show('ending',false);
-  game.start(mission,valid?saved.field:null);
+  try { game.start(mission,valid?saved.field:null); }
+  catch (error) {
+    // Corrupt or future-incompatible snapshots never destroy the original game or brick the lab.
+    console.warn('RPG lab restore invalid, starting fresh',error);
+    session=createHybridSession(initial(),LAB_POLICY_SPEC);
+    game.start(mission,null);
+    ui.toast('INVALID RPG TEST SAVE — STARTED A FRESH SECTOR',4);
+  }
+  if(valid&&!game.flags.labResolved&&Array.isArray(saved.security)){
+    const allowed=['x','y','dir','state','wp','alert','blind','invCd','t','lost','last','target','seen','searchN','hitCd','returning'];
+    for(let i=0;i<game.drones.length;i++){
+      const row=saved.security[i];if(!row||typeof row!=='object')continue;
+      if(!Number.isFinite(row.x)||!Number.isFinite(row.y)||!['up','down','left','right'].includes(row.dir)||
+          !['patrol','investigate','chase','disabled'].includes(row.state))continue;
+      for(const key of allowed)if(row[key]!==undefined)game.drones[i][key]=clone(row[key]);
+      game.drones[i].path=[];game.drones[i].repath=0;
+    }
+  }
   if(game.flags.labResolved)disableSentry();
   ui.show('title',false);
   updateLocation();
