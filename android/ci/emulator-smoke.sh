@@ -2,7 +2,7 @@
 set -euo pipefail
 APK="$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
 if [[ -z "$APK" ]]; then echo "No assembled APK found" >&2; exit 1; fi
-PACKAGE="$(aapt dump badging "$APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n 1)"
+PACKAGE="$(aapt dump badging "$APK" | awk -F "'" '/^package: name=/{print $2; exit}')"
 if [[ -z "$PACKAGE" ]]; then echo "Cannot read APK package" >&2; exit 1; fi
 echo "Installing $APK ($PACKAGE)"
 adb install -r "$APK"
