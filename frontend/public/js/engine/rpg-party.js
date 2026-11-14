@@ -38,6 +38,12 @@ export function equipItem(s,memberId,slot,itemId,catalog) {
   if (!valid(s) || !entry(s,memberId) || !SLOTS.includes(slot) || !plain(catalog) ||
       !id(itemId) || !plain(catalog[itemId]) || catalog[itemId].slot!==slot ||
       !(s.inventory[itemId]>0)) throw new TypeError('Cannot equip item');
+  // Some older actors and test catalogs have no lineage restriction; only explicit
+  // lineage-gated equipment requires an exact allowed chassis family.
+  const allowed=catalog[itemId].allowedLineages;
+  if(allowed!==undefined && (!Array.isArray(allowed) || !allowed.length ||
+      !allowed.every(id) || !allowed.includes(entry(s,memberId).lineage)))
+    throw new TypeError('Equipment incompatible with this chassis');
   const next=clone(s); const current=next.equipment[memberId]?.[slot];
   next.inventory[itemId]--;
   if (!next.inventory[itemId]) delete next.inventory[itemId];
@@ -61,9 +67,14 @@ export function battleParty(s,catalog={}) {
   if (!valid(s)) throw new TypeError('Invalid party');
   return s.active.map(k=>{
     const m=entry(s,k), gear=s.equipment[k]||{};
-    const bonus=stat=>Object.values(gear).reduce((n,item)=>n+(Number.isInteger(catalog[item]?.[stat])?catalog[item][stat]:0),0);
+    const bonus=stat=>Object.values(gear).reduce((n,item)=>{
+      const def=catalog[item];
+      if(!def || (def.allowedLineages && !def.allowedLineages.includes(m.lineage)))return n;
+      return n+(Number.isInteger(def[stat])?def[stat]:0);
+    },0);
     return {id:m.id,name:m.name||m.id,hp:m.hp,maxHp:m.maxHp,ep:m.ep||0,maxEp:m.maxEp||0,
       attack:Math.max(1,m.attack+bonus('attack')),defense:Math.max(0,m.defense+bonus('defense')),
-      speed:Math.max(1,m.speed+bonus('speed'))};
+      speed:Math.max(1,m.speed+bonus('speed')),
+      ...(Array.isArray(m.skills)?{skills:[...m.skills]}:{})};
   });
 }
