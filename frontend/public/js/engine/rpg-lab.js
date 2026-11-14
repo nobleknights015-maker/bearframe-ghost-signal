@@ -37,7 +37,7 @@ function overlay(id,title){
   shell.appendChild(panel);$('stage').appendChild(shell);return {shell,panel};
 }
 
-export function mountRpgLab({game,ui,sfx}) {
+export function mountRpgLab({game,ui,sfx,touchMode}) {
   // Never write a Ghost Signal mission save/progress key from the lab.
   game.store={save:()=>true,clear:()=>{},loadProgress:()=>({unlocked:{},done:{},case:null}),saveProgress:()=>true};
   const db=createRpgSaveStore(localStorage,'bearframe_ghost_signal_rpg_lab_v1');
@@ -193,12 +193,15 @@ export function mountRpgLab({game,ui,sfx}) {
         session=actHybrid(session,enemyDecision(session.battle));
       if(session.phase==='battle'){showBattle();return;}
       battle.shell.classList.add('hidden');game.mode='play';
+      ui.show('touch',!!touchMode?.());
       const result=session.event.outcome;
       apply(s=>{s.quests.sentry=result==='victory'?'neutralized':result;});
       if(result==='victory'){
         game.flags.labResolved=true;disableSentry();ui.toast('SENTRY NEUTRALIZED // XP AND SALVAGE RECORDED',4);
       }else{
-        cooldown=game.time+6;game.drones.forEach(d=>{d.state='investigate';d.t=3;d.alert=0;d.target={x:d.x,y:d.y};d.repath=0;});
+        cooldown=game.time+6;
+        if(result==='defeat') apply(s=>s.party.forEach(p=>{p.hp=Math.max(1,Math.ceil(p.maxHp/2));}));
+        game.drones.forEach(d=>{d.state='investigate';d.t=3;d.alert=0;d.target={x:d.x,y:d.y};d.repath=0;});
         ui.toast(result==='fled'?'WITHDRAWN — SEARCH CONTINUES':'PARTY DISABLED — FIELD RECOVERY REQUIRED',4);
       }
       save();
