@@ -4,6 +4,7 @@ import {createHybridSession,moveHybrid,detectHybrid,actHybrid} from './hybrid-se
 import {currentCombatant,enemyDecision} from './rpg-combat.js';
 import {rpgMenuModel,RPG_TABS} from './rpg-menu-model.js';
 import {createRpgSaveStore} from './rpg-save.js';
+import {useFieldConsumable} from './rpg-field-actions.js';
 import {createLabMission,LAB_POLICY_SPEC} from './rpg-lab-mission.js';
 
 const $=id=>document.getElementById(id);
@@ -186,8 +187,46 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
       li.appendChild(btn);list.appendChild(li);
     }
     body.append(list,detail);menu.panel.appendChild(body);
+    if(menuTab==='items'){
+      const kit=softButton('USE REPAIR KIT',()=>chooseFieldRecipient('repair-kit'));
+      kit.disabled=!(session.exploration.inventory['repair-kit']>0 &&
+        session.exploration.party.some(p=>p.hp>0&&p.hp<p.maxHp));
+      menu.panel.appendChild(kit);
+    }
     if(menuTab==='save')menu.panel.appendChild(softButton('SAVE RPG TEST RECORD',
       ()=>{const ok=save();ui.toast(ok?'RPG RECORD SAVED':'RPG SAVE FAILED',2.5);renderMenu();}));
+  }
+  function chooseFieldRecipient(itemId){
+    if(game.mode!=='rpgmenu')return;
+    menu.panel.replaceChildren();
+    menu.panel.appendChild(el('h2','','FIELD SUPPLY // SELECT RECIPIENT'));
+    menu.panel.appendChild(el('div','fine','Repair kits restore up to 20 HP. Only living wounded units qualify.'));
+    const options=el('div','btn-row');
+    options.style.flexWrap='wrap';
+    for(const unit of session.exploration.party.filter(p=>p.hp>0&&p.hp<p.maxHp)){
+      options.appendChild(softButton(unit.name+' · HP '+unit.hp+'/'+unit.maxHp,()=>{
+        const old=session;
+        try{
+          const result=useFieldConsumable(session.exploration,itemId,unit.id);
+          session=createHybridSession(result.exploration,LAB_POLICY_SPEC);
+          // A field transaction only completes when its updated journal is durable.
+          if(!save()){
+            session=old;
+            ui.toast('FIELD ITEM NOT USED — SAVE UNAVAILABLE',3);
+            renderMenu();return;
+          }
+          ui.toast(result.recipientId.toUpperCase()+' RESTORED '+result.healed+' HP',2.5);
+          renderMenu();
+        }catch(error){
+          session=old;
+          ui.toast('FIELD ITEM BLOCKED — '+error.message,2.5);
+          renderMenu();
+        }
+      }));
+    }
+    options.appendChild(softButton('BACK',renderMenu));
+    menu.panel.appendChild(options);
+    options.querySelector('button')?.focus();
   }
   function showBattle(){
     battle.panel.replaceChildren();
