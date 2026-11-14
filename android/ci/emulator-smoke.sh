@@ -18,4 +18,20 @@ adb shell dumpsys activity activities > /tmp/ghost-signal-activities.txt
 grep -F "$PACKAGE" /tmp/ghost-signal-activities.txt
 adb exec-out screencap -p > ghost-signal-emulator-launch.png
 test -s ghost-signal-emulator-launch.png
-echo "Emulator installed and process launched: $PACKAGE"
+# Verify a fresh Activity launch after a process kill. This checks Android lifecycle
+# restart wiring, not RPG journal persistence or a physical-device resume.
+adb shell am force-stop "$PACKAGE"
+if adb shell pidof "$PACKAGE" >/dev/null 2>&1; then
+  echo "App process survived force-stop" >&2; exit 1
+fi
+adb shell monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1
+sleep 10
+RESTART_PID="$(adb shell pidof "$PACKAGE" | tr -d '\r')"
+if [[ -z "$RESTART_PID" ]]; then
+  echo "App failed to relaunch after force-stop" >&2; exit 1
+fi
+adb shell dumpsys activity activities > /tmp/ghost-signal-activities-restart.txt
+grep -F "$PACKAGE" /tmp/ghost-signal-activities-restart.txt
+adb exec-out screencap -p > ghost-signal-emulator-restart.png
+test -s ghost-signal-emulator-restart.png
+echo "Emulator install, launch and process-restart smoke passed: $PACKAGE (pid $RESTART_PID)"
