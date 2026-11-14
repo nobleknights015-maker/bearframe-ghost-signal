@@ -1,4 +1,4 @@
-# Bearframe hybrid stealth–JRPG engine: preserved working base
+# Ghost Signal Engine: preserved base and hybrid JRPG development
 
 **Owner direction — 2026-11-14:** Use the existing playable **Ghost Signal** HTML5 Canvas engine as the foundation for the main Bearframe RPG. Keep its real-time stealth system as a supported exploration mode for selected abandoned ruins, ancient facilities and security zones. Preserve its original game.
 
@@ -8,10 +8,11 @@
 |---|---|---|
 | `main` | Original Ghost Signal game + standalone Sprite Studio | Leave working game intact; may receive updates from its existing origin workflow |
 | `baseline/ghost-signal-20261114` | Exact source snapshot at `f6f8f09b7d6c452f158a67473ac35c2fb374da6f` | **Never modify or move this ref** |
-| `engine/hybrid-stealth-jrpg-20261114` | Development copy created from same baseline commit | **Commit all new hybrid engine work here only** |
+| `ghost-signal-engine` | **Ghost Signal Engine** — active development copy from the original playable foundation | **All new hybrid engine changes go here only** |
+| `engine/hybrid-stealth-jrpg-20261114` | Retained initial development branch for history | Superseded: do not add new commits |
 | `nobleknights015-maker/bearframe-rpg-engine` | Earlier, independent RPG implementation | Preserve as source for evaluated/tested modules; do not overwrite |
 
-The baseline and development copy are currently branches in **one** repository, not two standalone repositories. If a separate repository is later created, transfer the development branch and verify full source/history before redirecting the work. Do not merge experimental engine changes into `main` automatically.
+The preserved baseline and **Ghost Signal Engine** development copy are branches in **one** repository, not two standalone repositories. If a separate repository is later created, transfer the development branch and verify full source/history before redirecting the work. Do not merge experimental engine changes into `main` automatically.
 
 ## Non-negotiable functional contracts
 
