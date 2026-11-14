@@ -30,7 +30,7 @@ try {
   const body = execFileSync('git', ['show', baseline+':frontend/public/studio/lib/'+relative], { cwd: root });
   return route.fulfill({ contentType: 'application/javascript', body });
  });
- await page.route('**/__test__/**', route=>{const name=new URL(route.request().url()).pathname.split('/').at(-1);if(!['render-checks.mjs','ring-checks.mjs','chassis-checks.mjs','cleanup-checks.mjs'].includes(name))return route.abort();return route.fulfill({contentType:'application/javascript',body:readFileSync(path.join(root,'tests',name))});});
+ await page.route('**/__test__/**', route=>{const name=new URL(route.request().url()).pathname.split('/').at(-1);if(!['render-checks.mjs','ring-checks.mjs','chassis-checks.mjs','cleanup-checks.mjs','unit-family-checks.mjs'].includes(name))return route.abort();return route.fulfill({contentType:'application/javascript',body:readFileSync(path.join(root,'tests',name))});});
  await page.route('**/__cloth_before__/**',route=>{const name=new URL(route.request().url()).pathname.split('/').at(-1);if(!['sprite-rig.js','android-details.js'].includes(name))return route.abort();return route.fulfill({contentType:'application/javascript',body:execFileSync('git',['show','4e69ac187653446e1235001dd3bd1d6196fd8ba0:frontend/public/studio/lib/'+name],{cwd:root})});});
  await page.goto('http://127.0.0.1:'+port+'/studio/');
  await page.waitForFunction(() => window.__studio && !window.__studio.busy && window.__studio.set.cells.size > 0);
@@ -38,7 +38,7 @@ try {
  const check = (name, detail = true) => results.checks.push({ name, detail, passed: true });
  check('Studio boot and initial generation');
  const renders = await page.evaluate(async ({beforeOnly}) => {const {renderChecks}=await import('/__test__/render-checks.mjs');return renderChecks({beforeOnly});},{beforeOnly});
- check('Pixel-exact original render compatibility',renders.classic);check('Binary transparent nonempty native renders',{classic:renders.classic,sleek:renders.sleek});check('Unchanged pose library and machine pivots',renders.unchangedPivots);check('Reference-texture renderer unchanged');if(!beforeOnly){check('Cape/body preservation and anchored cloth texture',renders.capeMatches);check('Rings retain body size, clean alpha, canvas bounds and saved margins',{cases:renders.ringCases,bounds:renders.ringBounds});check('Clean finish and narrowed modules preserve silhouettes and Classic pixels',renders.cleanup);check('Slim chassis, fixed leg segments, planted soles and character outfits',{cases:renders.chassisCases,bones:renders.chassisBones,soles:renders.chassisSoles,outfits:renders.characterCases});}check('Four directions and mirror fallback',renders.mirrors);
+ check('Pixel-exact original render compatibility',renders.classic);check('Binary transparent nonempty native renders',{classic:renders.classic,sleek:renders.sleek});check('Unchanged pose library and machine pivots',renders.unchangedPivots);check('Reference-texture renderer unchanged');if(!beforeOnly){check('Cape/body preservation and anchored cloth texture',renders.capeMatches);check('Rings retain body size, clean alpha, canvas bounds and saved margins',{cases:renders.ringCases,bounds:renders.ringBounds});check('Unit family reach, bounds, edit registration and atlas rectangles',renders.units);check('Clean finish and narrowed modules preserve silhouettes and Classic pixels',renders.cleanup);check('Slim chassis, fixed leg segments, planted soles and character outfits',{cases:renders.chassisCases,bones:renders.chassisBones,soles:renders.chassisSoles,outfits:renders.characterCases});}check('Four directions and mirror fallback',renders.mirrors);
  // Editable frames must survive style changes and regeneration-unedited.
  await page.getByTestId('tool-pencil').click();
  await page.getByTestId('color-input').evaluate(el=>{el.value='#12ab34';el.dispatchEvent(new Event('input',{bubbles:true}));});
@@ -68,6 +68,14 @@ try {
   await page.getByTestId('examples-select').selectOption(name);await wait();await page.waitForFunction(()=>!__studio.busy&&__studio.set.cells.size>=__studio.SS.totalFrames(__studio.set)*__studio.set.dirs.length);
   if(!beforeOnly){await page.getByTestId('machine-style').selectOption('sleek');await wait();}
   check('Example opens/generates: '+name);
+ }
+ if(!beforeOnly){
+  await page.getByTestId('machine-preset').selectOption('Industrial Echo (family prototype)');await wait();await page.getByTestId('unit-role').selectOption('maintenance');await wait();await page.getByTestId('fit-machine').click();await wait();
+  assert.equal(await page.evaluate(()=>__studio.project.rig.unitSpec.role),'maintenance');assert.deepEqual(await page.evaluate(()=>Object.keys(__studio.project.rig.views)),['down','up','right','left']);
+  const save=page.waitForEvent('download');await page.getByTestId('save-project').click();const saved=await save;await page.getByTestId('file-project').setInputFiles({name:'industrial.json',mimeType:'application/json',buffer:readFileSync(await saved.path())});await wait();assert.equal(await page.evaluate(()=>__studio.project.rig.unitSpec.family),'legacy-industrial-biped');
+  const zip=page.waitForEvent('download');await page.getByTestId('export-atlas').click();const download=await zip,data=readFileSync(await download.path());let at=0,metadata=null,pages=0;
+  while(at+30<data.length&&data.readUInt32LE(at)===0x04034b50){const size=data.readUInt32LE(at+18),nl=data.readUInt16LE(at+26),el=data.readUInt16LE(at+28),name=data.subarray(at+30,at+30+nl).toString(),start=at+30+nl+el;if(name==='metadata.json')metadata=JSON.parse(data.subarray(start,start+size).toString());if(name.endsWith('.png')){pages++;assert(data.readUInt32BE(start+16)<=2048&&data.readUInt32BE(start+20)<=2048);}at=start+size;}
+  assert(metadata&&pages>0);assert.equal(metadata.format,'bearframe-paged-atlas');assert.equal(metadata.frames.length,80);assert.equal(metadata.locomotion.strideLength,10);check('Industrial role, authored views, fitted save and real bounded atlas ZIP',{pages,frames:metadata.frames.length});
  }
  await page.setViewportSize({width:915,height:412});await page.getByTestId('dir-left').click();await wait();check('Phone landscape generation/direction switch');await page.screenshot({path:path.join(out,'phone-landscape-editor.png'),fullPage:true});
  assert.deepEqual(results.pageErrors,[]);check('No browser page errors');

@@ -1,3 +1,4 @@
+import {evaluateUnit} from './unit-families.js';
 // Bearframe Machine Rig — generic skeletal, multi-part pixel-art rasteriser for machines of any size or shape
 // (humanoid titans, quadrupeds, hexapods, flyers, drones, bosses, structures). No dependencies beyond sprite-rig's outline.
 //
@@ -135,18 +136,25 @@ function shadeTex(rig, p, u, v, L) {
 }
 // Renders one frame. Returns pivot markers [{id,x,y}] in frame pixels (for rig overlays / part picking).
 export function renderRig(ctx, rig, dir, type, i, n, fw, fh, opts = {}) {
+  rig=evaluateUnit(rig,dir,type,i,n);
   let view = rig.views[dir], flip = false;
   if (!view) { if (dir === 'left' && rig.views.right) { view = rig.views.right; flip = true; } else if (dir === 'right' && rig.views.left) { view = rig.views.left; flip = true; } else view = rig.views.right || rig.views.down || Object.values(rig.views)[0]; }
   else if ((rig.flipViews || []).includes(dir)) flip = true;
   const K = Math.min(fw / rig.w, fh / rig.h), offX = Math.round((fw - rig.w * K) / 2), offY = Math.round(fh - rig.h * K), e = 1 / K;
   const pal = {}, palD = {}; for (const k in DEFAULT_COLORS) { const t = tones(hex((rig.colors || {})[k] || DEFAULT_COLORS[k])); pal[k] = t; palD[k] = [t[1], t[2], t[3], mix(t[3], [0, 0, 0], .3)]; }
   const wz = rig.weather || {}, byId = new Map(view.map(p => [p.id, p])), Ms = new Map();
+  const active=new Set();
   const world = p => {
-    let M = Ms.get(p.id); if (M) return M; const st = evalPart(rig, p, type, i, n), par = p.p && byId.get(p.p) && p.p !== p.id ? world(byId.get(p.p)) : null;
+    if(active.has(p.id))throw Error('Parent cycle at '+p.id);active.add(p.id);
+    let M = Ms.get(p.id); if (M) {active.delete(p.id);return M;} const st = evalPart(rig, p, type, i, n), par = p.p && byId.get(p.p) && p.p !== p.id ? world(byId.get(p.p)) : null;
     const a = (par ? par.a : 0) + st.rot * Math.PI / 180, tx = par ? par.tx + par.c * st.x - par.s * st.y : st.x, ty = par ? par.ty + par.s * st.x + par.c * st.y : st.y;
-    M = { a, c: Math.cos(a), s: Math.sin(a), tx, ty, st }; Ms.set(p.id, M); return M;
+    M = { a, c: Math.cos(a), s: Math.sin(a), tx, ty, st }; Ms.set(p.id, M); active.delete(p.id);return M;
   };
   const marks = () => view.map(p => { const M = world(p), x = M.tx * K + offX; return { id: p.id, x: flip ? fw - x : x, y: M.ty * K + offY }; });
+  if(opts.boundsOnly){
+    const points=[];for(const p of view){const M=world(p),ox=p.ox??p.w/2,oy=p.oy??0,mg=['cable','banner'].includes(p.s)?Math.max(3,p.amp||0):0;for(const [x,y] of [[-ox-mg,-oy],[p.w-ox+mg,-oy],[-ox-mg,p.h-oy],[p.w-ox+mg,p.h-oy]]){const xx=M.tx+M.c*x-M.s*y,yy=M.ty+M.s*x+M.c*y;points.push({x:flip?rig.w-xx:xx,y:yy});}}
+    return {left:Math.min(...points.map(p=>p.x))-2,top:Math.min(...points.map(p=>p.y))-2,right:Math.max(...points.map(p=>p.x))+2,bottom:Math.max(...points.map(p=>p.y))+2};
+  }
   if (opts.pivotsOnly) return marks();
   const img = new ImageData(fw, fh), D = img.data;
   const order = view.map((p, k) => [p, k]).sort((A, B) => ((A[0].z || 0) - (B[0].z || 0)) || A[1] - B[1]);

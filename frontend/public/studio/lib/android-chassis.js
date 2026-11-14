@@ -1,3 +1,4 @@
+import {solveTwoBone} from './rig-safety.js';
 // Optional anatomical armor silhouettes. Original rig remains the default.
 export const CHASSIS=['standard','lean-male','lean-female','broad'];
 export const PROFILES={
@@ -5,12 +6,7 @@ export const PROFILES={
  'lean-female':{chest:9.5,waist:5.8,hips:11,shoulder:5.1,limb:4.1},
  broad:{chest:12,waist:8,hips:11.5,shoulder:7,limb:5},
 };
-export function legIK(hip,ankle,bend=1){
- const l1=8,l2=8.5,dx=ankle.x-hip.x,dy=ankle.y-hip.y,d=Math.hypot(dx,dy);
- const r=Math.max(.01,Math.min(l1+l2-.001,d)),u=dx/(d||1),v=dy/(d||1);
- const a=(l1*l1-l2*l2+r*r)/(2*r),h=Math.sqrt(Math.max(0,l1*l1-a*a));
- return {hip,knee:{x:hip.x+u*a+v*h*bend,y:hip.y+v*a-u*h*bend},ankle,l1,l2};
-}
+export function legIK(hip,ankle,bend=1){return solveTwoBone(hip,ankle,8,8.5,bend);}
 export function chassisLegs(cfg,dir,pose){
  const side=dir==='left'||dir==='right',b=pose.b||0,s=pose.s||0;
  const lifts=[pose.lL||0,pose.lR||0];

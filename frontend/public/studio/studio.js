@@ -1,3 +1,6 @@
+import {industrialEcho} from './lib/unit-families.js';
+import {fitMachineProject} from './lib/machine-bounds.js';
+import {validateRig} from './lib/rig-safety.js';
 import { CHASSIS } from './lib/android-chassis.js';
 import { OUTFITS, HEADGEAR, CHARACTER_PRESETS } from './lib/android-catalog.js';
 import { RING_STYLES, RING_SIZES, RING_MOTIONS, fitRingCanvas } from './lib/android-rings.js';
@@ -96,6 +99,8 @@ function buildCfg() {
       el('div', { className: 'hint', textContent: `Design grid ${r.w}×${r.h}. ${Object.keys(r.views).join(' / ')} views.` }));
     if (!r.ref) box.append(field('Style', sel(['classic', 'sleek'], r.style || 'classic', v => { r.style = v; regenSoon(); }, 'machine-style')));
     ['rust', 'moss', 'wear'].forEach(k => box.append(field('Weathering: ' + k, range(0, 1, .05, r.weather[k] || 0, v => { r.weather[k] = v; regenSoon(); }, 'weather-' + k))));
+    if(r.unitSpec){box.append(field('Industrial role',sel(['survey','maintenance'],r.unitSpec.role,v=>{const next=industrialEcho({...r.unitSpec,role:v});if(r.unitSpec.offset){const {x,y}=r.unitSpec.offset;for(const parts of Object.values(next.views))for(const p of parts)if(!p.p){p.x+=x;p.y+=y;}next.w=r.w;next.h=r.h;next.groundAnchor=r.groundAnchor;}P.rig={...next,colors:r.colors,weather:r.weather};refresh();regenSoon();},'unit-role')));}
+    const fit=el('button',{textContent:'Fit all animation margins'});fit.dataset.testid='fit-machine';fit.onclick=async()=>{try{fitMachineProject(P);undo=[];refresh();await generate('unedited');status('Machine margins fitted without scaling the body or footprint.');}catch(e){status(e.message);}};box.append(fit);
     box.append(colors(r.colors, COLOR_ROLES));
   } else box.append(el('div', { className: 'hint', textContent: 'Hand-drawn project. Use the pixel tools, import a PNG sheet, or switch type to start from a rig.' }));
 }
@@ -115,6 +120,7 @@ $('rig-apply').onclick = () => {
   try {
     const view = P.rig.views[$('rig-view').value], i = view.findIndex(p => p.id === $('rig-parts').value), part = JSON.parse($('rig-part-json').value), ch = JSON.parse($('rig-chan-json').value || '{}');
     if (!part.id || !SHAPES.includes(part.s)) throw new Error('part needs an id and a shape: ' + SHAPES.join(', '));
+    const candidate=JSON.parse(JSON.stringify(P.rig));candidate.views[$('rig-view').value][i]=part;validateRig(candidate);
     view[i] = part; const an = P.rig.anims[A().type] = P.rig.anims[A().type] || {}; if (Object.keys(ch).length) an[part.id] = ch; else delete an[part.id];
     buildRig(); $('rig-parts').value = part.id; showPart(); regenSoon(); status('Rig updated.');
   } catch (e) { status('Rig JSON error: ' + e.message); }
@@ -224,13 +230,15 @@ $('file-sheet').onchange = async e => { const f = e.target.files[0]; if (!f) ret
 $('btn-ref').onclick = () => $('file-ref').click();
 $('file-ref').onchange = async e => { const f = e.target.files[0]; if (!f) return; ref = await loadImg(f); const cv = $('refcv'); cv.width = ref.width; cv.height = ref.height; cv.getContext('2d').drawImage(ref, 0, 0); $('ref-overlay').checked = true; drawEditor(); status('Reference loaded. Click it to sample colours.'); };
 $('refcv').onclick = e => { if (!ref) return; const cv = $('refcv'), r = cv.getBoundingClientRect(), d = cv.getContext('2d').getImageData(Math.floor((e.clientX - r.left) / r.width * cv.width), Math.floor((e.clientY - r.top) / r.height * cv.height), 1, 1).data; setColor(hexOf(d)); };
-$('btn-regen-size').onclick = () => { const fw = +$('fw').value, fh = +$('fh').value; if (!(fw >= 4 && fh >= 4)) return; if (S.edited.size && !confirm('Re-rendering replaces hand-edited frames in this set. Continue?')) return; S.fw = fw; S.fh = fh; S.cells = new Map(); S.edited = new Set(); refresh(); generate('all'); };
+$('btn-regen-size').onclick = () => { const fw = +$('fw').value, fh = +$('fh').value; if (!(fw >= 4 && fh >= 4)) return; if (S.edited.size && !confirm('Re-rendering replaces hand-edited frames in this set. Continue?')) return; S.fw = fw; S.fh = fh;if(P.kind==='machine'&&P.rig.groundAnchor){const k=Math.min(fw/P.rig.w,fh/P.rig.h);S.anchor={x:(fw-P.rig.w*k)/2+P.rig.groundAnchor.x*k,y:fh-P.rig.h*k+P.rig.groundAnchor.y*k};} S.cells = new Map(); S.edited = new Set(); refresh(); generate('all'); };
 $('btn-resize').onclick = () => { const fw = +$('fw').value, fh = +$('fh').value; if (!(fw >= 4 && fh >= 4)) return; SS.resizeSet(S, fw, fh); undo = []; refresh(); autosave(); status('Canvas resized; pixels kept 1:1.'); };
 $('tw').onchange = $('th').onchange = () => { P.tiles = [Math.max(1, +$('tw').value), Math.max(1, +$('th').value)]; drawEditor(); autosave(); };
 $('gen-all').onclick = () => { if (!S.edited.size || confirm('This overwrites hand-edited frames. Continue?')) generate('all'); };
 $('gen-unedited').onclick = () => generate('unedited'); $('gen-frame').onclick = () => generate('frame');
 const fileBase = () => P.name.replace(/\W+/g, '-').toLowerCase() + '_' + P.active;
-const meta = () => ({ name: P.name, kind: P.kind, set: P.active, footprintTiles: P.tiles });
+const meta = () => ({ name: P.name, kind: P.kind, set: P.active, footprintTiles: P.tiles,locomotion:P.rig?.locomotion });
+const atlasButton=el('button',{textContent:'Export paged atlas ZIP'});atlasButton.dataset.testid='export-atlas';$('btn-export').parentNode.append(atlasButton);
+atlasButton.onclick=async()=>{try{const {pages,meta:m}=SS.buildAtlasPages(S,meta()),files=[];for(let i=0;i<pages.length;i++){const b=await new Promise(res=>pages[i].toBlob(res,'image/png'));files.push({name:'page-'+i+'.png',data:new Uint8Array(await b.arrayBuffer())});}files.push({name:'metadata.json',data:new TextEncoder().encode(JSON.stringify(m,null,1))});SS.download(fileBase()+'_atlas.zip',SS.zipStore(files));status('Exported bounded atlas pages with frame rectangles and registration.');}catch(e){status('Atlas export: '+e.message);}};
 $('btn-export').onclick = () => { const { canvas, meta: m } = SS.buildSheet(S, meta()); canvas.toBlob(b => { SS.download(fileBase() + '.png', b); setTimeout(() => SS.download(fileBase() + '.json', JSON.stringify(m, null, 1)), 300); status(`Exported ${canvas.width}×${canvas.height} transparent sheet + metadata.`); }, 'image/png'); };
 $('btn-zip').onclick = async () => {
   const files = [], { meta: m } = SS.buildSheet(S, meta());

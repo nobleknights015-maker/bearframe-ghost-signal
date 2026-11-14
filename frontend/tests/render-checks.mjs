@@ -1,3 +1,4 @@
+import {unitFamilyChecks} from './unit-family-checks.mjs';
 import {cleanupChecks} from './cleanup-checks.mjs';
 import { chassisChecks } from './chassis-checks.mjs';
 import { ringChecks } from './ring-checks.mjs';
@@ -27,7 +28,7 @@ export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/
    previews.push({name,kind:'humanoid',w:64,h:112,frames});
   }
   for(const [name,build] of Object.entries(presets.MACHINE_PRESETS)){
-   const rig=build();
+   const rig=build();if(rig.unitSpec)continue;
    for(const type of Object.keys(rig.anims))for(const dir of old.DIRS)for(const i of [0,3,7]){
     const a=canvas(rig.w,rig.h),b=canvas(rig.w,rig.h);oldMachine.renderRig(a.getContext('2d'),rig,dir,type,i,8,rig.w,rig.h);machine.renderRig(b.getContext('2d'),rig,dir,type,i,8,rig.w,rig.h);valid(b);
     if(!equal(pixels(a),pixels(b)))throw Error('legacy machine changed '+[name,type,dir,i]);classic++;
@@ -72,7 +73,7 @@ export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/
   }
   const rings=beforeOnly?{cases:0,bodies:0,bounds:0,previews:[]}:await ringChecks(currentPrefix);previews.push(...rings.previews);
   const chassis=beforeOnly?{cases:0,bones:0,soles:0,outfits:0,previews:[]}:await chassisChecks(currentPrefix);previews.push(...chassis.previews);
-  const cleanup=await cleanupChecks(currentPrefix);
-  return {cleanup,classic,sleek,mirrors,unchangedPivots,wardrobe,capeMatches,ringCases:rings.cases,ringBodies:rings.bodies,ringBounds:rings.bounds,chassisCases:chassis.cases,chassisBones:chassis.bones,chassisSoles:chassis.soles,characterCases:chassis.outfits,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
+  const cleanup=await cleanupChecks(currentPrefix),units=await unitFamilyChecks(currentPrefix);
+  return {units,cleanup,classic,sleek,mirrors,unchangedPivots,wardrobe,capeMatches,ringCases:rings.cases,ringBodies:rings.bodies,ringBounds:rings.bounds,chassisCases:chassis.cases,chassisBones:chassis.bones,chassisSoles:chassis.soles,characterCases:chassis.outfits,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
 
 }
