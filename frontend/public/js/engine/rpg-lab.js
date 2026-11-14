@@ -205,22 +205,40 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     battle.panel.appendChild(el('div','fine',unit.name.toUpperCase()+' // SELECT COMMAND'));
     const commands=el('div','btn-row');
     commands.style.flexWrap='wrap';
-    const foe=activeEnemy(b),ally=[...b.party].filter(p=>p.hp>0)
-      .sort((a,c)=>a.hp/a.maxHp-c.hp/c.maxHp)[0];
+    const foe=activeEnemy(b);
     const options=[
       ['ATTACK',{type:'attack',target:'enemy:'+foe.id},true],
       ['PULSE (5 EP)',{type:'pulse',target:'enemy:'+foe.id},unit.ep>=5&&unit.id==='sleeper'],
       ['GUARD',{type:'guard'},true],
-      ['REPAIR (5 EP)',{type:'repair',target:'party:'+ally.id},unit.ep>=5&&unit.id==='echo'],
-      ['KIT',{type:'item',item:'repair-kit',target:'party:'+ally.id},!!b.inventory['repair-kit']],
+      ['REPAIR (5 EP)',{type:'repair'},unit.ep>=5&&unit.id==='echo'],
+      ['KIT',{type:'item',item:'repair-kit'},!!b.inventory['repair-kit']],
       ['WITHDRAW',{type:'flee'},b.canFlee]
     ];
     for(const [label,command,enabled] of options){
-      const button=softButton(label,()=>takeAction({actor,...command}));
+      const button=softButton(label,()=>{
+        if(command.type==='repair'||command.type==='item')chooseAllyTarget({actor,...command});
+        else takeAction({actor,...command});
+      });
       button.disabled=!enabled;commands.appendChild(button);
     }
     battle.panel.appendChild(commands);
     commands.querySelector('button:not(:disabled)')?.focus();
+  }
+  function chooseAllyTarget(command){
+    if(session.phase!=='battle')return;
+    const candidates=session.battle.party.filter(unit=>unit.hp>0);
+    battle.panel.replaceChildren();
+    battle.panel.appendChild(el('h2','',command.type==='repair'?'REPAIR // SELECT ALLY':'REPAIR KIT // SELECT ALLY'));
+    battle.panel.appendChild(el('div','fine','Choose the party member who receives the resource. No EP or item is consumed until confirmed.'));
+    const choices=el('div','btn-row');
+    choices.style.flexWrap='wrap';
+    for(const unit of candidates){
+      choices.appendChild(softButton(unit.name+' · HP '+unit.hp+'/'+unit.maxHp,
+        ()=>takeAction({...command,target:'party:'+unit.id})));
+    }
+    choices.appendChild(softButton('BACK',showBattle));
+    battle.panel.appendChild(choices);
+    choices.querySelector('button')?.focus();
   }
   function takeAction(action){
     try{
