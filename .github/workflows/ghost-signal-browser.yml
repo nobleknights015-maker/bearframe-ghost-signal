@@ -37,6 +37,15 @@ jobs:
       - name: Browser smoke — field, UI, saves, original game, Sprite Studio
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab.mjs
 
+      - name: Upload browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-browser-failure
+          path: frontend/test-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Record CI result in persistent GitHub issue
         if: always()
         env:
