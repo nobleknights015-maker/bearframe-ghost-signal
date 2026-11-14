@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "sourceCommit": "035717f0fafd9d69e0e34e45f3cf4d11327e5b47",
+  "comparisonBaseline": "ded6e05b78263c07f2b0cde653f95e4e984cf387",
+  "workflowRun": "https://github.com/nobleknights015-maker/bearframe-ghost-signal/actions/runs/43631276054",
+  "nativeChecks": 29,
+  "browserChecks": 35,
+  "build": "PASS",
+  "metrics": {
+    "unchangedFrontBackOutfitRenders": 312,
+    "unchangedOtherEchoViews": 336,
+    "visibleBackArmPixels": 3330,
+    "visibleProfileArmHandSamples": 468
+  },
+  "visualReview": "Native before/after previews inspected; owner visual approval pending.",
+  "scope": "Separate sprite-studio-sleek-copy branch; original and engine branches untouched."
+}
