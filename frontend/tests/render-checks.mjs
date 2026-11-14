@@ -1,3 +1,4 @@
+import { ringChecks } from './ring-checks.mjs';
 export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/',baselinePrefix='/__baseline__/',clothBaselinePrefix='/__cloth_before__/'}={}) {
   const current = await import(currentPrefix+'sprite-rig.js'); const old = await import(baselinePrefix+'sprite-rig.js');
   const machine = await import(currentPrefix+'machine-rig.js'); const oldMachine = await import(baselinePrefix+'machine-rig.js');
@@ -67,6 +68,7 @@ export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/
    for(const b of [0,1]){const cv=canvas(64,112);const cfg={...current.DEFAULT_CFG,cloak:'none',scarf:'cowl',hood:'raised',drapery:'tabard',clothWear:3};const layer=appearance({c:cv.getContext('2d'),cfg,dir:'down',pose:{b,ph:0},K:2,X:x=>Math.round(x*2),Y:y=>Math.round(y*2),P:{C:cfg.colors.cloak}});layer.rear();layer.front();layers.push(pixels(cv));}
    for(let y=0;y<110;y++)for(let x=0;x<64;x++)for(let j=0;j<4;j++)if(layers[0][(y*64+x)*4+j]!==layers[1][((y+2)*64+x)*4+j])throw Error('cloth texture crawls with body bob');
   }
-  return {classic,sleek,mirrors,unchangedPivots,wardrobe,capeMatches,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
+  const rings=beforeOnly?{cases:0,bodies:0,bounds:0,previews:[]}:await ringChecks(currentPrefix);previews.push(...rings.previews);
+  return {classic,sleek,mirrors,unchangedPivots,wardrobe,capeMatches,ringCases:rings.cases,ringBodies:rings.bodies,ringBounds:rings.bounds,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
 
 }

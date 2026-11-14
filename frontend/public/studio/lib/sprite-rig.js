@@ -1,3 +1,4 @@
+import { drawRings } from './android-rings.js';
 import { appearance } from './android-details.js';
 // Bearframe Sprite Rig — reusable parametric humanoid-android pixel-art generator.
 // No dependencies, no game code. Used by Bearframe Sprite Studio; usable from any Bearframe Labs project:
@@ -8,6 +9,7 @@ import { appearance } from './android-details.js';
 // pixel-level detail instead of being a scaled-up small sprite.
 export const DIRS = ['down', 'up', 'right', 'left'];
 export const DEFAULT_CFG = {
+  ring:'none', ringSize:'standard', ringSegments:10, ringWidth:2, ringGlow:2, ringDamage:0, ringMotion:'pulse', ringTags:false,
   facePanel: 'smooth', scarf: 'none', hood: 'none', drapery: 'none', clothWear: 0, overgrowth: 0, damageType: 'worn',
   style: 'sleek', // Omitted on older projects: retain their pixel-exact classic rendering.
   head: 'visor', fins: true, modules: true, armor: 'plated', cloak: 'long', build: 0,
@@ -54,7 +56,9 @@ export function poseFor(anim, i, n) {
 
 export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
   const cv = document.createElement('canvas'); cv.width = fw; cv.height = fh; const c = cv.getContext('2d');
-  const K = Math.min(fw / 32, fh / 56), ox = Math.round((fw - 32 * K) / 2) + Math.round((pose.lean || 0) * K), oy = Math.round(fh - 56 * K);
+  const pad=cfg.ringPadding||{x:0,top:0};
+  const K = cfg.ringScales?.[fw+'x'+fh] ?? Math.min(fw / (32+2*(pad.x||0)), fh / (56+(pad.top||0)));
+  const ox = Math.round((fw - 32 * K) / 2) + Math.round((pose.lean || 0) * K), oy = Math.round(fh - 56 * K);
   const P = palette(cfg.colors), hi = K >= 1.5, sleek = cfg.style === 'sleek';
   const X = x => ox + Math.round(x * K), Y = y => oy + Math.round(y * K);
   const r = (x, y, w, h, col) => { const x0 = X(x), y0 = Y(y), W = Math.max(1, X(x + w) - x0), H = Math.max(1, Y(y + h) - y0); if (w > 0 && h > 0) { c.fillStyle = col; c.fillRect(x0, y0, W, H); } };
@@ -151,7 +155,7 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     else { r(23, 22 + b, 3, 3, P.K); r(24, 23 + b, 1, 1, P.G); pl(23, 25 + b - a, 4, 7); r(23, 32 + b - a, 4, 3, P.K); r(24, 33 + b - a, 2, 1, P.G); if (strips) r(26, 27 + b - a, 1, 3, P.R); }
   };
   const lx = 16 - lw - 1, rx = 17;
-  const details = appearance({c,cfg,dir,pose,K,X,Y,P}); details.rear();
+  const details = appearance({c,cfg,dir,pose,K,X,Y,P}); drawRings(c,cfg,dir,pose,{K,X,Y}); details.rear();
 
   if (dir === 'down') {
     if (cloakLen) cols(5, 27, (x, px) => { const edge = x < 8 || x > 24; col1(px, 17 + b, cloakLen - 1 + wave(x), edge ? P.C : Math.sin(x * 1.3 + ph * .5) > .6 ? P.Cx : P.Cd); if (Math.abs(x - 6.5) < .5 || Math.abs(x - 25.5) < .5) col1(px, 19 + b, cloakLen - 7 + wave(x), P.Ch); });

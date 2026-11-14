@@ -30,7 +30,7 @@ try {
   const body = execFileSync('git', ['show', baseline+':frontend/public/studio/lib/'+relative], { cwd: root });
   return route.fulfill({ contentType: 'application/javascript', body });
  });
- await page.route('**/__test__/render-checks.mjs', route=>route.fulfill({contentType:'application/javascript',body:readFileSync(path.join(root,'tests/render-checks.mjs'))}));
+ await page.route('**/__test__/**', route=>{const name=new URL(route.request().url()).pathname.split('/').at(-1);if(!['render-checks.mjs','ring-checks.mjs'].includes(name))return route.abort();return route.fulfill({contentType:'application/javascript',body:readFileSync(path.join(root,'tests',name))});});
  await page.route('**/__cloth_before__/**',route=>{const name=new URL(route.request().url()).pathname.split('/').at(-1);if(!['sprite-rig.js','android-details.js'].includes(name))return route.abort();return route.fulfill({contentType:'application/javascript',body:execFileSync('git',['show','4e69ac187653446e1235001dd3bd1d6196fd8ba0:frontend/public/studio/lib/'+name],{cwd:root})});});
  await page.goto('http://127.0.0.1:'+port+'/studio/');
  await page.waitForFunction(() => window.__studio && !window.__studio.busy && window.__studio.set.cells.size > 0);
@@ -38,7 +38,7 @@ try {
  const check = (name, detail = true) => results.checks.push({ name, detail, passed: true });
  check('Studio boot and initial generation');
  const renders = await page.evaluate(async ({beforeOnly}) => {const {renderChecks}=await import('/__test__/render-checks.mjs');return renderChecks({beforeOnly});},{beforeOnly});
- check('Pixel-exact original render compatibility',renders.classic);check('Binary transparent nonempty native renders',{classic:renders.classic,sleek:renders.sleek});check('Unchanged pose library and machine pivots',renders.unchangedPivots);check('Reference-texture renderer unchanged');if(!beforeOnly)check('Cape/body preservation and anchored cloth texture',renders.capeMatches);check('Four directions and mirror fallback',renders.mirrors);
+ check('Pixel-exact original render compatibility',renders.classic);check('Binary transparent nonempty native renders',{classic:renders.classic,sleek:renders.sleek});check('Unchanged pose library and machine pivots',renders.unchangedPivots);check('Reference-texture renderer unchanged');if(!beforeOnly){check('Cape/body preservation and anchored cloth texture',renders.capeMatches);check('Rings retain body size, clean alpha, canvas bounds and saved margins',{cases:renders.ringCases,bounds:renders.ringBounds});}check('Four directions and mirror fallback',renders.mirrors);
  // Editable frames must survive style changes and regeneration-unedited.
  await page.getByTestId('tool-pencil').click();
  await page.getByTestId('color-input').evaluate(el=>{el.value='#12ab34';el.dispatchEvent(new Event('input',{bubbles:true}));});
@@ -61,6 +61,7 @@ try {
  await page.screenshot({path:path.join(out,'desktop-editor.png'),fullPage:true});
  await page.getByTestId('set-select').selectOption('battle');await wait();assert.equal(await page.evaluate(()=>__studio.set.fw),64);check('Independent battle set');await page.getByTestId('set-select').selectOption('exploration');await wait();
  if(!beforeOnly){await page.getByTestId('cfg-head').selectOption('display');await wait();check('New native display head generates');}
+ if(!beforeOnly){await page.getByTestId('cfg-ring').selectOption('double');await wait();await page.getByTestId('cfg-ringSize').selectOption('large');await wait();await page.getByTestId('cfg-ringWidth').evaluate(el=>{el.value='3';el.dispatchEvent(new Event('input',{bubbles:true}));});await wait();const fit=await page.evaluate(()=>({w:__studio.set.fw,h:__studio.set.fh,pad:__studio.project.cfg.ringPadding,tiles:__studio.project.tiles}));assert(fit.h>56);assert.equal(fit.w,32+2*fit.pad.x);assert.deepEqual(fit.tiles,[1,1]);const promise=page.waitForEvent('download');await page.getByTestId('save-project').click();const d=await promise;await page.getByTestId('file-project').setInputFiles({name:'ring-project.json',mimeType:'application/json',buffer:readFileSync(await d.path())});await wait();assert.equal(await page.evaluate(()=>__studio.project.cfg.ring),'double');await page.getByTestId('cfg-ring').selectOption('none');await wait();assert.equal(await page.evaluate(()=>__studio.set.fh),fit.h);check('Ring controls, fitted canvas and downloaded project reopen');}
  // Each original example still opens through the real editor and fills its complete set.
  for(const name of ['heavy-sentinel','hexapod-cartography-engine','archive-sentinel','micro-drone']){
   await page.getByTestId('examples-select').selectOption(name);await wait();await page.waitForFunction(()=>!__studio.busy&&__studio.set.cells.size>=__studio.SS.totalFrames(__studio.set)*__studio.set.dirs.length);
