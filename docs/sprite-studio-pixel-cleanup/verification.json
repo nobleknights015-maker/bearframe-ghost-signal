@@ -1,0 +1,11 @@
+{
+  "commit": "2c9d43525703d2cfdcdea30d059b943e4eb8ea3f",
+  "baseline": "fdea3ffef7fb2e7e5baa9e829b2448fbae25a7fa",
+  "workflow_run": 43627473673,
+  "native_checks": 27,
+  "browser_checks": 32,
+  "status": "PASS",
+  "build": "PASS",
+  "original_main": "f6f8f09b7d6c452f158a67473ac35c2fb374da6f",
+  "art_status": "Selective humanoid surface cleanup; owner visual approval pending"
+}
