@@ -51,7 +51,8 @@ public final class MainActivity extends Activity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient());
-        webView.loadUrl(APP_URL);
+        // Development APK opens the isolated integration lab. Release keeps the original game entrypoint.
+        webView.loadUrl(BuildConfig.DEBUG ? APP_URL + "?rpg-lab=1" : APP_URL);
     }
 
     @Override public void onBackPressed() {
