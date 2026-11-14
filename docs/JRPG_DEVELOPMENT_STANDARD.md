@@ -6,6 +6,18 @@
 **Atlas Warehouse archived reference:** [Full public study](https://github.com/nobleknights015-maker/Atlas-Warehouse/blob/main/warehouse/studies/ghost-signal-jrpg-deep-systems-study-2026-11-14.md)  
 **Atlas Warehouse index:** [Records](https://github.com/nobleknights015-maker/Atlas-Warehouse/blob/main/warehouse/INDEX.json)
 
+## Standing owner directive: permanent max-mode engineering
+
+Owner reaffirmed on November 14, 2026: perform the maximum **verifiable and safe engineering work** available every continuation round, not review-only status cycles. This directive remains in effect until the owner explicitly changes it.
+
+- Start from the latest actual `ghost-signal-engine` source and live CI evidence (issue #2 and individual job logs). Do not re-implement or re-research systems already verified.
+- Deliver integrated playable source changes, deterministic automated tests and CI evidence in the same round where feasible. Fix observed failures before unrelated feature work. Don't claim unobserved results.
+- If the local environment cannot clone GitHub, use the connected repository actions and existing `ubuntu-24.04` GitHub Actions workflows; change approach, not the owner-approved baseline.
+- Make real Player/World/Party/Stealth/Quest/Saves interactions rather than counting standalone modules as progress.
+- Keep original Ghost Signal missions, UI, Sprite Studio, legacy saves and the frozen baseline untouched. Only additive RPG engineering on the development branch is authorized.
+- Do not conflate browser success, APK assembly success, Android emulator success and physical Moto G acceptance. Each is a separate gate.
+- End each run with concrete commits, files changed, actual tests completed, outstanding blockers and the next vertical-slice dependency.
+
 ## Mandatory checks before starting any feature
 
 Write down, at minimum:
