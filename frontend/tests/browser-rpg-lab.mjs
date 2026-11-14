@@ -74,7 +74,17 @@ try{
   battleState=await labState();
   assert.equal(battleState.session.phase,'battle');
   assert.equal(battleState.session.battle.party[0].ep,5,'Pulse resource cost must persist through enemy counterattack');
-  await attack.click();
+
+  // Echo's REPAIR is a tactical party-target choice, not an automatic lowest-HP action.
+  await page.locator('#rpg-lab-battle button').filter({hasText:'REPAIR (5 EP)'}).click();
+  assert.equal(await page.locator('#rpg-lab-battle button').filter({hasText:'HP'}).count(),2,
+    'Both living allies should be available as repair targets');
+  const beforeRepair=await labState();
+  assert.equal(beforeRepair.session.battle.party[1].ep,10,'Opening target selection must not spend EP');
+  await page.locator('#rpg-lab-battle button').filter({hasText:'Echo Test · HP'}).click();
+  const afterRepair=await labState();
+  assert.equal(afterRepair.session.battle.party[1].hp,29,'Echo must repair the chosen party member');
+  assert.equal(afterRepair.session.battle.party[1].ep,5,'Repair must deduct EP only when used');
   await pulse.click();
   await attack.click();
   await attack.click();
