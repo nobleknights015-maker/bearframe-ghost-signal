@@ -2,7 +2,10 @@
 set -euo pipefail
 APK="$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
 if [[ -z "$APK" ]]; then echo "No assembled APK found" >&2; exit 1; fi
-PACKAGE="$(aapt dump badging "$APK" | awk -F "'" '/^package: name=/{print $2; exit}')"
+SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+AAPT="$(find "$SDK_ROOT/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -n 1)"
+if [[ -z "$AAPT" ]]; then echo "Android aapt not found under $SDK_ROOT/build-tools" >&2; exit 1; fi
+PACKAGE="$("$AAPT" dump badging "$APK" | awk -F "'" '/^package: name=/{print $2; exit}')"
 if [[ -z "$PACKAGE" ]]; then echo "Cannot read APK package" >&2; exit 1; fi
 echo "Installing $APK ($PACKAGE)"
 adb install -r "$APK"
