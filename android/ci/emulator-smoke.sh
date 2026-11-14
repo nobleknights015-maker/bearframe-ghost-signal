@@ -16,6 +16,6 @@ adb shell pidof "$PACKAGE" | tee /tmp/ghost-signal-emulator-pid
 test -s /tmp/ghost-signal-emulator-pid
 adb shell dumpsys activity activities > /tmp/ghost-signal-activities.txt
 grep -F "$PACKAGE" /tmp/ghost-signal-activities.txt
-adb shell screencap -p /sdcard/ghost-signal-launch.png
-adb pull /sdcard/ghost-signal-launch.png ghost-signal-emulator-launch.png
+adb exec-out screencap -p > ghost-signal-emulator-launch.png
+test -s ghost-signal-emulator-launch.png
 echo "Emulator installed and process launched: $PACKAGE"
