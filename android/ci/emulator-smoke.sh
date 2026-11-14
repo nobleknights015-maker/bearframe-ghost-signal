@@ -5,7 +5,7 @@ if [[ -z "$APK" ]]; then echo "No assembled APK found" >&2; exit 1; fi
 SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
 AAPT="$(find "$SDK_ROOT/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -n 1)"
 if [[ -z "$AAPT" ]]; then echo "Android aapt not found under $SDK_ROOT/build-tools" >&2; exit 1; fi
-PACKAGE="$("$AAPT" dump badging "$APK" | awk -F "'" '/^package: name=/{print $2; exit}')"
+PACKAGE="$("$AAPT" dump badging "$APK" | awk -F "'" '/^package: name=/ && !found {package=$2; found=1} END {if (found) print package}')"
 if [[ -z "$PACKAGE" ]]; then echo "Cannot read APK package" >&2; exit 1; fi
 echo "Installing $APK ($PACKAGE)"
 adb install -r "$APK"
