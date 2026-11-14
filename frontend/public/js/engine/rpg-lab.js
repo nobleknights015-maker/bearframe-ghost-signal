@@ -219,7 +219,7 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   }
   // In this explicitly opted-in test only, the original pause SAVE action must write the RPG journal.
   $('btn-save').onclick=()=>{$('pause-note').textContent=save()?'RPG test record saved to this device.':'RPG record could not be saved.';};
-  $('btn-quit').onclick=()=>{if(save())location.assign(location.pathname);else $('pause-note').textContent='Save failed. Remain in sector until record is safe.';};
+  $('btn-quit').onclick=()=>{if(save())window.location.assign(window.location.pathname);else $('pause-note').textContent='Save failed. Remain in sector until record is safe.';};
   const previousResume=game.onResume;
   game.onResume=()=>{
     if(game.mode==='pause')previousResume();
