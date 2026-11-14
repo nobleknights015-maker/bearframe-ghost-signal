@@ -27,7 +27,7 @@ Local native suite: **22 checks passed**, plus production build and `git diff --
 - A translation test confirms cloth shading/wear moves with body bob rather than crawling over the garment.
 - Existing visor continuity, face protection from growth, rig pivots, edited pixels, project reopening and export checks remain enabled.
 
-The branch workflow also runs real Chromium UI/save/download checks. See the latest CI run for the remote result. Existing phone editor crowding remains open.
+Remote validation also passed **26 Chromium checks** and the production build in [CI run 43611166217](https://github.com/nobleknights015-maker/bearframe-ghost-signal/actions/runs/43611166217), source commit `0724cfcda2e705377934d0102f4b3aa534dca0c4`. These include the new preservation/translation comparisons and existing UI, edited-pixel, project reopening and real download checks. Existing phone editor crowding remains open.
 
 Reproduce from frontend:
 
