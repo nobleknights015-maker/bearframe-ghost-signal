@@ -18,7 +18,7 @@ The tactical prototype fields two units with **different test roles**: Sleeper c
 
 Test sector uses a dedicated two-record journal \`bearframe_ghost_signal_rpg_lab_v1:A/B\`. It saves exploration party/inventory/quest flags, field snapshot and current security-unit state (positions, patrol/alert/status), never the original mission save, progress or settings keys. It refuses battle-phase saves. Original \`Game\` checkpoint writes in the test sector are redirected to a no-op in-memory adapter; only the explicit lab journal persists RPG state. The original Ghost Signal game remains unchanged when the query parameter is absent.
 
-In addition, the lab wraps Ghost Signal's existing checkpoint and restore calls: an in-session energy-depletion restore rolls back RPG party, inventory and quest data to the matching field checkpoint rather than duplicating an item collected afterward. Checkpoint recovery is now wired to the **asynchronous Game.applySnap boundary** and writes the corrected RPG journal after the field snapshot is restored. A dedicated real-browser energy-depletion/reload acceptance suite was added at `frontend/tests/browser-rpg-lab-recovery.mjs`; track its actual GitHub Actions outcome rather than assuming it passed.
+In addition, the lab wraps Ghost Signal's existing checkpoint and restore calls: an in-session energy-depletion restore rolls back RPG party, inventory and quest data to the matching field checkpoint rather than duplicating an item collected afterward. Checkpoint recovery is now wired to the **asynchronous Game.applySnap boundary** and writes the corrected RPG journal after the field snapshot is restored. The recovery behavior passed the dedicated real Chromium energy-depletion/reload suite in [run 43630377813](https://github.com/nobleknights015-maker/bearframe-ghost-signal/actions/runs/43630377813): restored RPG inventory/field state survives a reload with no resurrected items.
 
 The initial debug Android build targets this lab through \`BuildConfig.DEBUG\`. A release-mode build continues to load the original index without the lab parameter. Both still use existing WebView HTML5 Canvas rendering and platform controls.
 
@@ -56,16 +56,16 @@ GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab.mjs
 
 - **Verified in this session:** 28 existing local module tests in a partial checkout; 15 direct isolated map/security checks against fetched GitHub source; JavaScript source syntax checks. The current branch comparison has been used to ensure original UI file paths were not modified.
 - **Executed in GitHub's full checkout:** 49 Node tests plus real Chromium end-to-end scenarios for sentry detection, tactical win, exactly-once XP/items, field healing, live traversal to optional relay, flee/no-reward state, chassis-locked equipment and combat-stat bonuses, save/reload and the original Ghost Signal + Sprite Studio. See the linked runs above.
-- **Not verified:** human-played complete missions, original Missions 01/02 full playthrough, mobile-vs-desktop visual comparison, a successful Android debug Gradle build, installed APK, 4GB RAM/FPS, real physical gamepad, long session/process-kill durability, signed updates. Browser navigation to relay **is** tested; that does not imply human QA.
+- **Not verified:** human-played complete missions, original Missions 01/02 full playthrough, mobile-vs-desktop visual comparison, Android APK installation or emulator gameplay, 4GB RAM/FPS, real physical gamepad, long session/process-kill durability, production signing. **Android debug compilation itself is verified**. Browser navigation to relay **is** tested; that does not imply human QA.
 - **Incomplete:** battle-command planning/macros, richer enemy intent and skills, multiple linked areas, complete equipment catalog/loot economy and NPC authoring, canonical sprite sheet binding, full shipping save migration, native SAF export, physical Android acceptance. Basic character-specific skills, equipment UI and legacy lab save metadata migration are now integrated, not pending.
 
 ## Next mandatory gates
 
-1. Observe and repair the newly committed asynchronous checkpoint-rollback/reload browser suite, then add an actual defeat-recovery acceptance test.
+1. Add a real defeat-recovery browser test (beyond currently tested flee) and stress repeated checkpoint, heal, equipment and save/reload transitions.
 2. Verify complete original Missions 01/02 and Sprite Studio interactions, controller navigation and touch targeting, with screenshots and the approved UI lock.
 3. Implement authored enemy intent, additional meaningful role abilities and test player-command planning versus the existing sequential tactical prototype.
 4. Author a second connected RPG field area, meaningful quest/puzzle state and reversible/reward-safe transitions.
-5. Reproduce and fix Android Gradle/debug APK build CI, then link the actual artifact. SDK setup previously failed on obsolete `tools`; direct supported platform-35 provisioning is under test.
+5. Download the successfully assembled debug APK artifact from [Android run 43630442334](https://github.com/nobleknights015-maker/bearframe-ghost-signal/actions/runs/43630442334); verify install/launch and WebView gameplay on emulator, then on the target Moto G. Compile success does not prove run correctness.
 6. Run physical Moto G landscape, controller, 4GB performance, resume/kill/relaunch and 30-minute save soak before release.
 
 **Release gate:** Not complete, not production-ready. Do not merge into original \`main\` or freeze a production APK until full acceptance.
