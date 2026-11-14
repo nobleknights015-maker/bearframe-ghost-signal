@@ -1,0 +1,37 @@
+name: Ghost Signal Engine browser integration
+on:
+  push:
+    branches: [ghost-signal-engine]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/ghost-signal-browser.yml'
+  workflow_dispatch:
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test runner
+        run: |
+          cd frontend
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run Node engine unit tests
+        run: node --test frontend/tests/*.test.mjs
+      - name: Start static Ghost Signal server
+        run: |
+          PORT=3000 HOST=127.0.0.1 node frontend/serve.js > /tmp/ghost-signal-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/index.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ghost-signal-server.log
+          exit 1
+      - name: Browser smoke — field, UI, saves, original game, Sprite Studio
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab.mjs
