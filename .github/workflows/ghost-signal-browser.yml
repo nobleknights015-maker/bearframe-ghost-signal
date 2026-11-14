@@ -43,6 +43,9 @@ jobs:
       - name: Browser equipment — chassis compatibility and live battle stats
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab-equipment.mjs
 
+      - name: Browser recovery — asynchronous checkpoint and RPG journal rollback
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab-recovery.mjs
+
       - name: Upload browser failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
