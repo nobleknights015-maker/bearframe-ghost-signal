@@ -1,0 +1,21 @@
+name: Ghost Signal Engine regressions
+on:
+  push:
+    branches: [ghost-signal-engine]
+  pull_request:
+    branches: [ghost-signal-engine]
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript source and run engine guardrail tests
+        run: |
+          node --check frontend/public/js/engine/area-policy.js
+          node --check frontend/public/js/engine/encounter-handoff.js
+          node --test frontend/tests/*.test.mjs
