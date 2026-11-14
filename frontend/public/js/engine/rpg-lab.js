@@ -42,6 +42,19 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   game.store={save:()=>true,clear:()=>{},loadProgress:()=>({unlocked:{},done:{},case:null}),saveProgress:()=>true};
   const db=createRpgSaveStore(localStorage,'bearframe_ghost_signal_rpg_lab_v1');
   let session=createHybridSession(initial(),LAB_POLICY_SPEC),cooldown=0,menuTab='status';
+  let checkpointRpg=clone(session.exploration);
+  const originalCheckpoint=game.checkpoint.bind(game);
+  game.checkpoint=(silent)=>{
+    const ok=originalCheckpoint(silent);
+    if(session.phase==='exploration')checkpointRpg=clone(session.exploration);
+    return ok;
+  };
+  const originalRestore=game.restore.bind(game);
+  game.restore=()=>{
+    // Field checkpoint and RPG state must roll back atomically; no duplicated salvage/rewards.
+    session=createHybridSession(clone(checkpointRpg),LAB_POLICY_SPEC);
+    originalRestore();
+  };
   const menu=overlay('rpg-lab-menu','RPG FIELD RECORD');
   const battle=overlay('rpg-lab-battle','TURN-BASED ENCOUNTER');
   const status=()=>session;
@@ -130,6 +143,7 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     }
   }
   if(game.flags.labResolved)disableSentry();
+  checkpointRpg=clone(session.exploration);
   ui.show('title',false);
   updateLocation();
   const openMenu=()=>{
