@@ -55,7 +55,7 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     if (w <= 0 || h <= 0) return; const x0 = X(x), y0 = Y(y), W = Math.max(1, X(x + w) - x0), H = Math.max(1, Y(y + h) - y0);
     c.fillStyle = dk ? P.S : P.W; c.fillRect(x0, y0, W, H); c.fillStyle = dk ? P.W : P.Wh; c.fillRect(x0, y0, W, 1); c.fillRect(x0, y0, 1, H);
     c.fillStyle = dk ? P.D : P.S; if (W > 1) c.fillRect(x0 + W - 1, y0 + 1, 1, H - 1); if (H > 1) c.fillRect(x0 + 1, y0 + H - 1, W - 1, 1);
-    if (hi && W > 5 && H > 5) {
+    if (hi && W > 8 && H > 11) {
       c.fillStyle = dk ? P.D : P.S; c.fillRect(x0 + W - 2, y0 + 2, 1, H - 3); c.fillRect(x0 + 2, y0 + H - 2, W - 3, 1);
       c.fillStyle = P.D; c.fillRect(x0 + 2, y0 + (H >> 1), W - 4, 1); c.fillStyle = dk ? P.S : P.Wh; c.fillRect(x0 + 2, y0 + (H >> 1) + 1, W - 5, 1);
       c.fillStyle = P.G; c.fillRect(x0 + 2, y0 + 2, 1, 1); c.fillRect(x0 + W - 3, y0 + 2, 1, 1);

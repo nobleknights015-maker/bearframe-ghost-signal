@@ -51,7 +51,7 @@ function shadePlate(p, u, v, w, h, e, K, M, T, pal, W, sd, taper) {
   if (w >= 16 && Math.abs(cu) < e * .5) col = T[3];
   if (w >= 8 && h >= 6 && Math.abs(dt - 2) < e * .5 && (Math.abs(dl - 2) < e * .5 || Math.abs(dr - 2) < e * .5)) col = T[3];
   if (w >= 10 && h >= 12 && v > h * .64 && v < h * .86 && Math.abs(cu) < hw * .5 && pv % 3 === 0) col = T[3];
-  if (W.rust) { const b = h2(Math.floor(u / 3), Math.floor(v / 3), sd + 9); if (b > 1 - W.rust * .45) col = n > .5 ? pal.rust[1] : pal.rust[2]; else if (b > 1 - W.rust * .62 && n > .6) col = pal.rust[2]; }
+  if (W.rust) { const b = h2(Math.floor(u / 3), Math.floor(v / 3), sd + 9); if (b > 1 - W.rust * .26) col = n > .5 ? pal.rust[1] : pal.rust[2]; else if (b > 1 - W.rust * .42 && n > .55) col = pal.rust[2]; }
   if (W.wear && n < W.wear * .06) col = T[3];
   if (W.moss && p.m && v < h2(Math.floor(u * K / 2), 0, sd + 5) * W.moss * p.m * 5) col = n > .4 ? pal.moss[1] : pal.moss[2];
   return col;
@@ -117,6 +117,8 @@ export function renderRig(ctx, rig, dir, type, i, n, fw, fh, opts = {}) {
     const a = (par ? par.a : 0) + st.rot * Math.PI / 180, tx = par ? par.tx + par.c * st.x - par.s * st.y : st.x, ty = par ? par.ty + par.s * st.x + par.c * st.y : st.y;
     M = { a, c: Math.cos(a), s: Math.sin(a), tx, ty, st }; Ms.set(p.id, M); return M;
   };
+  const marks = () => view.map(p => { const M = world(p), x = M.tx * K + offX; return { id: p.id, x: flip ? fw - x : x, y: M.ty * K + offY }; });
+  if (opts.pivotsOnly) return marks();
   const img = new ImageData(fw, fh), D = img.data;
   const order = view.map((p, k) => [p, k]).sort((A, B) => ((A[0].z || 0) - (B[0].z || 0)) || A[1] - B[1]);
   for (const [p] of order) {
@@ -140,5 +142,5 @@ export function renderRig(ctx, rig, dir, type, i, n, fw, fh, opts = {}) {
   const cv = document.createElement('canvas'); cv.width = fw; cv.height = fh; const c = cv.getContext('2d'); c.putImageData(img, 0, 0);
   if (opts.outline !== false) outline(c, fw, fh, opts.outlineColor || '#06070a');
   ctx.save(); if (flip) { ctx.translate(fw, 0); ctx.scale(-1, 1); } ctx.drawImage(cv, 0, 0); ctx.restore();
-  return view.map(p => { const M = Ms.get(p.id), x = M.tx * K + offX; return { id: p.id, x: flip ? fw - x : x, y: M.ty * K + offY }; });
+  return marks();
 }

@@ -1,0 +1,31 @@
+{
+  "summary": "Comprehensive frontend-only test pass of Bearframe Sprite Studio (/studio/). Tested project loading, humanoid config regeneration (head/armor/cloak/damage/backpack/color/preset), pixel editor (pencil/eraser/fill/pick/undo/copy/paste/flip/nudge/clear) + edited-flag semantics, regenerate-unedited vs regenerate-this-frame, direction/animation/frame tabs, anim add/rename/frames/fps/delete, 4 examples (heavy-sentinel, hexapod-cartography-engine, archive-sentinel, micro-drone) with full-direction non-empty generation, walk frames differ, left is mirror(right), machine rig panel/parts JSON edit/add/delete/invalid-JSON error/weathering/machine-preset, exploration vs battle set (humanoid battle at 64x112 is re-rendered — 8.2% pixel-mismatch vs 2x upscaled exploration, NOT a nearest-neighbour upscale), canvas re-render at size (48x84), canvas resize-keep (bottom-centre anchored, no blur), PNG+JSON sheet export (384x224 RGBA, transparent bg, correct metadata w/ animations/rows/anchor/footprintTiles), frames ZIP export (valid PK, 48 PNGs + metadata.json), save/open project round-trip restores name/kind/cfg/edited pixels/edited flags, localStorage autosave restores on reload, PNG sheet import matching frame size reproduces pixels identically and marks edited, mismatched import creates a single 'sheet' animation, footprint tiles persist (with full 800ms+ debounce), onion/grid/guides toggles + zoom cause no errors, pause/play toggle works. Independence: /studio/*.js contains no '/js/' imports; / (game) HTML contains no '/studio' references; /studio (no trailing slash) 302-redirects to /studio/. Ghost Signal smoke test: title loads, NEW RECONNAISSANCE starts Mission 01, player moves. Zero console/page errors across all scenarios. No code changes were necessary.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Humanoid battle set (64x112 right-facing)", "issues": ["The upscaled humanoid procedural rig at 2x shows pronounced plate seams/bevels that read as stacked boxy sub-shapes along the torso; it is correctly RE-rendered (not pixel-doubled) and all battle animations have content, but the aesthetic is cruder than at 32x56. Not a bug per the spec, but worth a rig-tuning pass for stronger silhouette at larger resolutions."]},
+      {"screen": "Hexapod Cartography Engine example (128x96)", "issues": ["A couple of probe/antenna parts render as floating pixels near the top/right of the frame on some poses (part positions push past the cloth/body silhouette). Visually reads as 'floaters' rather than clipped — not broken, but visibly detached in idle frames."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optional: tune drawAndroid() so larger (K>=2) renders add softer/smaller bevel detail — current hi-res branch repeats mid-plate seams every ~even pixel row at K=2 which visually fragments the torso."
+  ],
+  "critical_code_review_comments": [
+    "studio.js:192 — `$('fw').onchange = $('fh').onchange = () => {};` is a no-op assigned to both inputs (frame-w/frame-h). Harmless (buttons apply-size-regen / apply-size-keep own the commit) but misleading when scanning handlers; delete the line or add a comment.",
+    "studio.js:200 — Sheet export relies on a 300ms setTimeout before the JSON download; works but is fragile (if the user's Playwright-style test downloads back-to-back the second download could be missed). Consider firing both downloads synchronously after toBlob() resolves.",
+    "studio.js:13 — autosave swallows all exceptions silently. At >5MB project size localStorage will throw QuotaExceeded and the user gets no warning. Surface a one-time status('Autosave disabled: project too large, use Save project') on the first failure.",
+    "sprite-rig.js:48 — drawAndroid creates an off-screen canvas `cv` and blits it with `ctx.drawImage(cv,...)`. The `dir==='left'` mirror also goes through this path correctly. Code is tight; no bug.",
+    "sprite-sheet.js:66 — deserialize uses Image.onload per data URL. For projects with 100+ edited frames the parallel in-flight Images are fine on desktop but can jank mobile; consider sequential or chunked load."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (no backend)", "frontend": "100% on tested feature flows (14 flow blocks; 0 real failures, 0 code changes)"},
+  "test_credentials": "none (no auth)",
+  "seed_data_creation": "Only transient per-test localStorage bearframe_sprite_studio_autosave_v2 writes; cleared before each test block.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Debug hook: window.__studio = { project, set, cur, SS, busy }. Generation is async with ~250ms regenSoon() debounce — always wait extra 300-400ms after a config change then poll window.__studio.busy===false. Dialogs use confirm() for New / change kind / replace via machine-preset / overwrite edited on re-render — page.on('dialog', d=>d.accept()). Downloads: export-sheet triggers png then ~300ms later json (use two expect_download calls or a short timeout second). Autosave debounce is 800ms — if testing reload persistence, wait at least 1200-1500ms before reloading. The humanoid battle set uses dirs=['right','left'] only. Edit-canvas pixel mapping: CSS size = fw*zoom; use the rect-relative scaled coords ((x+0.5)/fw*rect.width, (y+0.5)/fh*rect.height). Independence/game: /studio/ is fully isolated (no /js/ imports), /studio -> 302 /studio/, game root still functional.",
+  "rca of the issue": "No issues requiring RCA. Humanoid battle visual roughness is a procedural-rig style artefact, not a correctness bug (spec explicitly asks the battle to NOT be a nearest-neighbour upscale; measured 8.2% pixel delta confirms it is a real re-render with K=2 bevel detail)."
+}

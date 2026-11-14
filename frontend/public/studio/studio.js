@@ -10,7 +10,7 @@ let P, S, cur = { dir: 'down', a: 0, f: 0 }, tool = 'pencil', color = '#ff3b30',
 const A = () => S.anims[cur.a], C = () => SS.cell(S, cur.dir, A().name, cur.f), K = () => SS.key(cur.dir, A().name, cur.f);
 const status = t => { $('status').textContent = t; };
 const el = (tag, props = {}, kids = []) => { const e = Object.assign(document.createElement(tag), props); kids.forEach(k => e.append(k)); return e; };
-const autosave = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(LS, SS.serialize(P)); } catch (_) { /* project too large for browser storage: use Save project */ } }, 800); };
+const autosave = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(LS, SS.serialize(P)); } catch (_) { status('Autosave off: project too large for browser storage. Use Save project.'); } }, 800); };
 window.__studio = { get project() { return P; }, get set() { return S; }, get cur() { return cur; }, SS, get busy() { return busy; } };
 
 async function setProject(p) {
@@ -124,7 +124,7 @@ function drawEditor() {
     if (P.kind === 'machine') { renderCellPivots(); const selId = $('rig-parts').value; pivots.forEach(p => { c.fillStyle = p.id === selId ? '#ff3b30' : 'rgba(255,224,112,.7)'; const s = p.id === selId ? 5 : 3; c.fillRect(Math.round(p.x * zoom) - (s >> 1), Math.round(p.y * zoom) - (s >> 1), s, s); }); }
   }
 }
-function renderCellPivots() { try { const t = document.createElement('canvas'); t.width = S.fw; t.height = S.fh; pivots = renderRig(t.getContext('2d'), P.rig, cur.dir, A().type, cur.f, A().frames, Math.min(S.fw, 8), Math.min(S.fh, 8), { outline: false }).map(p => ({ id: p.id, x: p.x * S.fw / Math.min(S.fw, 8), y: p.y * S.fh / Math.min(S.fh, 8) })); } catch (_) { pivots = []; } }
+function renderCellPivots() { try { pivots = renderRig(null, P.rig, cur.dir, A().type, cur.f, A().frames, S.fw, S.fh, { pivotsOnly: true }); } catch (_) { pivots = []; } }
 const pxAt = e => { const r = $('edit').getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / r.width * S.fw), Math.floor((e.clientY - r.top) / r.height * S.fh)]; };
 const hexOf = d => '#' + [d[0], d[1], d[2]].map(v => v.toString(16).padStart(2, '0')).join('');
 function touch() { S.edited.add(K()); drawEditor(); autosave(); }
@@ -189,7 +189,6 @@ $('file-sheet').onchange = async e => { const f = e.target.files[0]; if (!f) ret
 $('btn-ref').onclick = () => $('file-ref').click();
 $('file-ref').onchange = async e => { const f = e.target.files[0]; if (!f) return; ref = await loadImg(f); const cv = $('refcv'); cv.width = ref.width; cv.height = ref.height; cv.getContext('2d').drawImage(ref, 0, 0); $('ref-overlay').checked = true; drawEditor(); status('Reference loaded. Click it to sample colours.'); };
 $('refcv').onclick = e => { if (!ref) return; const cv = $('refcv'), r = cv.getBoundingClientRect(), d = cv.getContext('2d').getImageData(Math.floor((e.clientX - r.left) / r.width * cv.width), Math.floor((e.clientY - r.top) / r.height * cv.height), 1, 1).data; setColor(hexOf(d)); };
-$('fw').onchange = $('fh').onchange = () => {}; 
 $('btn-regen-size').onclick = () => { const fw = +$('fw').value, fh = +$('fh').value; if (!(fw >= 4 && fh >= 4)) return; if (S.edited.size && !confirm('Re-rendering replaces hand-edited frames in this set. Continue?')) return; S.fw = fw; S.fh = fh; S.cells = new Map(); S.edited = new Set(); refresh(); generate('all'); };
 $('btn-resize').onclick = () => { const fw = +$('fw').value, fh = +$('fh').value; if (!(fw >= 4 && fh >= 4)) return; SS.resizeSet(S, fw, fh); undo = []; refresh(); autosave(); status('Canvas resized; pixels kept 1:1.'); };
 $('tw').onchange = $('th').onchange = () => { P.tiles = [Math.max(1, +$('tw').value), Math.max(1, +$('th').value)]; drawEditor(); autosave(); };

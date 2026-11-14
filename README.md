@@ -8,3 +8,8 @@ Run: `cd frontend && PORT=3000 HOST=0.0.0.0 yarn start` (or serve `frontend/publ
 Controls: WASD/arrows move · E use · F flashlight · Q scan · Esc pause. Touch: D-pad left, USE / LIGHT / SCAN right.
 
 Add missions in `frontend/public/js/missions/` and register them in `missions/index.js`.
+
+## Bearframe Sprite Studio
+
+Standalone pixel-art sprite and animation tool for Bearframe Labs games, served at `/studio/`.
+Source and documentation: `frontend/public/studio/` (see its README). It does not depend on Ghost Signal.
