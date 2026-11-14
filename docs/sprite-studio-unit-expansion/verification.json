@@ -1,0 +1,27 @@
+{
+  "source_commit": "d0fbcf7e43b743fd89e41ef6d7f0c3651e13a5b7",
+  "workflow_run": 43629376782,
+  "native_checks": 28,
+  "browser_checks": 34,
+  "status": "PASS",
+  "build": "PASS",
+  "family_render_cases": 224,
+  "fitted_frame_envelopes": 148,
+  "legacy_classic_cases": 1320,
+  "legacy_sleek_cases": 1320,
+  "original_main": "f6f8f09b7d6c452f158a67473ac35c2fb374da6f",
+  "art_status": "Industrial Echo family prototype; owner visual approval pending",
+  "engine_integration": false,
+  "remaining_families": [
+    "six-leg-crawler",
+    "orbital-core",
+    "suspended-archive-spindle",
+    "asymmetric-relay-custodian"
+  ],
+  "limitations": [
+    "Margins fit exact half-step proportional pixel scales; other aspects reject without mutation",
+    "Existing legacy machine loop seams remain",
+    "No joint-angle limits, COM support test or Android proof",
+    "Generic modular catalogue remains pending"
+  ]
+}
