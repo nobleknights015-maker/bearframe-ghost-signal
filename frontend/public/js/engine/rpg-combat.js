@@ -18,9 +18,14 @@ const normalize = (units, side) => {
         !integer(u.maxEp ?? 0, 0, 9999) || !integer(u.ep ?? 0, 0, u.maxEp ?? 0)) {
       throw new TypeError('Invalid combatant');
     }
+    // Older save schemas omit a skill catalog; retain their legacy behavior.
+    // New actors with an authored catalog may only execute their actual skills.
+    if (u.skills !== undefined && (!Array.isArray(u.skills) || u.skills.some(k => !['pulse','repair','guard'].includes(k)) ||
+      new Set(u.skills).size !== u.skills.length)) throw new TypeError('Invalid combatant skills');
     return { id:u.id, name:typeof u.name === 'string' ? u.name : u.id, side,
       hp:u.hp, maxHp:u.maxHp, ep:u.ep ?? 0, maxEp:u.maxEp ?? 0,
-      attack:u.attack, defense:u.defense, speed:u.speed, guard:false };
+      attack:u.attack, defense:u.defense, speed:u.speed,
+      skills:u.skills === undefined ? null : [...u.skills], guard:false };
   });
 };
 const all = s => [...s.party, ...s.enemies];
@@ -67,6 +72,9 @@ export function combatAction(battle, action) {
   if (!isObject(battle) || battle.version !== 1 || battle.status !== 'active' ||
       !isObject(action) || action.actor !== currentCombatant(battle)) throw new TypeError('Invalid turn');
   const s=deepCopy(battle), actor=findUnit(s,action.actor);
+  if (['pulse','repair','guard'].includes(action.type) &&
+      Array.isArray(actor.skills) && !actor.skills.includes(action.type))
+    throw new TypeError('Ability unavailable to this combatant');
   const target=findUnit(s,action.target);
   const hostile=target && target.side !== actor.side && target.hp > 0;
   const ally=target && target.side === actor.side && target.hp > 0;
