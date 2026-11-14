@@ -7,6 +7,7 @@ import {createRpgSaveStore} from './rpg-save.js';
 import {useFieldConsumable} from './rpg-field-actions.js';
 import {createParty,equipItem} from './rpg-party.js';
 import {LAB_GEAR} from './rpg-lab-gear.js';
+import {migrateLabWorld} from './rpg-lab-migration.js';
 import {createLabMission,LAB_POLICY_SPEC} from './rpg-lab-mission.js';
 
 const $=id=>document.getElementById(id);
@@ -122,7 +123,7 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   const valid=!!saved&&saved.version===1&&saved.phase==='exploration'&&
     saved.world?.location?.mapId==='rpg-lab'&&saved.field?.mission==='rpg-lab';
   if(valid){
-    try{session=createHybridSession(saved.world,LAB_POLICY_SPEC);}
+    try{session=createHybridSession(migrateLabWorld(saved.world),LAB_POLICY_SPEC);}
     catch(_){session=createHybridSession(initial(),LAB_POLICY_SPEC);}
   }
   ui.show('title',false);ui.show('ending',false);
