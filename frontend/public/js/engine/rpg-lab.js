@@ -5,6 +5,8 @@ import {currentCombatant,enemyDecision} from './rpg-combat.js';
 import {rpgMenuModel,RPG_TABS} from './rpg-menu-model.js';
 import {createRpgSaveStore} from './rpg-save.js';
 import {useFieldConsumable} from './rpg-field-actions.js';
+import {createParty,equipItem} from './rpg-party.js';
+import {LAB_GEAR} from './rpg-lab-gear.js';
 import {createLabMission,LAB_POLICY_SPEC} from './rpg-lab-mission.js';
 
 const $=id=>document.getElementById(id);
@@ -12,16 +14,16 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 const px=(x,y,facing='right')=>({mapId:'rpg-lab',x,y,facing});
 const initial=()=>({
   location:px(5.5*32,9*32),party:[
-    {id:'sleeper',name:'Sleeper Test',hp:38,maxHp:38,ep:10,maxEp:10,attack:11,defense:4,speed:10,level:1,skills:['pulse','guard']},
-    {id:'echo',name:'Echo Test',hp:29,maxHp:29,ep:10,maxEp:10,attack:7,defense:2,speed:7,level:1,skills:['repair','guard']}
-  ],inventory:{'repair-kit':1},equipment:{sleeper:{weapon:'legacy-tool'},echo:{}},
+    {id:'sleeper',lineage:'sleeper',name:'Sleeper Test',hp:38,maxHp:38,ep:10,maxEp:10,attack:11,defense:4,speed:10,level:1,skills:['pulse','guard']},
+    {id:'echo',lineage:'echo',name:'Echo Test',hp:29,maxHp:29,ep:10,maxEp:10,attack:7,defense:2,speed:7,level:1,skills:['repair','guard']}
+  ],inventory:{'repair-kit':1,'legacy-blade':1,'echo-link':1,'foundry-module':1},equipment:{sleeper:{weapon:'legacy-tool'},echo:{}},
   quests:{archive:'unknown',perimeter:'unexplored',sentry:'unresolved'},progression:{xp:0},
   stealth:{alert:0},flags:{}
 });
 const threat=()=>({
   id:'sentinel-lab',enemies:[
     {id:'sentry',name:'Old Sentry',hp:42,maxHp:42,ep:0,maxEp:0,attack:9,defense:4,speed:8}
-  ],canFlee:true,rewards:{xp:12,items:{'ancient-scrap':1}}
+  ],canFlee:true,gearCatalog:LAB_GEAR,rewards:{xp:12,items:{'ancient-scrap':1}}
 });
 const activeEnemy=b=>b.enemies.find(e=>e.hp>0);
 const softButton=(label,handler)=>{
@@ -187,6 +189,8 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
       li.appendChild(btn);list.appendChild(li);
     }
     body.append(list,detail);menu.panel.appendChild(body);
+    if(menuTab==='equipment')menu.panel.appendChild(
+      softButton('CHANGE EQUIPMENT',chooseEquipmentMember));
     if(menuTab==='items'){
       const kit=softButton('USE REPAIR KIT',()=>chooseFieldRecipient('repair-kit'));
       kit.disabled=!(session.exploration.inventory['repair-kit']>0 &&
@@ -195,6 +199,60 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     }
     if(menuTab==='save')menu.panel.appendChild(softButton('SAVE RPG TEST RECORD',
       ()=>{const ok=save();ui.toast(ok?'RPG RECORD SAVED':'RPG SAVE FAILED',2.5);renderMenu();}));
+  }
+  function chooseEquipmentMember(){
+    if(game.mode!=='rpgmenu')return;
+    menu.panel.replaceChildren();
+    menu.panel.appendChild(el('h2','','EQUIPMENT // SELECT FRAME'));
+    const options=el('div','btn-row');options.style.flexWrap='wrap';
+    for(const unit of session.exploration.party){
+      options.appendChild(softButton(unit.name+' · '+unit.lineage.toUpperCase(),
+        ()=>chooseEquipmentItem(unit.id)));
+    }
+    options.appendChild(softButton('BACK',renderMenu));
+    menu.panel.appendChild(options);
+    options.querySelector('button')?.focus();
+  }
+  function chooseEquipmentItem(memberId){
+    const unit=session.exploration.party.find(p=>p.id===memberId);
+    if(!unit||game.mode!=='rpgmenu')return;
+    menu.panel.replaceChildren();
+    menu.panel.appendChild(el('h2','',unit.name.toUpperCase()+' // WEAPON'));
+    menu.panel.appendChild(el('div','fine','Modern Foundry equipment cannot interface with ancient or Echo chassis.'));
+    const options=el('div','btn-row');options.style.flexWrap='wrap';
+    for(const [id,count] of Object.entries(session.exploration.inventory)){
+      const item=LAB_GEAR[id];
+      if(!item||!count||item.slot!=='weapon')continue;
+      const permitted=item.allowedLineages.includes(unit.lineage);
+      const btn=softButton(item.label.toUpperCase()+' · ATK +'+(item.attack||0)+
+        (permitted?'':' · INCOMPATIBLE'),()=>{
+        const prior=session;
+        try{
+          const party=createParty({
+            members:session.exploration.party,
+            active:session.exploration.party.map(p=>p.id),
+            inventory:session.exploration.inventory,equipment:session.exploration.equipment
+          });
+          const next=equipItem(party,memberId,'weapon',id,LAB_GEAR);
+          const world=clone(session.exploration);
+          world.inventory=clone(next.inventory);
+          world.equipment=clone(next.equipment);
+          session=createHybridSession(world,LAB_POLICY_SPEC);
+          if(!save()){
+            session=prior;
+            ui.toast('EQUIPMENT NOT CHANGED — SAVE UNAVAILABLE',3);
+          }else ui.toast(unit.name.toUpperCase()+' EQUIPPED '+item.label.toUpperCase(),3);
+        }catch(error){
+          session=prior;
+          ui.toast('EQUIPMENT BLOCKED — '+error.message,2.5);
+        }
+        renderMenu();
+      });
+      btn.disabled=!permitted;options.appendChild(btn);
+    }
+    options.appendChild(softButton('BACK',chooseEquipmentMember));
+    menu.panel.appendChild(options);
+    options.querySelector('button:not(:disabled)')?.focus();
   }
   function chooseFieldRecipient(itemId){
     if(game.mode!=='rpgmenu')return;
