@@ -20,8 +20,8 @@ export function appearance({c,cfg,dir,pose,K,X,Y,P}) {
       const x=minX+(px-X(minX)+.5)/K,y=minY+(py-Y(minY)+.5)/K;
       if(!inside(x,y,pts)||holes.some(h=>inside(x,y,h)))continue;
       const hem=maxY-y;
-      if(ragged&&wear&&hem<wear*(.5+rand(Math.floor(x*2),7)*1.1))continue;
-      if(wear>=2&&y>minY+4&&rand(Math.floor(x),Math.floor(y/2))>.985-(wear-2)*.006)continue;
+      if(ragged&&wear&&hem<wear*(.5+rand(Math.floor((x-minX)*2),7)*1.1))continue;
+      if(wear>=2&&y>minY+4&&rand(Math.floor(x-minX),Math.floor((y-minY)/2))>.985-(wear-2)*.006)continue;
       const edge=!inside(x-1/K,y,pts)||!inside(x,y-1/K,pts);
       const f=Math.sin((x-minX)*.65+(y-minY)*.15);
       c.fillStyle=edge?H:folds?(f<-.6?E:f>.65?H:y>minY+2?color:D):color;
