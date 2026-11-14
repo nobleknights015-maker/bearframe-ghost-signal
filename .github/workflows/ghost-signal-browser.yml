@@ -12,6 +12,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,3 +36,14 @@ jobs:
           exit 1
       - name: Browser smoke — field, UI, saves, original game, Sprite Studio
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab.mjs
+
+      - name: Record CI result in persistent GitHub issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GHOST_RESULT: ${{ job.status }}
+          GHOST_SHA: ${{ github.sha }}
+          GHOST_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue comment 2 --body "Ghost Signal Engine browser CI: **${GHOST_RESULT}** · source \`${GHOST_SHA}\` · [View test run](${GHOST_RUN_URL}). This is an automated Node/Chromium verification receipt, not physical Android or full gameplay acceptance."
