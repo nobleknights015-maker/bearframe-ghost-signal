@@ -17,6 +17,19 @@ try{
   const before=await state();
   assert.equal(before.session.exploration.party[0].attack,11);
   assert.equal(before.session.exploration.inventory['legacy-blade'],1);
+  // Exercise Gamepad API B/back navigation in the real running game loop.
+  // The synthetic standard pad is a browser test fixture, not a physical controller claim.
+  await page.evaluate(()=>{
+    const pad={connected:true,id:'CI standard gamepad',mapping:'standard',axes:[0,0],
+      buttons:Array.from({length:17},()=>({pressed:false,value:0}))};
+    Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[pad]});
+    window.__ciPad=pad;
+  });
+  await page.locator('#lab-rpg-menu').click();
+  await page.waitForFunction(()=>window.__gs.mode==='rpgmenu');
+  await page.evaluate(()=>{window.__ciPad.buttons[1].pressed=true;window.__ciPad.buttons[1].value=1;});
+  await page.waitForFunction(()=>window.__gs.mode==='play',{timeout:3000});
+  await page.evaluate(()=>{window.__ciPad.buttons[1].pressed=false;window.__ciPad.buttons[1].value=0;});
   await page.locator('#lab-rpg-menu').click();
   await page.getByRole('button',{name:'EQUIPMENT',exact:true}).click();
   await page.getByRole('button',{name:'CHANGE EQUIPMENT'}).click();
