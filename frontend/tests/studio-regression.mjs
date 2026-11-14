@@ -39,7 +39,10 @@ try {
  const renders = await page.evaluate(async ({beforeOnly}) => {const {renderChecks}=await import('/__test__/render-checks.mjs');return renderChecks({beforeOnly});},{beforeOnly});
  check('Pixel-exact original render compatibility',renders.classic);check('Binary transparent nonempty native renders',{classic:renders.classic,sleek:renders.sleek});check('Unchanged pose library and machine pivots',renders.unchangedPivots);check('Reference-texture renderer unchanged');check('Four directions and mirror fallback',renders.mirrors);
  // Editable frames must survive style changes and regeneration-unedited.
- await page.evaluate(()=>{const s=__studio.set;const c=__studio.SS.cell(s,'down','idle',0);c.getContext('2d').fillStyle='#12ab34';c.getContext('2d').fillRect(0,0,1,1);s.edited.add('down|idle|0');});
+ await page.getByTestId('tool-pencil').click();
+ await page.getByTestId('color-input').evaluate(el=>{el.value='#12ab34';el.dispatchEvent(new Event('input',{bubbles:true}));});
+ await page.getByTestId('edit-canvas').click({position:{x:1,y:1}});
+ assert(await page.evaluate(()=>__studio.set.edited.has('down|idle|0')));check('Actual pointer pencil edit');
  if(!beforeOnly){await page.getByTestId('cfg-style').selectOption('classic');await wait();await page.getByTestId('cfg-style').selectOption('sleek');await wait();}
  await page.getByTestId('generate-unedited').click();await wait();
  assert.deepEqual(await page.evaluate(()=>[...__studio.SS.cell(__studio.set,'down','idle',0).getContext('2d').getImageData(0,0,1,1).data]),[18,171,52,255]);check('Edited pixel protected during regeneration/style changes');
@@ -47,6 +50,12 @@ try {
  const sheet=await page.evaluate(()=>{const {canvas,meta}=__studio.SS.buildSheet(__studio.set);return {w:canvas.width,h:canvas.height,meta,png:canvas.toDataURL()};});assert.equal(sheet.meta.rows.length,4);check('PNG sheet + direction/animation metadata', {w:sheet.w,h:sheet.h,rows:sheet.meta.rows});
  const imported=await page.evaluate(async()=>{const S=__studio.SS;const old=__studio.set;const {canvas}=S.buildSheet(old);const s=S.newSet(old.fw,old.fh,[...old.dirs],structuredClone(old.anims));S.importSheet(s,canvas,s.fw,s.fh);return {pixels:[...old.cells].every(([k,c])=>s.cells.get(k).toDataURL()===c.toDataURL()),edited:s.edited.size};});assert(imported.pixels);check('Exported sheet reimports pixel-exact',imported);
  const zip=await page.evaluate(async()=>{const z=__studio.SS.zipStore([{name:'metadata.json',data:new TextEncoder().encode('{}')}]);const b=new Uint8Array(await z.arrayBuffer());return [b[0],b[1],b[2],b[3]];});assert.deepEqual(zip,[80,75,3,4]);check('ZIP export container');
+ // Exercise the real browser download and file-input handlers as well as the library APIs.
+ const savedPromise=page.waitForEvent('download');await page.getByTestId('save-project').click();const saved=await savedPromise;const savedBytes=readFileSync(await saved.path());assert.equal(JSON.parse(savedBytes).format,'bearframe-sprite-project');
+ await page.getByTestId('file-project').setInputFiles({name:'saved.bfsprite.json',mimeType:'application/json',buffer:savedBytes});await wait();assert(await page.evaluate(()=>__studio.set.edited.has('down|idle|0')));check('Save download and file-input reopen');
+ const pngPromise=page.waitForEvent('download',{predicate:d=>d.suggestedFilename().endsWith('.png')});const jsonPromise=page.waitForEvent('download',{predicate:d=>d.suggestedFilename().endsWith('.json')});await page.getByTestId('export-sheet').click();const [pd,jd]=await Promise.all([pngPromise,jsonPromise]);assert.equal(readFileSync(await pd.path()).subarray(1,4).toString(),'PNG');assert.equal(JSON.parse(readFileSync(await jd.path())).rows.length,4);check('Real PNG + JSON downloads');
+ const zipPromise=page.waitForEvent('download');await page.getByTestId('export-frames').click();const zd=await zipPromise;assert.equal(readFileSync(await zd.path()).readUInt32LE(0),0x04034b50);check('Real frame ZIP download');
+ await page.screenshot({path:path.join(out,'desktop-editor.png'),fullPage:true});
  await page.getByTestId('set-select').selectOption('battle');await wait();assert.equal(await page.evaluate(()=>__studio.set.fw),64);check('Independent battle set');await page.getByTestId('set-select').selectOption('exploration');await wait();
  if(!beforeOnly){await page.getByTestId('cfg-head').selectOption('display');await wait();check('New native display head generates');}
  // Each original example still opens through the real editor and fills its complete set.
@@ -55,7 +64,7 @@ try {
   if(!beforeOnly){await page.getByTestId('machine-style').selectOption('sleek');await wait();}
   check('Example opens/generates: '+name);
  }
- await page.setViewportSize({width:915,height:412});await page.getByTestId('dir-left').click();await wait();check('Phone landscape generation/direction switch');
+ await page.setViewportSize({width:915,height:412});await page.getByTestId('dir-left').click();await wait();check('Phone landscape generation/direction switch');await page.screenshot({path:path.join(out,'phone-landscape-editor.png'),fullPage:true});
  assert.deepEqual(results.pageErrors,[]);check('No browser page errors');
  // Exact raw native renders for reproducible visual review; no screenshot/phone metadata.
  const images=[];
