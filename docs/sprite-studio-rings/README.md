@@ -37,7 +37,7 @@ Local native suite: **24 checks passed**, plus production build and syntax/diff 
 - Tests preserve edited pixels, body size, saved margins, bottom-center export anchors, and the tile footprint. Removing rings does not shrink the canvas.
 - UI/save/reopen tests exercise ring selection and size fitting. The browser suite additionally tests the band-width control and downloaded ring-project reopening.
 
-The initial bands looked too thin; the final controls support thicker metal panels. Segment gaps, glow bars and fractures read at native size, though very dense/compact arrays remain simplified. These are reusable prototype components, not exact reconstructions of the concept sheets. Existing body proportions and phone editor crowding remain open. The copy workflow also runs Chromium tests; consult its latest run for the remote result.
+The initial bands looked too thin; the final controls support thicker metal panels. Segment gaps, glow bars and fractures read at native size, though very dense/compact arrays remain simplified. These are reusable prototype components, not exact reconstructions of the concept sheets. Existing body proportions and phone editor crowding remain open. Remote validation passed **28 Chromium checks** plus the native checks and production build in [CI run 43613736791](https://github.com/nobleknights015-maker/bearframe-ghost-signal/actions/runs/43613736791), source commit `0364f27b85ca7ab96a22019ae09697e39174af33`. The browser run exercises array/size/band controls, canvas fitting and downloaded ring-project reopening, along with the existing save/export checks.
 
 Reproduce from frontend:
 
