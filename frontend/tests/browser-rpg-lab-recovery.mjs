@@ -48,8 +48,45 @@ try{
     'Reopened journal resurrected post-checkpoint world state');
   assert.equal(reloaded.field.player.x,5.5*32);
   assert.equal(await page.evaluate(()=>localStorage.getItem('bearframe_ghost_signal_save_v1')),legacy);
+  // Separate defeat acceptance: lose a real sentry encounter through on-screen guard commands.
+  // No direct Game state mutation is involved in this defeat scenario.
+  await page.evaluate(()=>{for(const key of Object.keys(localStorage))
+    if(key.startsWith('bearframe_ghost_signal_rpg_lab_v1:'))localStorage.removeItem(key);});
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.__rpgLab?.inspect().field.mission==='rpg-lab');
+  await page.keyboard.down('ArrowRight');
+  try{
+    await page.waitForFunction(()=>window.__rpgLab?.inspect().session.phase==='battle',{timeout:18000});
+  }finally{await page.keyboard.up('ArrowRight');}
+  const startFight=await state();
+  assert.equal(startFight.session.phase,'battle');
+  let defeat=null;
+  for(let attempt=0;attempt<110;attempt++){
+    const snap=await state();
+    if(snap.session.phase!=='battle'){defeat=snap;break;}
+    await page.getByRole('button',{name:'GUARD',exact:true}).click();
+  }
+  assert.ok(defeat,'Guard-only party did not reach a resolved combat outcome');
+  assert.equal(defeat.session.phase,'exploration');
+  assert.equal(defeat.session.exploration.quests.sentry,'defeat');
+  assert.equal(defeat.session.exploration.progression.xp,0);
+  assert.equal(defeat.session.exploration.inventory['ancient-scrap'],undefined);
+  assert.equal(defeat.field.flags.labResolved,undefined);
+  for(const p of defeat.session.exploration.party){
+    assert.ok(p.hp>=1&&p.hp===Math.ceil(p.maxHp/2),
+      'Defeated test party should be recovered to defined half-HP fallback');
+  }
+  assert.equal(defeat.save.hasSave,true);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.__rpgLab?.inspect().field.mission==='rpg-lab');
+  const defeatAfterReload=await state();
+  assert.equal(defeatAfterReload.session.exploration.quests.sentry,'defeat');
+  assert.equal(defeatAfterReload.session.exploration.progression.xp,0);
+  assert.equal(defeatAfterReload.field.flags.labResolved,undefined);
+  for(const p of defeatAfterReload.session.exploration.party)
+    assert.equal(p.hp,Math.ceil(p.maxHp/2),'Defeat recovery must survive reload');
   assert.equal(errors.length,0,errors.join('\n'));
-  console.log('PASS recovery: real energy-depletion restore rolls back RPG + field, persists corrected journal, survives reload');
+  console.log('PASS recovery: checkpoint energy rollback, durable journal and real guard-only defeat/reload');
 }catch(error){
   await mkdir(artifactDir,{recursive:true});
   try{await page.screenshot({path:join(artifactDir,'rpg-recovery-failure.png'),fullPage:true});}catch(_){}
