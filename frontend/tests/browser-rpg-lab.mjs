@@ -3,11 +3,17 @@
 // Browser smoke test, not a substitute for a full mission playthrough or physical Android testing.
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 const base=process.env.GS_BASE_URL||'http://127.0.0.1:3000';
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({viewport:{width:844,height:390},isMobile:true,hasTouch:true});
 const errors=[];
+const artifactDir=process.env.GS_ARTIFACT_DIR||'frontend/test-artifacts';
+const diagnostics=[];
+page.on('console',message=>{if(message.type()==='error')diagnostics.push('console: '+message.text());});
+page.on('requestfailed',request=>diagnostics.push('request: '+request.url()+' '+(request.failure()?.errorText||'')));
 page.on('pageerror',error=>errors.push(error.message));
 async function labState(){
   return page.evaluate(()=>window.__rpgLab?.inspect());
@@ -57,6 +63,15 @@ try{
   await page.locator('#btn-new').waitFor({state:'visible'});
   assert.equal(errors.length,0,errors.join('\n'));
   console.log('PASS browser smoke: RPG lab move/menu/save/reload + original M1 + Sprite Studio');
+}catch(error){
+  await mkdir(artifactDir,{recursive:true});
+  const stamp='rpg-lab-failure';
+  try{await page.screenshot({path:join(artifactDir,stamp+'.png'),fullPage:true});}catch(e){diagnostics.push('screenshot: '+e.message);}
+  let state=null;
+  try{state=await labState();}catch(e){diagnostics.push('state: '+e.message);}
+  await writeFile(join(artifactDir,stamp+'.json'),JSON.stringify({url:page.url(),error:String(error.stack||error),pageErrors:errors,diagnostics,state},null,2));
+  console.error('Browser failure artifacts written to '+artifactDir);
+  throw error;
 }finally{
   await browser.close();
 }
