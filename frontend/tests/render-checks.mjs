@@ -40,6 +40,20 @@ export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/
   const ta=canvas(16,16),tb=canvas(16,16);oldMachine.renderRig(ta.getContext('2d'),tex,'down','idle',0,1,16,16);machine.renderRig(tb.getContext('2d'),{...tex,style:'sleek'},'down','idle',0,1,16,16);if(!equal(pixels(ta),pixels(tb)))throw Error('reference textures modified');
   const rig=presets.MACHINE_PRESETS['Hexapod Cartography Engine']();
   for(const style of ['classic','sleek']){const r=canvas(rig.w,rig.h),l=canvas(rig.w,rig.h);machine.renderRig(r.getContext('2d'),{...rig,style},'right','walk',2,8,rig.w,rig.h);machine.renderRig(l.getContext('2d'),{...rig,style},'left','walk',2,8,rig.w,rig.h);const a=pixels(r),b=pixels(l);for(let y=0;y<rig.h;y++)for(let x=0;x<rig.w;x++)for(let j=0;j<4;j++)if(a[(y*rig.w+x)*4+j]!==b[(y*rig.w+rig.w-1-x)*4+j])throw Error('machine mirror');mirrors++;}
-  return {classic,sleek,mirrors,unchangedPivots,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
+  let wardrobe=0;
+  const options=[{scarf:'wrap'},{scarf:'trailing'},{scarf:'cowl'},{hood:'raised'},{hood:'draped'},{drapery:'mantle'},{drapery:'tabard'},{drapery:'split'},{overgrowth:3},{damage:3,damageType:'cracked'},{damage:3,damageType:'exposed'},{damage:3,damageType:'scorched'}];
+  if(!beforeOnly){
+   const base={...current.DEFAULT_CFG,fins:false,cloak:'none'};
+   for(const opt of options)for(const [w,h] of [[32,56],[64,112]])for(const dir of current.DIRS)for(let i=0;i<6;i++){
+    const cv=canvas(w,h);current.drawAndroid(cv.getContext('2d'),{...base,...opt,clothWear:2},dir,current.poseFor('walk',i,6),w,h);valid(cv);wardrobe++;
+   }
+   const cv=canvas(64,112);current.drawAndroid(cv.getContext('2d'),{...base,facePanel:'smooth'},'down',{b:0},64,112,{outline:false});
+   const a=pixels(cv),color=(x,y)=>[...a.slice((y*64+x)*4,(y*64+x)*4+3)];
+   const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+   for(const y of [8,12,13])if(!equal(color(31,y*2),rgb(base.colors.under)))throw Error('center visor strip returned');
+   const clean=canvas(64,112),grown=canvas(64,112);current.drawAndroid(clean.getContext('2d'),base,'down',{b:0},64,112);current.drawAndroid(grown.getContext('2d'),{...base,overgrowth:3},'down',{b:0},64,112);const cl=pixels(clean),gr=pixels(grown);for(let y=4;y<30;y++)for(let x=20;x<44;x++)for(let j=0;j<4;j++)if(cl[(y*64+x)*4+j]!==gr[(y*64+x)*4+j])throw Error('growth crossed the face');
+   for(const [name,cfg] of Object.entries(current.PRESETS).filter(([n])=>/—/.test(n))){const frames=[];for(let i=0;i<6;i++)for(const dir of current.DIRS){const cv=canvas(64,112);current.drawAndroid(cv.getContext('2d'),cfg,dir,current.poseFor('walk',i,6),64,112);frames.push({dir,i,style:'wardrobe',png:cv.toDataURL()});}previews.push({name,kind:'wardrobe',w:64,h:112,frames});}
+  }
+  return {classic,sleek,mirrors,unchangedPivots,wardrobe,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
 
 }

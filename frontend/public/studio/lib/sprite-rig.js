@@ -1,3 +1,4 @@
+import { appearance } from './android-details.js';
 // Bearframe Sprite Rig — reusable parametric humanoid-android pixel-art generator.
 // No dependencies, no game code. Used by Bearframe Sprite Studio; usable from any Bearframe Labs project:
 //   import { drawAndroid, poseFor, DEFAULT_CFG } from './sprite-rig.js';
@@ -7,6 +8,7 @@
 // pixel-level detail instead of being a scaled-up small sprite.
 export const DIRS = ['down', 'up', 'right', 'left'];
 export const DEFAULT_CFG = {
+  facePanel: 'smooth', scarf: 'none', hood: 'none', drapery: 'none', clothWear: 0, overgrowth: 0, damageType: 'worn',
   style: 'sleek', // Omitted on older projects: retain their pixel-exact classic rendering.
   head: 'visor', fins: true, modules: true, armor: 'plated', cloak: 'long', build: 0,
   pouches: true, harness: true, backpack: false, antenna: false, damage: 0,
@@ -17,6 +19,10 @@ export const PRESETS = {
   'Watchtower Sentinel-class': { ...DEFAULT_CFG, head: 'band', fins: false, armor: 'heavy', cloak: 'none', backpack: true, colors: { armor: '#c9cdd4', trim: '#30343c', under: '#111318', glow: '#ff3b30', cloak: '#5a5f6a', leather: '#2f3238' } },
   'Exploration Surveyor': { ...DEFAULT_CFG, head: 'mono', fins: false, armor: 'light', cloak: 'short', backpack: true, antenna: true, colors: { armor: '#d9c9a3', trim: '#4a4233', under: '#17140f', glow: '#39d0c8', cloak: '#2f6b5a', leather: '#5a4630' } },
   'Ancient Frame (weathered)': { ...DEFAULT_CFG, head: 'band', fins: false, modules: false, armor: 'light', cloak: 'none', harness: false, pouches: false, damage: 3, build: -1, colors: { armor: '#4f6b5c', trim: '#8a7f49', under: '#1d2a26', glow: '#bfe9ff', cloak: '#3d5448', leather: '#5a3220' } },
+  'Sleeper — field scarf': { ...DEFAULT_CFG, fins:false, cloak:'none', scarf:'wrap', damage:1, damageType:'cracked', colors:{armor:'#d4c6b4',trim:'#47404a',under:'#17151d',glow:'#c979ef',cloak:'#675167',leather:'#514239'} },
+  'Echo — relay pilgrim': { ...DEFAULT_CFG, fins:false, head:'display', cloak:'none', scarf:'cowl', hood:'raised', drapery:'split', clothWear:3, overgrowth:1, damage:2, damageType:'exposed', colors:{armor:'#c6beb0',trim:'#48434c',under:'#17151d',glow:'#56d1df',cloak:'#675167',leather:'#514239'} },
+  'Ghost Grid — archive cowl': { ...DEFAULT_CFG, fins:false, cloak:'none', scarf:'wrap', hood:'raised', drapery:'tabard', clothWear:2, overgrowth:3, damage:1, damageType:'cracked', colors:{armor:'#cbd0ca',trim:'#3c4853',under:'#121a20',glow:'#5cdae4',cloak:'#4f6679',leather:'#5c4b39'} },
+  'Sleeper — salvage mantle': { ...DEFAULT_CFG, fins:false, cloak:'none', scarf:'trailing', hood:'draped', drapery:'mantle', clothWear:3, overgrowth:1, damage:2, damageType:'exposed', colors:{armor:'#c8bdab',trim:'#46404a',under:'#17151d',glow:'#bc73ed',cloak:'#675167',leather:'#514239'} },
 };
 
 const hs = (x, s = 0) => { const n = Math.sin(x * 91.7 + s * 13.3) * 43758.5453; return n - Math.floor(n); };
@@ -95,8 +101,21 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
   const cloakLen = cfg.cloak === 'long' ? 29 : cfg.cloak === 'short' ? 14 : 0;
   const cols = (x0, x1, fn) => { for (let px = X(x0); px < X(x1); px++) fn((px - ox) / K, px); }; // per output pixel column (cloth detail)
   const col1 = (px, y, len, color) => { const y0 = Y(y), H = Math.max(1, Math.round(len * K)); c.fillStyle = color; c.fillRect(px, y0, 1, H); };
-  const wave = x => Math.sin(x * .8 + ph) * amp + Math.floor(hs(Math.round(x * 2)) * 3);
+  const wave = x => Math.sin(x * .8 + ph) * amp + Math.floor(hs(Math.round(x * 2)) * 3) - (cfg.clothWear ? hs(Math.round(x * 2), 9) * cfg.clothWear * 1.2 : 0);
   const dmg = (x, y, w, h, seed) => { // deterministic wear: scratches, scorch, exposed understructure
+    if (cfg.damageType && cfg.damageType !== 'worn') {
+      const level=cfg.damage||0, cx=x+w*.5, cy=y+h*.4;
+      if (cfg.damageType === 'cracked') {
+        for(let i=0;i<level+1;i++)r(cx+(i%2?1:0),y+1+i,1,1,P.D);
+        if(level>=2)r(cx-1,y+3,1,1,P.K);
+      } else if (cfg.damageType === 'exposed') {
+        const ww=Math.max(1,Math.min(w-2,level+1)),hh=Math.max(1,Math.min(h-2,level+1));
+        r(cx-ww/2,cy,ww,hh,P.K);r(cx,cy,1,hh,'#8d4b42');if(ww>2)r(cx+1,cy+1,1,Math.max(1,hh-1),P.G);
+      } else if (cfg.damageType === 'scorched') {
+        for(let i=0;i<level+2;i++)r(x+hs(seed,i)*(w-1),y+hs(seed+2,i)*(h-1),Math.min(2,w),1,i%2?P.D:P.Gd);
+      }
+      return;
+    }
     for (let i = 0; i < cfg.damage * 3; i++) { const dx = x + hs(seed, i) * (w - 1), dy = y + hs(seed + 7, i) * (h - 1); r(dx, dy, i % 3 ? 1 : 2, i % 3 ? 2 : 1, i % 4 === 0 ? P.K : P.D); }
     if (cfg.damage >= 2 && seed % 2 === 0) { r(x + w * .55, y + h * .35, Math.max(2, w * .35), Math.max(2, h * .4), P.K); r(x + w * .6, y + h * .4, 1, Math.max(1, h * .3), '#7a2b2b'); r(x + w * .75, y + h * .4, 1, Math.max(1, h * .2), '#2b5a6a'); }
     if (cfg.damage >= 3) { r(x, y + h - 2, w, 1, shade(cfg.colors.leather, -.1)); r(x + 1, y + 1, 2, 1, '#6b3a22'); }
@@ -113,7 +132,9 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     if (cfg.antenna) { r(20, b - 2, 1, 6, P.G); r(20, b - 3, 1, 1, glow); }
     pl(11, 3 + b, 10, 12); r(11, 14 + b, 10, 1, P.D); c.clearRect(X(11), Y(3 + b), 1, 1); c.clearRect(X(21) - 1, Y(3 + b), 1, 1);
     if (!front) { r(15, 4 + b, 2, 8, P.G); r(12, 12 + b, 8, 1, P.S); return; }
-    if (cfg.head === 'visor') {
+    if (cfg.head === 'visor' && (cfg.facePanel === 'smooth' || (sleek && cfg.facePanel !== 'split'))) {
+      r(12, 7 + b, 8, 7, P.K); r(12, 9 + b, 2, 1, glow); r(14, 10 + b, 1, 1, glow); r(15, 11 + b, 2, 1, glow); r(17, 10 + b, 1, 1, glow); r(18, 9 + b, 2, 1, glow);
+    } else if (cfg.head === 'visor') {
       r(15, 3 + b, 2, 4, P.G); r(12, 8 + b, 8, 6, P.K); r(15, 7 + b, 2, 8, P.W); r(15, 7 + b, 1, 8, P.Wh);
       r(12, 9 + b, 3, 1, glow); r(13, 10 + b, 2, 1, P.R); r(14, 11 + b, 1, 1, P.Rd); r(17, 9 + b, 3, 1, glow); r(17, 10 + b, 2, 1, P.R); r(17, 11 + b, 1, 1, P.Rd);
     } else if (cfg.head === 'display') {
@@ -130,6 +151,7 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     else { r(23, 22 + b, 3, 3, P.K); r(24, 23 + b, 1, 1, P.G); pl(23, 25 + b - a, 4, 7); r(23, 32 + b - a, 4, 3, P.K); r(24, 33 + b - a, 2, 1, P.G); if (strips) r(26, 27 + b - a, 1, 3, P.R); }
   };
   const lx = 16 - lw - 1, rx = 17;
+  const details = appearance({c,cfg,dir,pose,K,X,Y,P}); details.rear();
 
   if (dir === 'down') {
     if (cloakLen) cols(5, 27, (x, px) => { const edge = x < 8 || x > 24; col1(px, 17 + b, cloakLen - 1 + wave(x), edge ? P.C : Math.sin(x * 1.3 + ph * .5) > .6 ? P.Cx : P.Cd); if (Math.abs(x - 6.5) < .5 || Math.abs(x - 25.5) < .5) col1(px, 19 + b, cloakLen - 7 + wave(x), P.Ch); });
@@ -162,12 +184,14 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     else { r(14 + (a >> 1), 22 + b, 3, 3, P.K); pl(13 + a, 25 + b, 4, 7); r(13 + a, 27 + b, 1, 3, P.R); r(13 + a, 32 + b, 4, 3, P.K); r(14 + a, 33 + b, 2, 1, P.G); }
     if (cloakLen) { r(11, 14 + b, 10, 3, P.C); r(11, 14 + b, 10, 1, P.Ch); r(8, 15 + b, 4, 3, P.C); } else r(14, 15 + b, 5, 2, P.G);
     pl(11, 3 + b, 10, 12); r(15, 14 + b, 6, 1, P.D); c.clearRect(X(11), Y(3 + b), 1, 1); c.clearRect(X(21) - 1, Y(3 + b), 1, 1);
-    if (cfg.head === 'visor') { r(17, 8 + b, 4, 6, P.K); r(18, 9 + b, 3, 1, glow); r(18, 10 + b, 2, 1, P.R); r(18, 11 + b, 1, 1, P.Rd); r(20, 12 + b, 1, 3, P.W); }
+    if (cfg.head === 'visor' && (cfg.facePanel === 'smooth' || (sleek && cfg.facePanel !== 'split'))) { r(17, 7 + b, 4, 7, P.K); r(18, 9 + b, 3, 1, glow); r(17, 10 + b, 1, 1, glow); }
+    else if (cfg.head === 'visor') { r(17, 8 + b, 4, 6, P.K); r(18, 9 + b, 3, 1, glow); r(18, 10 + b, 2, 1, P.R); r(18, 11 + b, 1, 1, P.Rd); r(20, 12 + b, 1, 3, P.W); }
     else if (cfg.head === 'display') { r(18, 5 + b, 3, 8, P.K); r(20, 7 + b, 1, 4, glow); r(18, 13 + b, 3, 1, P.G); }
     else if (cfg.head === 'mono') { r(17, 7 + b, 4, 7, P.K); r(19, 9 + b, 2, 3, glow); r(20, 9 + b, 1, 1, P.Rb); } else { r(16, 8 + b, 5, 4, P.K); r(17, 9 + b, 4, 1, glow); r(17, 10 + b, 4, 1, P.Rd); }
     if (cfg.modules) { if (sleek) module(12, 6 + b, 5, 7, glow); else { r(12, 6 + b, 5, 7, P.G); r(12, 6 + b, 5, 1, P.Gd); r(13, 7 + b, 3, 5, glow); r(14, 8 + b, 1, 3, P.Rd); } }
     if (cfg.fins) { r(13, b, 1, 4, P.S); r(13, 3 + b, 2, 4, P.W); } if (cfg.antenna) { r(12, b - 2, 1, 6, P.G); r(12, b - 3, 1, 1, glow); }
   }
+  details.front();
   if (opts.outline !== false) outline(c, fw, fh, opts.outlineColor || '#08070b');
   ctx.save(); if (dir === 'left') { ctx.translate(fw, 0); ctx.scale(-1, 1); } ctx.drawImage(cv, 0, 0); ctx.restore();
 }

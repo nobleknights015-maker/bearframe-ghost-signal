@@ -1,3 +1,4 @@
+import { WARDROBE } from './lib/android-details.js';
 // Bearframe Sprite Studio — standalone editor. Depends only on ./lib (no Ghost Signal code, no network services).
 import { DEFAULT_CFG, PRESETS, ANIM_TYPES, JOINTS, drawAndroid, poseFor } from './lib/sprite-rig.js';
 import { renderRig, SHAPES, COLOR_ROLES } from './lib/machine-rig.js';
@@ -16,7 +17,14 @@ window.__studio = { get project() { return P; }, get set() { return S; }, get cu
 
 async function setProject(p) {
   P = p; S = P.sets[P.active]; cur = { dir: S.dirs[0], a: 0, f: 0 }; undo = [];
-  const need = P.kind !== 'blank' && S.cells.size === 0; refresh(); if (need) await generate('all'); else autosave();
+  const need = P.kind !== 'blank' && S.cells.size === 0;
+  // Refresh generated pixels from the previous Sleek visor, preserving every hand edit.
+  const smoothUpgrade = P.kind === 'humanoid' && P.cfg.style === 'sleek' && P.cfg.head === 'visor' && P.cfg.facePanel == null;
+  if (smoothUpgrade) {
+    P.cfg.facePanel = 'smooth';
+    for (const set of Object.values(P.sets)) if (set !== S && set.cells.size) for (const d of set.dirs) for (const a of set.anims) for (let i=0;i<a.frames;i++) { const k=SS.key(d,a.name,i); if (set.cells.has(k) && !set.edited.has(k)) renderCell(P,set,d,a,i); }
+  }
+  refresh(); if (need) await generate('all'); else if (smoothUpgrade) await generate('unedited'); else autosave();
 }
 function refresh() {
   $('pname').value = P.name; $('kind').value = P.kind; $('set-sel').value = P.active; $('fw').value = S.fw; $('fh').value = S.fh; $('tw').value = P.tiles[0]; $('th').value = P.tiles[1];
@@ -56,6 +64,9 @@ function buildCfg() {
       field('Style', sel(['classic', 'sleek'], c.style || 'classic', v => up('style', v), 'cfg-style')),
       field('Head', sel(['visor', 'mono', 'band', 'display'], c.head, v => up('head', v), 'cfg-head')), field('Armor', sel(['light', 'plated', 'heavy'], c.armor, v => up('armor', v), 'cfg-armor')),
       field('Cloak', sel(['none', 'short', 'long'], c.cloak, v => up('cloak', v), 'cfg-cloak')), field('Limb build', range(-1, 1, 1, c.build, v => up('build', v), 'cfg-build')), field('Damage', range(0, 3, 1, c.damage, v => up('damage', v), 'cfg-damage')));
+    box.append(field('Face panel', sel(['smooth', 'split'], c.facePanel || (c.style === 'sleek' ? 'smooth' : 'split'), v => up('facePanel', v), 'cfg-facePanel')));
+    for (const k of ['scarf', 'hood', 'drapery', 'damageType']) box.append(field(k === 'damageType' ? 'Damage pattern' : k, sel(WARDROBE[k], c[k] || (k === 'damageType' ? 'worn' : 'none'), v => up(k, v), 'cfg-' + k)));
+    for (const k of ['clothWear', 'overgrowth']) box.append(field(k === 'clothWear' ? 'Frayed cloth' : 'Overgrowth', range(0, 3, 1, c[k] || 0, v => up(k, v), 'cfg-' + k)));
     ['fins', 'modules', 'pouches', 'harness', 'backpack', 'antenna'].forEach(k => { const i = el('input', { type: 'checkbox', checked: !!c[k] }); i.dataset.testid = 'cfg-' + k; i.onchange = () => up(k, i.checked); box.append(el('label', { className: 'chk' }, [i, k])); });
     box.append(colors(c.colors, Object.keys(c.colors)));
   } else if (P.kind === 'machine') {
