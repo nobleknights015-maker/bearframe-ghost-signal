@@ -246,15 +246,15 @@ export class Game {
 
     // darkness + light sources
     const lc = this.lc, sx = p.x - cx, sy = p.y - cy - 16;
-    lc.globalCompositeOperation = 'source-over'; lc.clearRect(0, 0, VW, VH); lc.fillStyle = `rgba(2,4,7,${f.power ? .5 : .95})`; lc.fillRect(0, 0, VW, VH);
+    lc.globalCompositeOperation = 'source-over'; lc.clearRect(0, 0, VW, VH); lc.fillStyle = `rgba(2,4,7,${f.power ? .45 : .9})`; lc.fillRect(0, 0, VW, VH);
     lc.globalCompositeOperation = 'destination-out';
     const hole = (x, y, r, a) => { if (x < -r || y < -r || x > VW + r || y > VH + r) return; const gr = lc.createRadialGradient(x, y, 2, x, y, r); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); lc.fillStyle = gr; lc.fillRect(x - r, y - r, r * 2, r * 2); };
-    hole(sx, sy, 46, .85);
+    hole(sx, sy, 62, .9);
     if (p.light) {
       const a = ANG[p.dir], gr = lc.createRadialGradient(sx, sy, 4, sx, sy, 160); gr.addColorStop(0, 'rgba(0,0,0,.95)'); gr.addColorStop(.75, 'rgba(0,0,0,.8)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
       lc.fillStyle = gr; lc.beginPath(); lc.moveTo(sx, sy); lc.arc(sx, sy, 160, a - .58, a + .58); lc.closePath(); lc.fill();
     }
-    if (lampsOn) for (const l of this.m.lamps) hole(l.x * T + 16 - cx, l.y * T + 14 - cy, 72, .6 * lk(l));
+    if (lampsOn) for (const l of this.m.lamps) hole(l.x * T + 16 - cx, l.y * T + 14 - cy, 96, .75 * lk(l));
     for (const e of this.ents) {
       if (e.hidden || e.gone) continue; const ex = (e.tx + e.w / 2) * T - cx, ey = (e.ty + e.h / 2) * T - cy;
       if (e.type === 'terminal') hole(ex, ey, 44, .7); else if (e.type === 'pad' || e.type === 'cell') hole(ex, ey, 30, .6);

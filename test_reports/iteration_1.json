@@ -1,0 +1,49 @@
+{
+  "summary": "Comprehensive frontend testing of BEARFRAME: GHOST SIGNAL HTML5 canvas game. All 13 feature flows from the review request were exercised through keyboard, DOM click, touch, and the window.__gs debug hook. Every flow worked as specified; no blocking or critical defects found.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "game.js is ~282 lines and mission1.js ~271 lines — both within reasonable size.",
+    "input.js correctly uses e.code for KeyboardEvent so layout-independent; last-pressed-wins is enforced via stack.",
+    "Scan while flashlight is on drains slightly more than exactly 15 (because flashlight continues per-frame drain). Minor/by-design.",
+    "doorC auto-closes when neither player nor ghost is on the plate — matches requirement; combined with lever that locks it open.",
+    "Checkpoint restore requires exactly energy <= 0 (not 'low'); drain() clamps to 0 so this works via normal gameplay."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (no backend)", "frontend": "100% (13/13 feature flows PASS)"},
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Game is a static site served at http://localhost:3000. Use window.__gs to inspect/manipulate state (player x/y/energy/dir, drone x/y/state/hitCd, flags, ent(id), ghost). Dialogs pause the world; advance with KeyboardEvent code 'KeyE'. Pressing Q right after flashlight test gives ~15.55 drain (expected). For drone-contact test, place drone at (player.x, player.y) and set drone.hitCd=0, drone.invCd=0, drone.blind=0, drone.state='chase'. For zero-energy restore, set player.energy=0 (exactly) — 0.5 won't trigger. Touch mode: set localStorage bearframe_ghost_signal_settings_v1 touch:'on' and reload. All interactive elements have data-testid attributes per index.html.",
+  "verified_flows": [
+    "Title + CONTINUE disabled without save + NEW RECONNAISSANCE + intro dialog E-advance",
+    "4-dir WASD/Arrow movement with last-pressed-wins + wall/solid collision",
+    "F flashlight toggle + HUD 'LIGHT ON' + energy drain over time",
+    "Q scan costs 15 energy, 1.5s cooldown",
+    "Terminal A opens overlay, DISCONNECT closes, logA flag set, door A unlocks",
+    "Entering machine hall (x>16*32) triggers ghost dialog, ghost trace appears while moving",
+    "Drone contact drains 20 energy with ~1.3s cooldown, toast CONTACT shown, stats.hits increments",
+    "Scan within 120px sets drone.state='disabled' for 5s with toast",
+    "Scan near tile (17,21) reveals hidden power cell (hidden->false), toast shown",
+    "E picks up cell, inv.cell=true, HUD shows POWER CELL",
+    "Seat cell at generator sets cellIn flag; scan reveals breaker order II,III,I",
+    "Wrong order on breakers -> seq reset, -6 energy, toast SEQUENCE FAULT",
+    "Correct II,III,I -> flags.power=true, auxiliary power restored dialog",
+    "Emergency exit with power -> ending dialog + ending screen with proper stats formatting",
+    "Ending RETURN TO TITLE clears save, CONTINUE disabled",
+    "Pause (Esc) shows RECON SUSPENDED panel with 6 objectives list",
+    "Settings: volume slider, flicker toggle, touch toggle all persist to localStorage settings key",
+    "SAVE FIELD RECORD writes save; SAVE & EXIT then CONTINUE restores x/y/energy/flags",
+    "Save survives page reload",
+    "Induction pad recharges energy and triggers CHECKPOINT RECORDED toast",
+    "Energy->0 triggers restore(): player teleports to last checkpoint, toast 'ENERGY DEPLETED - LAST CHECKPOINT RESTORED', stats.restores++",
+    "Mobile landscape (844x390) with touch:'on' shows touch-controls, dpad moves player 4-directionally, LIGHT/USE/SCAN buttons work, no UI overflow observed in screenshot",
+    "Bearframe final door (bulkhead) interaction shows warning dialog, sets finalSeen flag, never opens; ending stats report FINAL DOOR ... SEALED"
+  ]
+}
