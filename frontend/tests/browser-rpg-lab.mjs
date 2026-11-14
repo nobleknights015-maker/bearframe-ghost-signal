@@ -15,6 +15,7 @@ async function labState(){
 try{
   await page.goto(base+'/index.html?rpg-lab=1',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.__rpgLab && window.__gs?.m?.id==='rpg-lab',{timeout:20000});
+  const legacyBefore=await page.evaluate(()=>localStorage.getItem('bearframe_ghost_signal_save_v1'));
   let snap=await labState();
   assert.equal(snap.mode,'play');
   assert.equal(snap.session.security.mode,'normal');
@@ -40,6 +41,8 @@ try{
   snap=await labState();
   assert.ok(snap.field.player.x>start+20,'Save/reload teleported the player back to start');
   assert.equal(snap.field.mission,'rpg-lab');
+  const legacyAfter=await page.evaluate(()=>localStorage.getItem('bearframe_ghost_signal_save_v1'));
+  assert.equal(legacyAfter,legacyBefore,'The RPG lab modified the original Ghost Signal save namespace');
 
   // Original game is unaffected when the opt-in test query is absent.
   await page.goto(base+'/index.html',{waitUntil:'domcontentloaded'});
