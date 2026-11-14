@@ -23,3 +23,23 @@ test('prevents invented gear, invalid members, duplicate roster, and item underf
  assert.throws(()=>addItem(a,'pistol',-2),TypeError);
  assert.throws(()=>createParty({members:[members[0],members[0]],active:['sleeper']}),TypeError);
 });
+
+
+test('Sleeper lineage rejects Echo and modern Foundry gear before consuming inventory',()=>{
+ const catalog={
+   'old-blade':{slot:'weapon',attack:4,allowedLineages:['sleeper']},
+   'echo-link':{slot:'weapon',speed:2,allowedLineages:['echo']},
+   'foundry-chip':{slot:'weapon',attack:20,allowedLineages:['modern']}
+ };
+ const s=createParty({members:[{...members[0],lineage:'sleeper'}, {...members[1],lineage:'echo'}],
+  active:['sleeper','echo'],inventory:{'old-blade':1,'echo-link':1,'foundry-chip':1}});
+ const original=JSON.stringify(s);
+ assert.throws(()=>equipItem(s,'sleeper','weapon','foundry-chip',catalog),/incompatible/);
+ assert.throws(()=>equipItem(s,'sleeper','weapon','echo-link',catalog),/incompatible/);
+ assert.equal(JSON.stringify(s),original);
+ const modernless=equipItem(s,'sleeper','weapon','old-blade',catalog);
+ assert.equal(modernless.inventory['old-blade'],undefined);
+ assert.equal(battleParty(modernless,catalog)[0].attack,members[0].attack+4);
+ const echoReady=equipItem(modernless,'echo','weapon','echo-link',catalog);
+ assert.equal(battleParty(echoReady,catalog)[1].speed,members[1].speed+2);
+});
