@@ -128,6 +128,10 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     if (cfg.damage >= 2 && seed % 2 === 0) { r(x + w * .55, y + h * .35, Math.max(2, w * .35), Math.max(2, h * .4), P.K); r(x + w * .6, y + h * .4, 1, Math.max(1, h * .3), '#7a2b2b'); r(x + w * .75, y + h * .4, 1, Math.max(1, h * .2), '#2b5a6a'); }
     if (cfg.damage >= 3) { r(x, y + h - 2, w, 1, shade(cfg.colors.leather, -.1)); r(x + 1, y + 1, 2, 1, '#6b3a22'); }
   };
+  const profileArm=()=>{
+    if (pose.scan) { r(16, 22 + b, 3, 3, P.K); pl(18, 23 + b, 7, 4); r(20, 25 + b, 3, 1, P.R); r(25, 23 + b, 3, 4, P.K); r(28, 24 + b, 1, 2, pose.flare ? P.Rb : P.R); if (pose.flare) { r(29, 23 + b, 1, 1, P.R); r(29, 26 + b, 1, 1, P.R); r(30, 24 + b, 1, 2, P.R); } }
+    else { r(14 + (a >> 1), 22 + b, 3, 3, P.K); pl(13 + a, 25 + b, 4, 7); r(13 + a, 27 + b, 1, 3, P.R); r(13 + a, 32 + b, 4, 3, P.K); r(14 + a, 33 + b, 2, 1, P.G); }
+  };
   const leg = (x, l, dk, wd = lw) => {
     pl(x, 34, wd, 7 - l, dk); r(x, 36, wd, 1, P.G); r(x, 41 - l, wd, 2, P.K); r(x + 1, 42 - l, wd - 2, 1, P.G); r(x + (wd >> 1), 41 - l, 1, 1, dk ? P.Rd : P.R);
     pl(x, 43 - l, wd, 7, dk); if (heavy) r(x + wd - 2, 45 - l, 1, 3, P.D); pl(x - 1, 50 - l, wd + 1, 3, dk); r(x - 1, 53 - l, wd + 1, 1, P.K);
@@ -197,8 +201,7 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     if (cfg.damage) dmg(15, 18 + b, 5, 9, 5);
     r(11, 31 + b, 10, 3, P.B); r(11, 33 + b, 10, 1, P.Bd); if (cfg.pouches) { r(12, 32 + b, 4, 4, P.Bd); r(13, 33 + b, 2, 1, P.B); }
     pl(12, 16 + b, pw, 6); r(12, 21 + b, pw, 1, P.D);
-    if (pose.scan) { r(16, 22 + b, 3, 3, P.K); pl(18, 23 + b, 7, 4); r(20, 25 + b, 3, 1, P.R); r(25, 23 + b, 3, 4, P.K); r(28, 24 + b, 1, 2, pose.flare ? P.Rb : P.R); if (pose.flare) { r(29, 23 + b, 1, 1, P.R); r(29, 26 + b, 1, 1, P.R); r(30, 24 + b, 1, 2, P.R); } }
-    else { r(14 + (a >> 1), 22 + b, 3, 3, P.K); pl(13 + a, 25 + b, 4, 7); r(13 + a, 27 + b, 1, 3, P.R); r(13 + a, 32 + b, 4, 3, P.K); r(14 + a, 33 + b, 2, 1, P.G); }
+    profileArm();
     }
     if (cloakLen) { r(11, 14 + b, 10, 3, P.C); r(11, 14 + b, 10, 1, P.Ch); r(8, 15 + b, 4, 3, P.C); } else r(14, 15 + b, 5, 2, P.G);
     pl(11, 3 + b, 10, 12); r(15, 14 + b, 6, 1, P.D); c.clearRect(X(11), Y(3 + b), 1, 1); c.clearRect(X(21) - 1, Y(3 + b), 1, 1);
@@ -209,7 +212,9 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
     if (cfg.modules) { if (sleek) module(12, 6 + b, 5, 7, glow); else { r(12, 6 + b, 5, 7, P.G); r(12, 6 + b, 5, 1, P.Gd); r(13, 7 + b, 3, 5, glow); r(14, 8 + b, 1, 3, P.Rd); } }
     if (cfg.fins) { r(13, b, 1, 4, P.S); r(13, 3 + b, 2, 4, P.W); } if (cfg.antenna) { r(12, b - 2, 1, 6, P.G); r(12, b - 3, 1, 1, glow); }
   }
-  outfits.front(); details.front();
+  outfits.front();
+  if(outfits.wrapsProfile){if(refined)drawChassis(args,{profileArmOnly:true});else profileArm();}
+  details.front();
   if (opts.outline !== false) outline(c, fw, fh, opts.outlineColor || '#08070b');
   ctx.save(); if (dir === 'left') { ctx.translate(fw, 0); ctx.scale(-1, 1); } ctx.drawImage(cv, 0, 0); ctx.restore();
 }

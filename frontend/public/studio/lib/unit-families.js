@@ -13,9 +13,9 @@ export function industrialEcho(options={}){
    const near=side?(dir==='right'?label==='R':label==='L'):true,z=side?(near?5:-5):2,dk=side&&!near?{dk:1}:{};
    parts.push(P('leg.'+label+'.femur','pelvis','plate',side?(near?-1:1):(back?sg:-sg)*4,0,6,12,{ox:3,z,...dk}),P('leg.'+label+'.tibia','leg.'+label+'.femur','taper',0,12,5,13,{ox:2.5,t:.72,z,...dk}),P('leg.'+label+'.knee','leg.'+label+'.femur','disc',0,12,6,6,{ox:3,oy:3,c:'dark',z:z+.2,...dk}),P('leg.'+label+'.boot','leg.'+label+'.tibia','plate',0,13,side?8:6,4,{ox:side?(sign>0?3:5):3,c:'dark',z:z+.3,...dk}));
    const x=side?(near?0:sign*2):(back?sg:-sg)*9;
-   parts.push(P('arm.'+label+'.upper','spine','plate',x,-16,5,10,{ox:2.5,z:z+1,c:label==='R'?'dark':'bone',...dk}),P('arm.'+label+'.fore','arm.'+label+'.upper','plate',0,10,4,10,{ox:2,z:z+1,...dk}));
-   if(label==='R'&&spec.role==='survey')parts.push(P('tool.R','arm.R.fore','taper',0,10,3,9,{ox:1.5,t:.1,c:'brass',z:z+2,...dk}),P('tool.R.tip','tool.R','disc',0,7,2,2,{ox:1,g:'accent',z:z+3,...dk}));
-   else{parts.push(P('tool.'+label,'arm.'+label+'.fore','plate',0,10,5,4,{ox:2.5,c:'dark',z:z+2,...dk}));if(label==='R')parts.push(P('claw.R','tool.R','taper',2,3,2,5,{t:0,c:'brass',z:z+2,...dk}));}
+   parts.push(P('arm.'+label+'.upper','spine','plate',x,-16,5,10,{ox:2.5,z:back?8:z+1,c:label==='R'?'dark':'bone',...dk}),P('arm.'+label+'.fore','arm.'+label+'.upper','plate',0,10,4,10,{ox:2,z:back?9:z+1,...dk}));
+   if(label==='R'&&spec.role==='survey')parts.push(P('tool.R','arm.R.fore','taper',0,10,3,9,{ox:1.5,t:.1,c:'brass',z:back?10:z+2,...dk}),P('tool.R.tip','tool.R','disc',0,7,2,2,{ox:1,g:'accent',z:back?11:z+3,...dk}));
+   else{parts.push(P('tool.'+label,'arm.'+label+'.fore','plate',0,10,5,4,{ox:2.5,c:'dark',z:back?10:z+2,...dk}));if(label==='R')parts.push(P('claw.R','tool.R','taper',2,3,2,5,{t:0,c:'brass',z:back?10:z+2,...dk}));}
   }
   return parts;
  };
@@ -27,6 +27,7 @@ export function evaluateUnit(rig,dir,type,i,n){
  if(!rig.unitSpec)return rig;if(rig.unitSpec.version!==1||rig.unitSpec.family!=='legacy-industrial-biped')throw Error('Unsupported unit family version');
  const parts=structuredClone(rig.views[dir]);if(!parts)throw Error('Unit family requires an authored '+dir+' view');const map=new Map(parts.map(p=>[p.id,p])),t=n>0?i/n:0,side=['left','right'].includes(dir),sign=dir==='left'?-1:1,walk=type==='walk',one=n>1?i/(n-1):0,fall=type==='defeat'?one:0,b=walk?.3*Math.sin(t*TAU*2):fall*7;
  const pelvis=map.get('pelvis');pelvis.y+=b;
+ if(dir==='up')for(const p of parts){if(p.id.startsWith('arm.'))p.z=p.id.endsWith('.fore')?9:8;else if(p.id.startsWith('tool.')||p.id.startsWith('claw.'))p.z=p.id.endsWith('.tip')?11:10;}
  for(const [label,sg] of [['L',-1],['R',1]]){
   const upper=map.get('leg.'+label+'.femur'),lower=map.get('leg.'+label+'.tibia'),boot=map.get('leg.'+label+'.boot'),step=walk?foot(t+(label==='R'?.5:0)):{x:0,lift:fall*3};
   const hip={x:0,y:46+b},ankle={x:step.x,y:70-step.lift},L=solveTwoBone(hip,ankle,12,13,1);

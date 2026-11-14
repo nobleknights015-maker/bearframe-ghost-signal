@@ -1,8 +1,9 @@
+import {layerChecks} from './layer-checks.mjs';
 import {unitFamilyChecks} from './unit-family-checks.mjs';
 import {cleanupChecks} from './cleanup-checks.mjs';
 import { chassisChecks } from './chassis-checks.mjs';
 import { ringChecks } from './ring-checks.mjs';
-export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/',baselinePrefix='/__baseline__/',clothBaselinePrefix='/__cloth_before__/'}={}) {
+export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/',baselinePrefix='/__baseline__/',clothBaselinePrefix='/__cloth_before__/',layerBaselinePrefix='/__layer_before__/'}={}) {
   const current = await import(currentPrefix+'sprite-rig.js'); const old = await import(baselinePrefix+'sprite-rig.js');
   const machine = await import(currentPrefix+'machine-rig.js'); const oldMachine = await import(baselinePrefix+'machine-rig.js');
   const presets = await import(currentPrefix+'machine-presets.js');
@@ -73,7 +74,7 @@ export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/
   }
   const rings=beforeOnly?{cases:0,bodies:0,bounds:0,previews:[]}:await ringChecks(currentPrefix);previews.push(...rings.previews);
   const chassis=beforeOnly?{cases:0,bones:0,soles:0,outfits:0,previews:[]}:await chassisChecks(currentPrefix);previews.push(...chassis.previews);
-  const cleanup=await cleanupChecks(currentPrefix),units=await unitFamilyChecks(currentPrefix);
-  return {units,cleanup,classic,sleek,mirrors,unchangedPivots,wardrobe,capeMatches,ringCases:rings.cases,ringBodies:rings.bodies,ringBounds:rings.bounds,chassisCases:chassis.cases,chassisBones:chassis.bones,chassisSoles:chassis.soles,characterCases:chassis.outfits,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
+  const cleanup=await cleanupChecks(currentPrefix),units=await unitFamilyChecks(currentPrefix),layers=await layerChecks(currentPrefix,layerBaselinePrefix);
+  return {layers,units,cleanup,classic,sleek,mirrors,unchangedPivots,wardrobe,capeMatches,ringCases:rings.cases,ringBodies:rings.bodies,ringBounds:rings.bounds,chassisCases:chassis.cases,chassisBones:chassis.bones,chassisSoles:chassis.soles,characterCases:chassis.outfits,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
 
 }

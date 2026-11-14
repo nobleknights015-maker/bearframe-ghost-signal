@@ -44,7 +44,7 @@ export function chassisTools({c,cfg,K,X,Y,P}){
  };
  return {poly,r,disc,bone};
 }
-export function drawChassis(args,{shouldersOnly=false}={}){
+export function drawChassis(args,{shouldersOnly=false,profileArmOnly=false}={}){
  const {cfg,dir,pose,P}=args,shape=PROFILES[cfg.chassis];if(!shape)return;
  const {poly,r,disc,bone}=chassisTools(args),b=pose.b||0,a=pose.a||0,side=dir==='right'||dir==='left',back=dir==='up';
  const limb=shape.limb+(cfg.build||0)*.35;
@@ -75,6 +75,7 @@ export function drawChassis(args,{shouldersOnly=false}={}){
   const w=Math.min(6.5,shape.shoulder+(cfg.armor==='heavy'?1:0));
   for(const sign of [-1,1]){const x=16+sign*6;poly([[x,16+b],[x+sign*w,17+b],[x+sign*(w+.4),20+b],[x+sign*(w-1),22+b],[x,21+b]],P.W,true);}
  };
+ if(profileArmOnly){if(side)arm(true);return;}
  if(shouldersOnly){shoulders();return;}
  const legs=chassisLegs(cfg,dir,pose);leg(legs[0]);if(side)arm(false,true);leg(legs[1]);
  if(side){
