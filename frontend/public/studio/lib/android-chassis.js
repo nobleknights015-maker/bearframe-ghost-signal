@@ -29,7 +29,8 @@ export function chassisTools({c,cfg,K,X,Y,P}){
   for(let py=Y(minY);py<Y(maxY);py++)for(let px=X(minX);px<X(maxX);px++){
    const x=minX+(px-X(minX)+.5)/K,y=minY+(py-Y(minY)+.5)/K;if(!inside(x,y,pts))continue;
    let color=col;
-   if(edge){const lit=!inside(x-e,y,pts)||!inside(x,y-e,pts),dark=!inside(x+e,y,pts)||!inside(x,y+e,pts);color=lit?(far?P.W:P.Wh):dark?(far?P.D:P.S):col;
+   if(edge){const lit=!inside(x-e,y,pts)||!inside(x,y-e,pts),dark=!inside(x+e,y,pts)||!inside(x,y+e,pts);// Keep thin corner tips at the plate color instead of alternating bright/dark sparks.
+    color=cfg.style==='sleek'&&cfg.pixelFinish==='clean'&&lit&&dark?col:lit?(far?P.W:P.Wh):dark?(far?P.D:P.S):col;
     // Damage stays inside its own plate, in local coordinates, not on the torso/other leg.
     const ix=Math.floor(x-minX),iy=Math.floor(y-minY),n=(ix*17+iy*31+pts.length*7)%67,damage=cfg.damage||0;
     if(damage&&n<damage)color=P.D;

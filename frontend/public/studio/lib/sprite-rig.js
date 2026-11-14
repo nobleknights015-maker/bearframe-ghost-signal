@@ -12,6 +12,7 @@ import { appearance } from './android-details.js';
 export const DIRS = ['down', 'up', 'right', 'left'];
 export const DEFAULT_CFG = {
   chassis:'standard', outfit:'none', expression:'v', headgear:'none',
+  pixelFinish:'clean', moduleProfile:'narrow',
   ring:'none', ringSize:'standard', ringSegments:10, ringWidth:2, ringGlow:2, ringDamage:0, ringMotion:'pulse', ringTags:false,
   facePanel: 'smooth', scarf: 'none', hood: 'none', drapery: 'none', clothWear: 0, overgrowth: 0, damageType: 'worn',
   style: 'sleek', // Omitted on older projects: retain their pixel-exact classic rendering.
@@ -36,8 +37,8 @@ export function shade(hex, f) {
   const ch = s => Math.round(((n >> s) & 255) * (1 - a) + t * a).toString(16).padStart(2, '0');
   return '#' + ch(16) + ch(8) + ch(0);
 }
-function palette(c) {
-  return { W: c.armor, Wh: shade(c.armor, .5), S: shade(c.armor, -.25), D: shade(c.armor, -.5), G: c.trim, Gd: shade(c.trim, -.4), K: c.under, R: c.glow, Rb: shade(c.glow, .5), Rd: shade(c.glow, -.5),
+function palette(c, clean = false) {
+  return { W: c.armor, Wh: shade(c.armor, clean ? .28 : .5), S: shade(c.armor, clean ? -.20 : -.25), D: shade(c.armor, clean ? -.42 : -.5), G: c.trim, Gd: shade(c.trim, -.4), K: c.under, R: c.glow, Rb: shade(c.glow, .5), Rd: shade(c.glow, -.5),
     C: c.cloak, Ch: shade(c.cloak, .22), Cd: shade(c.cloak, -.35), Cx: shade(c.cloak, -.6), B: c.leather, Bd: shade(c.leather, -.4) };
 }
 
@@ -62,7 +63,7 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
   const pad=cfg.ringPadding||{x:0,top:0};
   const K = cfg.ringScales?.[fw+'x'+fh] ?? Math.min(fw / (32+2*(pad.x||0)), fh / (56+(pad.top||0)));
   const ox = Math.round((fw - 32 * K) / 2) + Math.round((pose.lean || 0) * K), oy = Math.round(fh - 56 * K);
-  const P = palette(cfg.colors), hi = K >= 1.5, sleek = cfg.style === 'sleek';
+  const P = palette(cfg.colors, cfg.style === 'sleek' && cfg.pixelFinish === 'clean'), hi = K >= 1.5, sleek = cfg.style === 'sleek';
   const X = x => ox + Math.round(x * K), Y = y => oy + Math.round(y * K);
   const r = (x, y, w, h, col) => { const x0 = X(x), y0 = Y(y), W = Math.max(1, X(x + w) - x0), H = Math.max(1, Y(y + h) - y0); if (w > 0 && h > 0) { c.fillStyle = col; c.fillRect(x0, y0, W, H); } };
   const module = (x, y, w, h, glow) => {
@@ -135,7 +136,7 @@ export function drawAndroid(ctx, cfg, dir, pose, fw, fh, opts = {}) {
   };
   const helmet = (front) => {
     if (cfg.fins) { r(9, b, 1, 4, P.S); r(9, 3 + b, 2, 5, P.W); r(22, b, 1, 4, P.S); r(21, 3 + b, 2, 5, P.W); }
-    if (cfg.modules) [8, 21].forEach((mx, i) => { if (sleek) return module(mx, 7 + b, 3, 6, glow); r(mx, 7 + b, 3, 6, P.G); r(mx, 7 + b, 3, 1, P.Gd); r(mx + (i ? 1 : 0), 9 + b, 2, 3, glow); r(mx + 1, 10 + b, 1, 1, P.Rd); });
+    if (cfg.modules) [8, 21].forEach((mx, i) => { if (sleek) { const narrow=cfg.moduleProfile==='narrow';return module(mx+(narrow&&!i?1:0),7+b,narrow?2:3,6,glow); } r(mx, 7 + b, 3, 6, P.G); r(mx, 7 + b, 3, 1, P.Gd); r(mx + (i ? 1 : 0), 9 + b, 2, 3, glow); r(mx + 1, 10 + b, 1, 1, P.Rd); });
     if (cfg.antenna) { r(20, b - 2, 1, 6, P.G); r(20, b - 3, 1, 1, glow); }
     pl(11, 3 + b, 10, 12); r(11, 14 + b, 10, 1, P.D); c.clearRect(X(11), Y(3 + b), 1, 1); c.clearRect(X(21) - 1, Y(3 + b), 1, 1);
     if (!front) { r(15, 4 + b, 2, 8, P.G); r(12, 12 + b, 8, 1, P.S); return; }

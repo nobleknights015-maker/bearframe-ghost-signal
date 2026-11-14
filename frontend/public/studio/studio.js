@@ -75,6 +75,8 @@ function buildCfg() {
       field('Helmet fitting',sel(HEADGEAR,c.headgear||'none',v=>up('headgear',v),'cfg-headgear')),
       field('Visor expression',sel(['v','calm','friendly','focused'],c.expression||'v',v=>up('expression',v),'cfg-expression')),
       field('Character reference',sel(['—',...Object.keys(CHARACTER_PRESETS)],'—',name=>{const def=CHARACTER_PRESETS[name];if(!def)return;const {ringPadding,ringScales}=P.cfg;P.cfg={...JSON.parse(JSON.stringify(DEFAULT_CFG)),...JSON.parse(JSON.stringify(def))};if(ringPadding)P.cfg.ringPadding=ringPadding;if(ringScales)P.cfg.ringScales=ringScales;P.name=name;fitRingCanvas(P,SS.resizeSet);refresh();regenSoon();},'character-preset')));
+    box.append(field('Pixel finish',sel(['legacy','clean'],c.pixelFinish||'legacy',v=>up('pixelFinish',v),'cfg-pixelFinish')),
+      field('Front/back side modules',sel(['wide','narrow'],c.moduleProfile||'wide',v=>up('moduleProfile',v),'cfg-moduleProfile')));
     box.append(field('Face panel', sel(['smooth', 'split'], c.facePanel || (c.style === 'sleek' ? 'smooth' : 'split'), v => up('facePanel', v), 'cfg-facePanel')));
     for (const k of ['scarf', 'hood', 'drapery', 'damageType']) box.append(field(k === 'damageType' ? 'Damage pattern' : k, sel(WARDROBE[k], c[k] || (k === 'damageType' ? 'worn' : 'none'), v => up(k, v), 'cfg-' + k)));
     for (const k of ['clothWear', 'overgrowth']) box.append(field(k === 'clothWear' ? 'Frayed cloth' : 'Overgrowth', range(0, 3, 1, c[k] || 0, v => up(k, v), 'cfg-' + k)));

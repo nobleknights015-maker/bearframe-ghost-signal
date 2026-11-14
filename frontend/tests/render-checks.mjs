@@ -1,3 +1,4 @@
+import {cleanupChecks} from './cleanup-checks.mjs';
 import { chassisChecks } from './chassis-checks.mjs';
 import { ringChecks } from './ring-checks.mjs';
 export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/',baselinePrefix='/__baseline__/',clothBaselinePrefix='/__cloth_before__/'}={}) {
@@ -60,7 +61,7 @@ export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/
   if(!beforeOnly){
    const beforeCloth=await import(clothBaselinePrefix+'sprite-rig.js');
    for(const [w,h] of [[32,56],[64,112]])for(const dir of current.DIRS)for(let i=0;i<6;i++){
-    const a=canvas(w,h),b=canvas(w,h),cfg={...current.DEFAULT_CFG,scarf:'none',hood:'none',drapery:'none'},pose=current.poseFor('walk',i,6);
+    const a=canvas(w,h),b=canvas(w,h),cfg={...current.DEFAULT_CFG,pixelFinish:'legacy',moduleProfile:'wide',scarf:'none',hood:'none',drapery:'none'},pose=current.poseFor('walk',i,6);
     beforeCloth.drawAndroid(a.getContext('2d'),cfg,dir,pose,w,h);current.drawAndroid(b.getContext('2d'),cfg,dir,pose,w,h);
     if(!equal(pixels(a),pixels(b)))throw Error('existing cape/body changed');capeMatches++;
    }
@@ -71,6 +72,7 @@ export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/
   }
   const rings=beforeOnly?{cases:0,bodies:0,bounds:0,previews:[]}:await ringChecks(currentPrefix);previews.push(...rings.previews);
   const chassis=beforeOnly?{cases:0,bones:0,soles:0,outfits:0,previews:[]}:await chassisChecks(currentPrefix);previews.push(...chassis.previews);
-  return {classic,sleek,mirrors,unchangedPivots,wardrobe,capeMatches,ringCases:rings.cases,ringBodies:rings.bodies,ringBounds:rings.bounds,chassisCases:chassis.cases,chassisBones:chassis.bones,chassisSoles:chassis.soles,characterCases:chassis.outfits,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
+  const cleanup=await cleanupChecks(currentPrefix);
+  return {cleanup,classic,sleek,mirrors,unchangedPivots,wardrobe,capeMatches,ringCases:rings.cases,ringBodies:rings.bodies,ringBounds:rings.bounds,chassisCases:chassis.cases,chassisBones:chassis.bones,chassisSoles:chassis.soles,characterCases:chassis.outfits,previews,defaultStyle:current.DEFAULT_CFG.style||'classic'};
 
 }
