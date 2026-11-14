@@ -85,9 +85,47 @@ input.bindPad($('dpad'));
 input.bindButton($('t-act'), 'interact'); input.bindButton($('t-light'), 'light'); input.bindButton($('t-scan'), 'scan');
 document.addEventListener('visibilitychange', () => { if (document.hidden && game.mode === 'play') game.onPause(); });
 
+// Controller focus follows the existing Ghost Signal overlay buttons and styling.
+let lastPadMenuDir = null;
+function navigateControllerOverlay(pad) {
+  const roots = ['settings', 'casefile', 'pause', 'terminal', 'ending', 'title', 'dialog'];
+  const root = roots.map($).find(node => node && !node.classList.contains('hidden'));
+  if (!root) { lastPadMenuDir = null; return; }
+  const buttons = [...root.querySelectorAll('button')].filter(b => !b.disabled && b.getClientRects().length);
+  if (!buttons.length) { lastPadMenuDir = pad.dir; return; }
+  const activeIndex = buttons.indexOf(document.activeElement);
+  if (pad.dir && pad.dir !== lastPadMenuDir) {
+    const delta = ['up', 'left'].includes(pad.dir) ? -1 : 1;
+    const next = activeIndex < 0 ? (delta < 0 ? buttons.length - 1 : 0) : (activeIndex + delta + buttons.length) % buttons.length;
+    buttons[next].focus();
+  }
+  lastPadMenuDir = pad.dir;
+  if (pad.actions.includes('interact')) {
+    const active = buttons.includes(document.activeElement) ? document.activeElement : buttons[0];
+    if (game.mode === 'choice' && root.id === 'dialog') {
+      const choice = [...root.querySelectorAll('.choice-btn')].indexOf(active);
+      if (choice >= 0) ui.pick(choice);
+    } else active.click();
+  }
+  if (pad.actions.includes('back')) {
+    if (root.id === 'settings') $('settings-close').click();
+    else if (root.id === 'casefile') ui.closeCase();
+    else if (root.id === 'terminal') ui.closeTerminal();
+    else if (root.id === 'pause') game.onResume();
+  }
+}
+
 let last = performance.now(), slow = 0, frames = 0;
 function loop(now) {
   const raw = now - last, dt = Math.min(.05, raw / 1000); last = now;
+  try {
+    if (navigator.getGamepads) {
+      const modal = ['title','pause','settings','ending','case','terminal','choice'].includes(game.mode);
+      const pad = input.pollGamepads(navigator.getGamepads(), !modal);
+      if (modal) navigateControllerOverlay(pad);
+      else lastPadMenuDir = null;
+    }
+  } catch (_) { /* Gamepad API may be unavailable in restricted browsers. */ }
   if (game.mode === 'play' && !game.lowFx) { frames++; if (raw > 26) slow++; if (frames >= 180) { if (slow > 90) game.lowFx = true; frames = slow = 0; } }
   game.update(dt); if (game.mode === 'title') titleSprite(now); else game.render();
   $('t-light').classList.toggle('on', !!(game.player && game.player.light));
