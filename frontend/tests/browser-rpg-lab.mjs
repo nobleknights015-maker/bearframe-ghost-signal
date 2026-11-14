@@ -99,6 +99,26 @@ try{
   assert.equal(outcome.field.player.x,battleState.field.player.x,'Battle must restore exact field X');
   assert.equal(outcome.field.player.y,battleState.field.player.y,'Battle must restore exact field Y');
 
+  // Out-of-battle healing is a real player decision with transaction-safe persistence.
+  const wounded=outcome.session.exploration.party.find(p=>p.hp>0&&p.hp<p.maxHp);
+  assert.ok(wounded,'Sentry test should leave at least one party member wounded');
+  const supplyBefore=outcome.session.exploration.inventory['repair-kit'];
+  await page.locator('#lab-rpg-menu').click();
+  await page.getByRole('button',{name:'ITEMS',exact:true}).click();
+  await page.getByRole('button',{name:'USE REPAIR KIT'}).click();
+  await page.getByRole('button',{name:'BACK',exact:true}).click();
+  let itemState=await labState();
+  assert.equal(itemState.session.exploration.inventory['repair-kit'],supplyBefore,
+    'Cancelling recipient selection must not consume a kit');
+  await page.getByRole('button',{name:'USE REPAIR KIT'}).click();
+  await page.locator('#rpg-lab-menu button').filter({hasText:wounded.name+' · HP'}).click();
+  itemState=await labState();
+  assert.equal(itemState.session.exploration.inventory['repair-kit'],supplyBefore-1);
+  const recipient=itemState.session.exploration.party.find(p=>p.id===wounded.id);
+  assert.equal(recipient.hp,Math.min(wounded.maxHp,wounded.hp+20),
+    'Field item must heal only the chosen wounded recipient');
+  assert.equal(itemState.save.hasSave,true);
+
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.__rpgLab && window.__gs?.m?.id==='rpg-lab');
   const recovered=await labState();
@@ -106,6 +126,10 @@ try{
   assert.equal(recovered.session.exploration.progression.xp,12,'Reload must not duplicate XP');
   assert.equal(recovered.session.exploration.inventory['ancient-scrap'],1,'Reload must not duplicate scrap');
   assert.equal(recovered.session.exploration.quests.sentry,'neutralized');
+  assert.equal(recovered.session.exploration.party.find(p=>p.id===wounded.id).hp,
+    Math.min(wounded.maxHp,wounded.hp+20),'Field-healed HP must persist after restart');
+  assert.equal(recovered.session.exploration.inventory['repair-kit'],supplyBefore-1,
+    'Repair kit must be spent exactly once after restart');
 
   // Separately exercise the AUTHORED non-combat relay handler in the real browser runtime.
   // This checks game/UI/save integration, not full traversal to the relay's tile.
