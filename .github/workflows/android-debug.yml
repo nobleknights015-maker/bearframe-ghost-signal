@@ -10,7 +10,7 @@ on:
 jobs:
   assemble:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 55
     permissions:
       contents: read
       issues: write
@@ -44,6 +44,40 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Emulator install and launch smoke (not physical acceptance)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: |
+            set -euo pipefail
+            APK="$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
+            test -n "$APK"
+            PACKAGE="$(aapt dump badging "$APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n 1)"
+            test -n "$PACKAGE"
+            adb install -r "$APK"
+            adb shell am force-stop "$PACKAGE" || true
+            adb shell monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1
+            sleep 15
+            adb shell pidof "$PACKAGE" > /tmp/ghost-signal-emulator-pid
+            test -s /tmp/ghost-signal-emulator-pid
+            adb shell dumpsys activity activities > /tmp/ghost-signal-activities.txt
+            grep -F "$PACKAGE" /tmp/ghost-signal-activities.txt
+            adb shell screencap -p /sdcard/ghost-signal-launch.png
+            adb pull /sdcard/ghost-signal-launch.png ghost-signal-emulator-launch.png
+            echo "Emulator installed and process launched: $PACKAGE"
+      - name: Upload emulator launch screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-emulator-launch
+          path: ghost-signal-emulator-launch.png
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Record Android build result in engine evidence issue
         if: always()
         env:
@@ -53,4 +87,4 @@ jobs:
           BUILD_SHA: ${{ github.sha }}
           BUILD_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue comment 2 --body "Ghost Signal Android debug APK CI: **${BUILD_RESULT}** · source \`${BUILD_SHA}\` · [Build run / artifacts](${BUILD_RUN_URL}). This is compile/package evidence only, NOT device install, Moto G performance or physical-controller acceptance."
+          gh issue comment 2 --body "Ghost Signal Android debug APK CI: **${BUILD_RESULT}** · source \`${BUILD_SHA}\` · [Build run / artifacts](${BUILD_RUN_URL}). This includes an Android emulator install/launch smoke when the job succeeds, NOT physical Moto G, real controller, lifecycle or production-signing acceptance."
