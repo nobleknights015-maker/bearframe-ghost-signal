@@ -38,7 +38,7 @@ body { display: flex; align-items: center; justify-content: center; }
 
 /* Touch */
 #touch { position: absolute; inset: 0; pointer-events: none; }
-#dpad { pointer-events: auto; position: absolute; left: calc(var(--u) * 8); bottom: calc(var(--u) * 8); width: calc(var(--u) * 88); height: calc(var(--u) * 88); touch-action: none; }
+#dpad { pointer-events: auto; position: absolute; left: calc(var(--u) * 8); bottom: calc(var(--u) * 8); width: calc(var(--u) * 84); height: calc(var(--u) * 84); touch-action: none; }
 #dpad .d { position: absolute; background: rgba(21,24,28,.6); border: calc(var(--u) * 1) solid rgba(220,214,216,.6); }
 #dpad .up { left: 33.3%; top: 0; width: 33.4%; height: 33.3%; }
 #dpad .down { left: 33.3%; bottom: 0; width: 33.4%; height: 33.3%; }
@@ -55,7 +55,7 @@ body { display: flex; align-items: center; justify-content: center; }
 #t-scan { right: calc(var(--u) * 16); bottom: calc(var(--u) * 62); }
 
 /* Dialog */
-#dialog { position: absolute; left: calc(var(--u) * 106); right: calc(var(--u) * 106); bottom: calc(var(--u) * 8); min-height: calc(var(--u) * 58);
+#dialog { position: absolute; left: calc(var(--u) * 112); right: calc(var(--u) * 112); bottom: calc(var(--u) * 8); min-height: calc(var(--u) * 58);
   padding: calc(var(--u) * 6) calc(var(--u) * 8); background: rgba(8,9,11,.94); border: calc(var(--u) * 1) solid var(--silver);
   box-shadow: inset 0 0 0 calc(var(--u) * 1) #000, inset 0 0 0 calc(var(--u) * 2) var(--line); cursor: pointer; }
 #dialog-speaker { font-family: 'Silkscreen', monospace; font-size: calc(var(--u) * 6.5); letter-spacing: calc(var(--u) * .5); color: var(--red); margin-bottom: calc(var(--u) * 3); }

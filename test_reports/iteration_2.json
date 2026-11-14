@@ -1,0 +1,58 @@
+{
+  "summary": "BEARFRAME: GHOST SIGNAL frontend regression + new-features test for Mission 02, case file, stealth, hiding, hazards, and touch. All 13 review-request feature flows pass end-to-end. No blocking defects; a couple of minor cosmetic observations noted.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Mobile 844x390 dialog + D-pad", "issues": ["Dialog panel overlaps the left edge of the on-screen D-pad visually, but the pad itself still works and the dialog/choice buttons remain fully tappable. Could be tightened by reducing dialog width or raising it slightly above the controls."]},
+      {"screen": "Desktop 1920x1080 with Settings TOUCH=ON", "issues": ["Touch controls (D-pad + SCAN/LIGHT/USE) are displayed on desktop whenever the user turned the TOUCH setting ON. This matches the implementation (settings.touch === 'on' forces touch UI), but on a large screen the D-pad visually clips with the dialog box. In AUTO mode this never happens; only an issue if a desktop user manually turned touch on."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "game.js is 423 lines (up from 282). Still readable but close to the 700-line threshold; render() alone is ~75 lines of canvas ops and could be split.",
+    "mission2.js wrong-sensor penalty teleports player to (28*T, 22*T+22). That is exactly the gallery entrance per the spec. Verified via m.update() direct call.",
+    "doScan() iterates ents and sets e.offT on lenses; no issue found, but initialising lens.offT=0 in entities() would avoid the 'undefined vs number' comparison in render() (currently works because of `e.offT > this.time` short-circuits with undefined).",
+    "ui.caseTab auto-opens the LAST item (i===items.length-1 → open()). A nice detail, but combined with empty-list placeholder text it is correct in both branches — verified.",
+    "ui.pick is called from pointerdown AND Digit1/2 keyboard path; both exercised, no duplicate-pick guard needed because choiceCb is cleared immediately.",
+    "lens entity is drawn only when `e.ang !== undefined` is set — it is set lazily inside updateWorld. First frame before any update sets it, the sweep wedge is not drawn. Minor cosmetic only; verified not to produce errors.",
+    "game.restore() clamps restored energy to min 50 inside applySnap(s, 50). Still uses setTimeout(600ms); mode is 'restoring' during that window so input is correctly ignored.",
+    "mission2 drones share the same zone [13,12,31,19]; BFS target clamping to zone is correct and prevents them from leaving the spine."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (static site, no backend)", "frontend": "100% (13/13 feature flows PASS)"},
+  "test_credentials": "none (no auth)",
+  "seed_data_creation": "none — all state driven through window.__gs debug hook and localStorage reset between flows",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Game is a static site served at http://localhost:3000. Debug hook: window.__gs (Game). mode in ['title','play','dialog','choice','terminal','case','pause','ending','restoring']. Key testids used: title-screen, continue-button, new-game-button, mission2-button, case-file, case-button, case-close, case-tab-evidence, case-tab-logs, case-item-<id>, case-list, case-detail, pause-menu, pause-case-button, resume-button, hud-stealth, choice-1, choice-2, touch-controls, touch-interact, touch-scan, touch-light, touch-dpad, next-mission-button, ending-title-button. LocalStorage keys: bearframe_ghost_signal_save_v1, _progress_v1, _settings_v1. To jump straight to M2: set progress unlocked.m2=true. Advance dialogs by pressing KeyE; avoid f-strings containing escaped quotes in python playwright scripts (syntax error). When testing drone 'hide refused while chasing': place drone 1 tile from player, set d.state='chase'; d.vis=true; d.blind=0; d.last={x:p.x,y:p.y}; then press E immediately — don't wait long, or sees() will recompute vis=false. Direct game.doScan() avoids keyboard-timing races. Fast-forwarding an echo: for(let i=0;i<400;i++) g.updateWorld(0.1) completes any projector path within one JS call.",
+  "verified_flows": [
+    "Title shows CONTINUE disabled without save; M2 button hidden until progress.unlocked.m2",
+    "Mission 01 ending screen correctly shows PROCEED TO MISSION 02 (not hidden) and RETURN TO TITLE; CONTINUE is disabled after ending clears the save",
+    "Mission 01 evidence: scan near (5,14) reveals + examines dust prints (e1_prints); scan near (20,20) hall reveals drag marks → examining logs e1_drag AND reveals the hidden power cell at (17,21)",
+    "Mission 01 damaged cradle at (33,4): examine BEFORE scan is refused (toast 'NOTHING VISIBLE UNAIDED - USE THE SCANNER'); scan then examine logs e1_cradle",
+    "Mission 01 projector at (22,4): stand below, E 'REPLAY ARCHIVED TRACE' plays echo (window.__gs.echo non-null, moves along path); on completion adds e1_echo and reveals carrier clue at (26,5)",
+    "Case file: C key opens overlay (mode='case'), tabs case-tab-evidence / case-tab-logs toggle counts, case-item-<id> selectable, detail text renders; CLOSE button and C key both return to prior mode (play or pause)",
+    "CF HUD button opens case file from play mode",
+    "Pause menu CASE FILE & LOG ARCHIVE button opens case; C closes back to pause (not play)",
+    "Terminal logs read via termA add to Log Archive; LOG ARCHIVE tab count updates",
+    "Old-save v1 compat: crafted v1 save (no 'case' field, flags.logA=true) loads via CONTINUE without errors; migrate() injects log A into LOG ARCHIVE (logIds=['logA'])",
+    "Stealth: drone.alert rises → state 'chase', HUD stealth DETECTED, toast; after losing LoS >2.5s state becomes 'investigate' with searchN>0, then returns to 'patrol'",
+    "Scan within 120px disables drone (state='disabled', t≈5s)",
+    "Hiding: E at locker (M1 lockA/lockB) sets player.hidden, HUD HIDDEN, prompt LEAVE ALCOVE; direction key or E leaves and restores hx/hy; hiding refused with toast while a chasing drone has visual (verified by placing drone adjacent with d.vis=true)",
+    "Mission 02 start from title mission2-button: intro dialog (Sentinel + Director Mira), mission id=m2",
+    "Mission 02 valves (17/19/21,3) refuse to turn until manifold evidence (c_manifold at (23,6)) is scanned+examined; after e2_manifold logged, turning v1+v3 (not v2) sets flags.vent=true and clears steam barrier (m.blocked(steam)===false)",
+    "Mission 02 trace gallery: projector proj2 (24,22) replays echo; wrong sensor tile drains 8 energy and teleports player to (28*T, 22*T+22); spindle pickup at (30,27) sets inv.spindle",
+    "Mission 02 vault door (34,15-16): SEAT RECORD SPINDLE sets flags.vaultOpen=true; entering vault x>36*T triggers dialog (mode=dialog)",
+    "Mission 02 ending: SPEAK at NPC (41,15) runs contact dialog → flags.talked; second SPEAK opens choice (dialog-choices, choice-1 / choice-2 tappable and keyable); choice 1 sets flags.took=true, choice 2 sets took=false; ending screen shows CASE FILE SUPPORTED/INCONCLUSIVE and UNLABELLED RECORD line reflects choice; next-mission-button hidden",
+    "Hazards: steam jet at (21,17) drains 8 energy with cooldown (100→92 after one updateWorld tick in jet phase); grate at (15,17) causes patrolling drone to switch to 'investigate'; sentry lens at (24,12) scan sets e.offT=time+6, toast 'SENTRY LENS DISRUPTED - 6 SECONDS'",
+    "Checkpoint pad padL at (8,18) recharges (50→67 after 0.5s), onPad set, writes snapshot to store",
+    "Touch mode (viewport 844x390, settings touch:'on'): touch-controls visible; CF, pause button, resume, choice-1/2 are tappable; ending reached via touch-interact + choice-2; dialog visible and not blocked by controls",
+    "No runtime console errors observed during play, M2 with 2 drones + jets + lens; update loop maintains cadence (g.time advances normally when mode==='play')",
+    "Visual check 1920x1080: title, HUD, case file two-column panel, dialog box, ending stats all render cleanly; contrast OK",
+    "Visual check 844x390: HUD top-left + objective top-right + CF/II buttons do not overlap each other; touch controls flank the bottom; dialog and choice buttons remain visible and tappable"
+  ],
+  "rca of the issue": "n/a — no blocking issues found. Minor cosmetic clipping between the dialog box and the on-screen D-pad at the 844x390 tablet/landscape-mobile viewport is non-blocking; dialog/choice buttons remain tappable."
+}

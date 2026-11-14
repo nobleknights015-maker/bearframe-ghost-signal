@@ -159,9 +159,9 @@ export const mission2 = {
     const f = g.flags;
     if (!f.spine) return 'Document the landing, then enter the maintenance spine.';
     if (!f.vaultOpen) {
-      const a = f.vent ? '' : (g.hasEv('e2_manifold') ? 'Pump room (north): open valves I and III, keep II shut. ' : 'Steam blocks the east corridor. SCAN and examine the manifold in the pump room (north). ');
-      const b = g.inv.spindle ? (f.vent ? 'Seat the record spindle in the vault door (east).' : '') : 'Trace gallery (south): replay the archived trace and follow its path to the spindle.';
-      return a + b;
+      if (!f.vent) return g.hasEv('e2_manifold') ? 'Pump room (north): open valves I and III, keep II shut.' : 'Steam blocks the east corridor. SCAN the manifold in the pump room (north).';
+      if (!g.inv.spindle) return 'Trace gallery (south): follow the archived trace to the record spindle.';
+      return 'Seat the record spindle in the vault door (east).';
     }
     if (!f.talked) return 'Someone is in the vault. Make contact.';
     return f.offered ? 'Give your answer.' : 'Examine the vault if you wish. Speak with the individual again when ready to withdraw.';
