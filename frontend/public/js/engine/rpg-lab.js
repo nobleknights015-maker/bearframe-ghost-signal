@@ -161,9 +161,10 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     battle.panel.appendChild(el('h2','', 'SECURITY ENCOUNTER // ROUND '+b.round));
     const report=el('pre','');
     report.style.cssText='white-space:pre-wrap;font-size:calc(var(--u) * 10);line-height:1.15';
+    const targetForecast=[...b.party].filter(p=>p.hp>0).sort((a,c)=>a.hp/a.maxHp-c.hp/c.maxHp)[0];
     report.textContent=b.party.map(p=>p.name+'  HP '+p.hp+'/'+p.maxHp+'  EP '+p.ep).join('\n')+
       '\n'+b.enemies.map(e=>e.name+'  HP '+e.hp+'/'+e.maxHp).join('\n')+
-      '\nSENTRY INTENT: TARGETED STRIKE\n'+(b.log.at(-1)||'Observe, defend or disrupt.');
+      '\nSENTRY INTENT: STRIKE '+(targetForecast?.name||'UNKNOWN')+'\n'+(b.log.at(-1)||'Observe, defend or disrupt.');
     battle.panel.appendChild(report);
     if(!unit)return;
     battle.panel.appendChild(el('div','fine',unit.name.toUpperCase()+' // SELECT COMMAND'));
@@ -173,9 +174,9 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
       .sort((a,c)=>a.hp/a.maxHp-c.hp/c.maxHp)[0];
     const options=[
       ['ATTACK',{type:'attack',target:'enemy:'+foe.id},true],
-      ['PULSE (5 EP)',{type:'pulse',target:'enemy:'+foe.id},unit.ep>=5],
+      ['PULSE (5 EP)',{type:'pulse',target:'enemy:'+foe.id},unit.ep>=5&&unit.id==='sleeper'],
       ['GUARD',{type:'guard'},true],
-      ['REPAIR (5 EP)',{type:'repair',target:'party:'+ally.id},unit.ep>=5],
+      ['REPAIR (5 EP)',{type:'repair',target:'party:'+ally.id},unit.ep>=5&&unit.id==='echo'],
       ['KIT',{type:'item',item:'repair-kit',target:'party:'+ally.id},!!b.inventory['repair-kit']],
       ['WITHDRAW',{type:'flee'},b.canFlee]
     ];
@@ -216,6 +217,9 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
       ui.show('touch',false);showBattle();
     }catch(err){ui.toast('ENCOUNTER FAILED: '+err.message,3);}
   }
+  // In this explicitly opted-in test only, the original pause SAVE action must write the RPG journal.
+  $('btn-save').onclick=()=>{$('pause-note').textContent=save()?'RPG test record saved to this device.':'RPG record could not be saved.';};
+  $('btn-quit').onclick=()=>{if(save())location.assign(location.pathname);else $('pause-note').textContent='Save failed. Remain in sector until record is safe.';};
   const previousResume=game.onResume;
   game.onResume=()=>{
     if(game.mode==='pause')previousResume();
