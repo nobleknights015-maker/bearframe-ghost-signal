@@ -16,6 +16,7 @@
     <button id="btn-open" data-testid="open-project">Open project</button><input type="file" id="file-proj" accept=".json" hidden data-testid="file-project" />
     <button id="btn-save" data-testid="save-project">Save project</button>
     <span class="sep"></span>
+    <button id="btn-r2s" class="go" data-testid="open-ref2sprite">Reference → Sprite</button>
     <button id="btn-import" data-testid="import-sheet">Import PNG sheet</button><input type="file" id="file-sheet" accept="image/*" hidden data-testid="file-sheet" />
     <label class="mini">frame <input id="imp-w" type="number" value="32" min="1" data-testid="import-fw" />×<input id="imp-h" type="number" value="56" min="1" data-testid="import-fh" /></label>
     <span class="sep"></span>
@@ -79,6 +80,34 @@
       <p class="hint">Reference images guide the design: trace over them, or click to sample colours. Sprites are drawn or generated as real pixels, never by scaling the reference.</p>
     </aside>
   </main>
+  <div id="r2s" hidden data-testid="ref2sprite-dialog">
+    <div class="r2s-head"><b>REFERENCE → SPRITE</b><span class="hint">1 Load artwork · 2 Drag a box around one view of the subject · 3 Assign it (repeat for every view you have) · 4 Generate</span><button id="r2s-close" data-testid="r2s-close">Close</button></div>
+    <div class="r2s-body">
+      <div class="r2s-left">
+        <div class="row"><button id="r2s-load" data-testid="r2s-load">Load reference image</button><input type="file" id="r2s-file" accept="image/*" hidden data-testid="r2s-file" />
+          <span>Use box as:</span><button data-r2s-assign="down" data-testid="r2s-assign-down">Front</button><button data-r2s-assign="up" data-testid="r2s-assign-up">Back</button><button data-r2s-assign="right" data-testid="r2s-assign-right">Side facing right</button><button data-r2s-assign="left" data-testid="r2s-assign-left">Side facing left</button></div>
+        <div id="r2s-stage"><canvas id="r2s-src" data-testid="r2s-source-canvas"></canvas></div>
+        <div id="r2s-msg" data-testid="r2s-message">Load a character or machine reference image to begin.</div>
+      </div>
+      <div class="r2s-right">
+        <h3>Views</h3>
+        <div class="row"><button id="r2s-slot-down" data-testid="r2s-slot-down"></button><button id="r2s-slot-up" data-testid="r2s-slot-up"></button></div>
+        <div class="row"><button id="r2s-slot-right" data-testid="r2s-slot-right"></button><button id="r2s-slot-left" data-testid="r2s-slot-left"></button></div>
+        <h3>Cut-out of selected view <button id="r2s-clear" data-testid="r2s-clear-slot">Remove</button></h3>
+        <canvas id="r2s-cut" data-testid="r2s-cutout-canvas" title="Click: remove that colour region. Shift+click: restore it."></canvas>
+        <div class="row"><label class="mini">background tolerance <input id="r2s-tol" type="range" min="6" max="80" value="28" data-testid="r2s-tolerance" /></label><label class="mini">click tolerance <input id="r2s-wtol" type="range" min="6" max="90" value="30" data-testid="r2s-wand-tolerance" /></label></div>
+        <p class="hint">Click the cut-out to remove leftover background, Shift+click to restore a region. Flat or dark backgrounds separate automatically; painted scenery needs these corrections.</p>
+        <h3>Sprite</h3>
+        <div class="row"><label class="mini">name <input id="r2s-name" value="reference sprite" data-testid="r2s-name" /></label>
+          <label class="mini">type <select id="r2s-type" data-testid="r2s-type"><option value="auto">Auto-detect</option><option value="humanoid">Humanoid</option><option value="walker">Walker (hexapod, quadruped)</option><option value="floater">Drone / floating machine</option></select></label></div>
+        <div class="row"><label class="mini">subject height px <input id="r2s-h" type="number" min="8" max="508" value="72" data-testid="r2s-height" /></label><label class="mini">frame width px (0 = auto) <input id="r2s-w" type="number" min="0" max="512" value="0" data-testid="r2s-width" /></label><label class="mini">colours <input id="r2s-colors" type="number" min="4" max="48" value="20" data-testid="r2s-colors" /></label></div>
+        <label class="mini"><input type="checkbox" id="r2s-keep" checked data-testid="r2s-keep-edits" />Keep hand-edited frames when regenerating at the same size</label>
+        <button id="r2s-go" class="go" data-testid="r2s-generate">Generate sprite project</button>
+        <pre id="r2s-report" data-testid="r2s-report"></pre>
+        <div id="r2s-cmpwrap"><canvas id="r2s-compare" data-testid="r2s-compare-canvas"></canvas></div>
+      </div>
+    </div>
+  </div>
   <script type="module" src="studio.js"></script>
 </body>
 </html>

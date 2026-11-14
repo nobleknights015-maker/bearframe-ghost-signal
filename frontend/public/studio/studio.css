@@ -34,3 +34,11 @@ aside > button, #rigpanel > button { width: 100%; margin: 2px 0; text-align: lef
 #pwrap { background: #07080a; border: 1px solid var(--line); display: flex; justify-content: center; align-items: center; min-height: 150px; padding: 6px; overflow: hidden; }
 #dirprev { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; } #dirprev div { background: #07080a; border: 1px solid var(--line); padding: 2px; color: var(--dim); font-size: 10px; text-align: center; }
 #refcv { width: 100%; background: #07080a; border: 1px solid var(--line); margin-top: 6px; cursor: crosshair; }
+#r2s { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: flex; flex-direction: column; } #r2s[hidden] { display: none; }
+.r2s-head { display: flex; align-items: center; gap: 14px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--line); } .r2s-head b { color: var(--red); letter-spacing: 2px; } .r2s-head button { margin-left: auto; }
+.r2s-body { flex: 1; min-height: 0; display: flex; } .r2s-left { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 8px; } .r2s-left .row button { flex: none; }
+#r2s-stage { flex: 1; min-height: 0; display: flex; background: #07080a; border: 1px solid var(--line); overflow: hidden; } #r2s-src { margin: auto; cursor: crosshair; touch-action: none; }
+#r2s-msg { color: var(--cy); padding-top: 6px; min-height: 22px; }
+.r2s-right { width: 560px; flex: none; overflow-y: auto; padding: 4px 10px 12px; background: var(--panel); border-left: 1px solid var(--line); } .r2s-right input[type=number] { width: 58px; } #r2s-name { width: 150px; }
+#r2s-cut { display: block; max-width: 100%; max-height: 240px; cursor: crosshair; border: 1px solid var(--line); background: repeating-conic-gradient(#1b2026 0% 25%, #14181d 0% 50%) 50% / 16px 16px; }
+#r2s-go { width: 100%; margin: 8px 0; padding: 6px; } #r2s-report { white-space: pre-wrap; color: var(--ink); font-size: 11px; margin: 4px 0; } #r2s-cmpwrap { overflow-x: auto; } #r2s-compare { image-rendering: pixelated; }

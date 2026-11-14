@@ -1,0 +1,11 @@
+await page.set_viewport_size({"width": 1920, "height": 800})
+await page.wait_for_timeout(1200)
+try:
+    await page.click('[data-testid="open-ref2sprite"]', force=True)
+    r = await page.evaluate("""async () => { await __r2s.loadUrl(CFG.url); for (const [d, b] of CFG.views) __r2s.assign(d, b); document.getElementById('r2s-h').value = CFG.h; document.getElementById('r2s-type').value = CFG.type || 'auto'; document.getElementById('r2s-name').value = CFG.name; const o = await __r2s.generate(); return o ? o.report : document.getElementById('r2s-msg').textContent; }""".replace('CFG', CFGJSON))
+    print(r)
+    await page.wait_for_timeout(400)
+    await page.evaluate("document.querySelector('.r2s-left').style.display='none'; const r=document.querySelector('.r2s-right'); r.style.width='100%'; [...r.children].forEach(c => { if (c.id !== 'r2s-cmpwrap') c.style.display='none'; }); const c=document.getElementById('r2s-compare'); const k=Math.min(1900/c.width, 740/c.height); c.style.width=Math.round(c.width*k)+'px';")
+    await page.screenshot(path="/tmp/s1.png", quality=20, full_page=False)
+except Exception as e:
+    print("FAIL", e)

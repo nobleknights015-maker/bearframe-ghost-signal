@@ -19,7 +19,7 @@ const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[
 const tones = c => [mix(c, [255, 255, 255], .45), c, mix(c, [0, 0, 0], .28), mix(c, [0, 0, 0], .55)];
 const seeds = new Map();
 const seedOf = id => { let s = seeds.get(id); if (s === undefined) { s = 0; for (const ch of id) s = (s * 31 + ch.charCodeAt(0)) % 997; seeds.set(id, s); } return s; };
-export const SHAPES = ['plate', 'taper', 'disc', 'ring', 'cable', 'banner', 'glass'];
+export const SHAPES = ['plate', 'taper', 'disc', 'ring', 'cable', 'banner', 'glass', 'tex'];
 export const COLOR_ROLES = ['bone', 'dark', 'under', 'glow', 'accent', 'cloth', 'moss', 'rust', 'brass'];
 export const DEFAULT_COLORS = { bone: '#b9b2a4', dark: '#3a3f47', under: '#14161b', glow: '#3fd8e6', accent: '#d9772b', cloth: '#8a3b33', moss: '#5d7a2e', rust: '#8a4a26', brass: '#a58b4a' };
 
@@ -105,10 +105,20 @@ function shadeGlass(p, u, v, w, h, e, K, pal, L, st, sd) {
   return cp % 3 === 0 ? (lv > .7 ? G[0] : G[1]) : lv > .95 ? G[0] : lv > .45 ? G[1] : lv > .12 ? G[2] : G[3];
 }
 
+// Textured part: pixels cut from reference artwork (rig.tex[id] = { w, h, d }, one char per pixel indexing rig.texPal).
+const texCache = new WeakMap();
+function shadeTex(rig, p, u, v, L) {
+  const t = rig.tex && rig.tex[p.t]; if (!t) return null; const i = t.d.charCodeAt(Math.floor(v) * t.w + Math.floor(u)) - 48; if (!(i > 0)) return null;
+  let pc = texCache.get(rig); if (!pc) { pc = { pal: rig.texPal.map(hex), glow: new Set(rig.texGlow || []) }; texCache.set(rig, pc); }
+  let c = pc.pal[i - 1]; if (!c) return null;
+  if (pc.glow.has(i)) c = L > .8 ? mix(c, [255, 255, 255], .3) : L < .35 ? mix(c, [0, 0, 0], .3) : c;
+  return p.dk ? mix(c, [0, 0, 0], .38) : c;
+}
 // Renders one frame. Returns pivot markers [{id,x,y}] in frame pixels (for rig overlays / part picking).
 export function renderRig(ctx, rig, dir, type, i, n, fw, fh, opts = {}) {
   let view = rig.views[dir], flip = false;
   if (!view) { if (dir === 'left' && rig.views.right) { view = rig.views.right; flip = true; } else if (dir === 'right' && rig.views.left) { view = rig.views.left; flip = true; } else view = rig.views.right || rig.views.down || Object.values(rig.views)[0]; }
+  else if ((rig.flipViews || []).includes(dir)) flip = true;
   const K = Math.min(fw / rig.w, fh / rig.h), offX = Math.round((fw - rig.w * K) / 2), offY = Math.round(fh - rig.h * K), e = 1 / K;
   const pal = {}, palD = {}; for (const k in DEFAULT_COLORS) { const t = tones(hex((rig.colors || {})[k] || DEFAULT_COLORS[k])); pal[k] = t; palD[k] = [t[1], t[2], t[3], mix(t[3], [0, 0, 0], .3)]; }
   const wz = rig.weather || {}, byId = new Map(view.map(p => [p.id, p])), Ms = new Map();
@@ -132,6 +142,7 @@ export function renderRig(ctx, rig, dir, type, i, n, fw, fh, opts = {}) {
       if (p.s === 'cable') col = shadeCable(p, u, v, w, h, K, T, P2, M.st, sd);
       else if (p.s === 'banner') col = shadeBanner(p, u, v, w, h, e, K, T, P2, M.st, W, sd);
       else if (u < 0 || u >= w || v < 0 || v >= h) continue;
+      else if (p.s === 'tex') col = shadeTex(rig, p, u, v, L);
       else if (p.s === 'disc') col = shadeDisc(p, u, v, w, h, e, K, M, T, P2, L);
       else if (p.s === 'ring') col = shadeRing(p, u, v, w, h, e, K, T, P2, L, M.st, W, sd);
       else if (p.s === 'glass') col = shadeGlass(p, u, v, w, h, e, K, P2, L, M.st, sd);

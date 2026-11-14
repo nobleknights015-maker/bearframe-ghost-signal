@@ -3,6 +3,7 @@ import { DEFAULT_CFG, PRESETS, ANIM_TYPES, JOINTS, drawAndroid, poseFor } from '
 import { renderRig, SHAPES, COLOR_ROLES } from './lib/machine-rig.js';
 import { MACHINE_PRESETS } from './lib/machine-presets.js';
 import * as SS from './lib/sprite-sheet.js';
+import { initRefUI } from './ref-ui.js';
 
 const $ = id => document.getElementById(id), LS = 'bearframe_sprite_studio_autosave_v2';
 const EXAMPLES = ['wraith-wtr07', 'heavy-sentinel', 'hexapod-cartography-engine', 'archive-sentinel', 'micro-drone'];
@@ -58,6 +59,7 @@ function buildCfg() {
     box.append(colors(c.colors, Object.keys(c.colors)));
   } else if (P.kind === 'machine') {
     const r = P.rig; r.weather = r.weather || {};
+    if (r.ref) box.append(el('div', { className: 'hint', textContent: 'Reference-derived rig (' + r.ref.type + '): part pixels come from the reference artwork. Fix pixels in the editor, tune joints and motion below, or re-run Reference → Sprite.' }));
     box.append(field('Rig preset', sel(['—', ...Object.keys(MACHINE_PRESETS)], '—', v => { if (MACHINE_PRESETS[v] && confirm('Replace this project with the "' + v + '" rig?')) setProject(SS.machineProject(v.split(' (')[0], MACHINE_PRESETS[v]())); }, 'machine-preset')),
       el('div', { className: 'hint', textContent: `Design grid ${r.w}×${r.h}. ${Object.keys(r.views).join(' / ')} views.` }));
     ['rust', 'moss', 'wear'].forEach(k => box.append(field('Weathering: ' + k, range(0, 1, .05, r.weather[k] || 0, v => { r.weather[k] = v; regenSoon(); }, 'weather-' + k))));
@@ -205,6 +207,14 @@ $('btn-zip').onclick = async () => {
 EXAMPLES.forEach(n => $('examples').append(el('option', { value: n, textContent: n })));
 $('examples').onchange = async e => { const n = e.target.value; e.target.value = ''; if (!n) return; try { await setProject(await SS.deserialize(await (await fetch(`examples/${n}.bfsprite.json`)).text())); status('Example loaded: ' + n); } catch (err) { status('Example failed: ' + err.message); } };
 
+initRefUI({ SS, apply: async (rig, keep) => {
+  if (keep && P.kind === 'machine' && P.rig && P.rig.ref && P.active === 'exploration' && S.fw === rig.w && S.fh === rig.h) {
+    P.rig = JSON.parse(JSON.stringify(rig)); P.name = rig.name; P.tiles = rig.tiles;
+    for (const n in P.sets) if (P.sets[n] !== S && !P.sets[n].edited.size) P.sets[n].cells = new Map();
+    refresh(); await generate('unedited');
+  } else await setProject(SS.machineProject(rig.name, rig));
+  while (busy) await new Promise(r => setTimeout(r, 20)); return S;
+} });
 (async () => {
   let p = null; try { const t = localStorage.getItem(LS); if (t) p = await SS.deserialize(t); } catch (_) { p = null; }
   await setProject(p || SS.humanoidProject('Wraith WTR-07', DEFAULT_CFG)); requestAnimationFrame(tick);
