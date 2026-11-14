@@ -1,0 +1,11 @@
+# Ghost Signal Engine — Android host (development scaffold)
+
+This is a thin Android WebView host of the **existing** HTML5 Canvas engine. It does not replace Ghost Signal's JS runtime, presentation, missions or Sprite Studio. Gradle copies \`frontend/public/**\` into generated APK assets at build time, so code and assets have one source of truth.
+
+**Build prerequisites:** Android SDK platform 35; JDK 17; Gradle 8.10.2 or the equivalent Android Gradle Plugin 8.8.2-compatible Gradle runtime. From repository root run \`gradle -p android :app:assembleDebug\`. The debug APK should be at \`android/app/build/outputs/apk/debug/app-debug.apk\`. No signing key is checked in, and this is **not** a production signed build.
+
+**Persistence:** \`WebViewAssetLoader\` gives an app-controlled stable HTTPS-like origin, rather than a \`file://\` origin that can break JS imports/local storage. The untouched Ghost Signal keys remain under that origin. New RPG saves use the separate two-slot \`bearframe_ghost_signal_rpg_v1:A/B\` namespaced journal. They are not automatically migrated from browser saves. App upgrades preserve local WebView storage when signed consistently; uninstall/clear-data can erase it. Native persistence and SAF export/import are still a release-gate requirement, not implemented here.
+
+**Known blockers:** Android build and physical Moto G (2025) performance have not been executed in this environment. The original HTML requests Silkscreen/VT323 from Google Fonts; offline presentation will require licensed local font assets before claiming pixel-identical offline UI. Check viewport safe areas, system bars, touches, gamepads, audio, controller navigation and a >30-minute save soak on the target device. APK installation/update needs consistent signing; do not embed private signing material in git.
+
+**Interface lock:** Keep \`frontend/public/index.html\`, \`css/game.css\`, \`js/ui.js\` as the original visual source of truth; add RPG views in matching style, never replace the Ghost Signal UI.
