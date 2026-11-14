@@ -3,7 +3,7 @@ export async function unitFamilyChecks(prefix){
  const assert=(v,m)=>{if(!v)throw Error(m);},cv=(w,h)=>Object.assign(document.createElement('canvas'),{width:w,height:h});let reach=0,renders=0;
  for(const a of [0,.2,4,16.5,100])for(const bend of [-1,1]){const r=solveTwoBone({x:0,y:0},{x:a,y:a},8,8.5,bend);assert(Math.abs(Math.hypot(r.knee.x,r.knee.y)-8)<1e-8,'upper length');assert(Math.abs(Math.hypot(r.knee.x-r.ankle.x,r.knee.y-r.ankle.y)-8.5)<1e-8,'lower length');reach++;}
  const custom=SS.machineProject('Custom aspect',industrialEcho());custom.sets.exploration.fw+=1;let failed=false;try{fitMachineProject(custom);}catch{failed=true;}assert(failed&&custom.rig.w===56,'custom aspect silently rescaled');
- const rig=industrialEcho(),cycle=structuredClone(rig);cycle.views.down[0].p='spine';let rejected=false;try{validateRig(cycle);}catch{rejected=true;}assert(rejected,'cycle accepted');
+ const rig=industrialEcho(),cycle=structuredClone(rig);const arm=d=>rig.views[d].find(p=>p.id==='arm.R.upper');assert(arm('down').x<0&&arm('up').x>0&&arm('right').z>0&&arm('left').z<0,'physical right tool changed sides');cycle.views.down[0].p='spine';let rejected=false;try{validateRig(cycle);}catch{rejected=true;}assert(rejected,'cycle accepted');
  const missing=structuredClone(rig);missing.views.down[1].p='missing';rejected=false;try{validateRig(missing);}catch{rejected=true;}assert(rejected,'missing socket accepted');
  const p=SS.machineProject('Industrial Echo study',rig);fitMachineProject(p);let bounds=0;
  for(const d of ['down','up','right','left'])for(const type of Object.keys(rig.anims))for(let i=0;i<8;i++){

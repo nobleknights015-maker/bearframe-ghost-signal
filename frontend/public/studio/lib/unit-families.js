@@ -10,9 +10,9 @@ export function industrialEcho(options={}){
   else parts.push(P('head.vent','head','plate',0,-7,6,4,{ox:3,c:'dark',z:6}));
   if(spec.cloth)parts.push(P('mantle','spine','banner',side?-sign*6:-7,-18,side?6:9,25,{ox:4,c:'cloth',z:back?5:-3,amp:.7}));
   for(const [label,sg] of [['L',-1],['R',1]]){
-   const near=side?(dir==='right'?label==='L':label==='R'):true,z=side?(near?5:-5):2,dk=side&&!near?{dk:1}:{};
-   parts.push(P('leg.'+label+'.femur','pelvis','plate',side?(near?-1:1):sg*4,0,6,12,{ox:3,z,...dk}),P('leg.'+label+'.tibia','leg.'+label+'.femur','taper',0,12,5,13,{ox:2.5,t:.72,z,...dk}),P('leg.'+label+'.knee','leg.'+label+'.femur','disc',0,12,6,6,{ox:3,oy:3,c:'dark',z:z+.2,...dk}),P('leg.'+label+'.boot','leg.'+label+'.tibia','plate',0,13,side?8:6,4,{ox:side?(sign>0?3:5):3,c:'dark',z:z+.3,...dk}));
-   const x=side?(near?0:sign*2):sg*9;
+   const near=side?(dir==='right'?label==='R':label==='L'):true,z=side?(near?5:-5):2,dk=side&&!near?{dk:1}:{};
+   parts.push(P('leg.'+label+'.femur','pelvis','plate',side?(near?-1:1):(back?sg:-sg)*4,0,6,12,{ox:3,z,...dk}),P('leg.'+label+'.tibia','leg.'+label+'.femur','taper',0,12,5,13,{ox:2.5,t:.72,z,...dk}),P('leg.'+label+'.knee','leg.'+label+'.femur','disc',0,12,6,6,{ox:3,oy:3,c:'dark',z:z+.2,...dk}),P('leg.'+label+'.boot','leg.'+label+'.tibia','plate',0,13,side?8:6,4,{ox:side?(sign>0?3:5):3,c:'dark',z:z+.3,...dk}));
+   const x=side?(near?0:sign*2):(back?sg:-sg)*9;
    parts.push(P('arm.'+label+'.upper','spine','plate',x,-16,5,10,{ox:2.5,z:z+1,c:label==='R'?'dark':'bone',...dk}),P('arm.'+label+'.fore','arm.'+label+'.upper','plate',0,10,4,10,{ox:2,z:z+1,...dk}));
    if(label==='R'&&spec.role==='survey')parts.push(P('tool.R','arm.R.fore','taper',0,10,3,9,{ox:1.5,t:.1,c:'brass',z:z+2,...dk}),P('tool.R.tip','tool.R','disc',0,7,2,2,{ox:1,g:'accent',z:z+3,...dk}));
    else{parts.push(P('tool.'+label,'arm.'+label+'.fore','plate',0,10,5,4,{ox:2.5,c:'dark',z:z+2,...dk}));if(label==='R')parts.push(P('claw.R','tool.R','taper',2,3,2,5,{t:0,c:'brass',z:z+2,...dk}));}
@@ -30,11 +30,11 @@ export function evaluateUnit(rig,dir,type,i,n){
  for(const [label,sg] of [['L',-1],['R',1]]){
   const upper=map.get('leg.'+label+'.femur'),lower=map.get('leg.'+label+'.tibia'),boot=map.get('leg.'+label+'.boot'),step=walk?foot(t+(label==='R'?.5:0)):{x:0,lift:fall*3};
   const hip={x:0,y:46+b},ankle={x:step.x,y:70-step.lift},L=solveTwoBone(hip,ankle,12,13,1);
-  const projected=side?{hip:{x:upper.x,y:0},knee:{x:upper.x+sign*L.knee.x,y:L.knee.y-hip.y},ankle:{x:upper.x+sign*L.ankle.x,y:L.ankle.y-hip.y}}:{hip:{x:sg*4,y:0},knee:{x:sg*4+L.knee.x*.1,y:L.knee.y-hip.y},ankle:{x:sg*4,y:L.ankle.y-hip.y}};
+  const projected=side?{hip:{x:upper.x,y:0},knee:{x:upper.x+sign*L.knee.x,y:L.knee.y-hip.y},ankle:{x:upper.x+sign*L.ankle.x,y:L.ankle.y-hip.y}}:{hip:{x:upper.x,y:0},knee:{x:upper.x+L.knee.x*.1,y:L.knee.y-hip.y},ankle:{x:upper.x,y:L.ankle.y-hip.y}};
   // Projected front/back chains use their projected attachment lengths, not a sideways knee rotation.
   const q=projected,a=angle(q.hip,q.knee),g=angle(q.knee,q.ankle),uLen=Math.hypot(q.knee.x-q.hip.x,q.knee.y-q.hip.y),lLen=Math.hypot(q.ankle.x-q.knee.x,q.ankle.y-q.knee.y);
   upper.r=a;upper.h=uLen;lower.y=uLen;lower.r=g-a;lower.h=lLen;map.get('leg.'+label+'.knee').y=uLen;boot.y=lLen;boot.r=-g;
-  const arm=map.get('arm.'+label+'.upper'),fore=map.get('arm.'+label+'.fore');arm.r=side?sign*(label==='L'?-7:7):sg*5;fore.r=side?sign*8:sg*4;
+  const arm=map.get('arm.'+label+'.upper'),fore=map.get('arm.'+label+'.fore');const screenSign=dir==='up'?sg:-sg;arm.r=side?sign*(label==='L'?-7:7):screenSign*5;fore.r=side?sign*8:screenSign*4;
   if(walk)arm.r+=Math.sin(t*TAU+(label==='L'?Math.PI:0))*10*(side?sign:sg);
   if(['attack','charge'].includes(type)&&label==='R'){const k=Math.sin(one*Math.PI);arm.r-=sign*65*k;fore.r+=sign*35*k;}
   if(type==='malfunction'&&label==='R')fore.r+=(i%6===2?9:0)*sign;
