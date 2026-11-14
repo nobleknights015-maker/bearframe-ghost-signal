@@ -14,8 +14,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check JavaScript source and run engine guardrail tests
+      - name: Check every shipped JavaScript module and test syntax
+        shell: bash
         run: |
-          node --check frontend/public/js/engine/area-policy.js
-          node --check frontend/public/js/engine/encounter-handoff.js
-          node --test frontend/tests/*.test.mjs
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find frontend/public/js frontend/tests -type f \( -name '*.js' -o -name '*.mjs' \) -print0)
+      - name: Run original-interface and hybrid-engine regression tests
+        run: node --test frontend/tests/*.test.mjs
