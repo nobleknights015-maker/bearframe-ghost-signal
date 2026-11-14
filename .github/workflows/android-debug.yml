@@ -53,7 +53,7 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 600
           script: |
-            set -euo pipefail
+            set -eu
             APK="$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
             test -n "$APK"
             PACKAGE="$(aapt dump badging "$APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n 1)"
