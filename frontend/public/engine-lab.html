@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#050607" />
+  <title>GHOST SIGNAL ENGINE // DEVELOPMENT</title>
+  <link rel="stylesheet" href="css/game.css" />
+  <style>
+    #stage{border:1px solid #3a3f47;display:flex;flex-direction:column;align-items:center;
+      justify-content:center;padding:calc(var(--u)*13);gap:calc(var(--u)*9)}
+    h1{font-family:monospace;font-size:calc(var(--u)*14);letter-spacing:calc(var(--u)*.5);
+      color:#dcd6d8;font-weight:normal;text-align:center}
+    p{font-size:calc(var(--u)*10);color:#9a959c;text-align:center;line-height:1.1}
+    .choices{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*6);width:90%}
+    .choices a{min-height:calc(var(--u)*36);display:flex;align-items:center;
+      justify-content:center;padding:calc(var(--u)*5);border:1px solid #dcd6d8;
+      text-decoration:none;color:#dcd6d8;background:#15181c;
+      font-family:monospace;font-size:calc(var(--u)*10);text-align:center}
+    .choices a:focus-visible,.choices a:active{outline:2px solid #ff3b30;background:#3b1516}
+    footer{font-size:calc(var(--u)*9);color:#ff3b30;text-align:center}
+  </style>
+</head>
+<body>
+  <main id="stage">
+    <h1>GHOST SIGNAL ENGINE // TEST BAY</h1>
+    <p>DEVELOPMENT ONLY — SELECT ONE LIVE GAMEPLAY LAB</p>
+    <nav class="choices" aria-label="Engine test modes">
+      <a href="index.html?connected-lab=1">CONNECTED WORLD</a>
+      <a href="index.html?rpg-lab=1">JRPG COMBAT</a>
+      <a href="index.html">ORIGINAL GHOST SIGNAL</a>
+      <a href="studio/">SPRITE STUDIO</a>
+    </nav>
+    <footer>YOUR CAMPAIGN STORY IS NOT YET BUILT IN THIS TEST PACKAGE</footer>
+  </main>
+  <script>
+    (function fit(){
+      const s=Math.min(innerWidth/480,innerHeight/270);
+      const stage=document.getElementById('stage');
+      stage.style.width=Math.floor(480*s)+'px';
+      stage.style.height=Math.floor(270*s)+'px';
+      document.documentElement.style.setProperty('--u',s+'px');
+      addEventListener('resize',()=>{
+        const n=Math.min(innerWidth/480,innerHeight/270);
+        stage.style.width=Math.floor(480*n)+'px';
+        stage.style.height=Math.floor(270*n)+'px';
+        document.documentElement.style.setProperty('--u',n+'px');
+      });
+    })();
+  </script>
+</body>
+</html>
