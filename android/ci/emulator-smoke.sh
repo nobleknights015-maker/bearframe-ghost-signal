@@ -27,7 +27,38 @@ assert_foreground() {
   return 1
 }
 echo "Installing $APK ($PACKAGE; launch $LAUNCH_ACTIVITY)"
-adb install -r "$APK"
+# A boot-completed signal may precede package-manager readiness on CI emulators.
+# Wait for the package service, then retry transient transport failures. A failed
+# install must never be mistaken for successful app lifecycle verification.
+install_apk() {
+  local attempt output
+  for attempt in 1 2 3 4; do
+    adb wait-for-device
+    if ! adb shell service check package 2>/dev/null | grep -q 'found'; then
+      echo "Package service not ready (attempt $attempt)" >&2
+      sleep 12
+      continue
+    fi
+    if output="$(adb install -r "$APK" 2>&1)"; then
+      echo "$output"
+      return 0
+    fi
+    echo "APK install attempt $attempt failed: $output" >&2
+    # Streaming install can fail with a transient broken package-service pipe
+    # during cold boot; use the non-streaming transport for subsequent attempts.
+    if [[ "$attempt" -lt 4 ]]; then
+      sleep 12
+      if output="$(adb install --no-streaming -r "$APK" 2>&1)"; then
+        echo "$output"
+        return 0
+      fi
+      echo "Non-streaming install attempt $attempt failed: $output" >&2
+    fi
+  done
+  echo "APK install failed after package-service readiness and retries" >&2
+  return 1
+}
+install_apk
 adb shell am force-stop "$PACKAGE" || true
 adb shell am start -W -n "$PACKAGE/$LAUNCH_ACTIVITY"
 sleep 15
