@@ -78,7 +78,7 @@
         {
           "id": 1,
           "name": "west-gate",
-          "x": 160,
+          "x": 32,
           "y": 96,
           "width": 32,
           "height": 32,
@@ -87,7 +87,7 @@
           "properties": {
             "toMap": "staging",
             "toPortal": "east-gate",
-            "facing": "right"
+            "facing": "left"
           }
         }
       ]
