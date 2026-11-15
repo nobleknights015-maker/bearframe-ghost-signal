@@ -362,10 +362,14 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   }
   function takeAction(action){
     try{
+      const actionSequence=[action];
       session=actHybrid(session,action);
-      sideView.playAction(action);
-      while(session.phase==='battle'&&currentCombatant(session.battle)?.startsWith('enemy:'))
-        session=actHybrid(session,enemyDecision(session.battle));
+      while(session.phase==='battle'&&currentCombatant(session.battle)?.startsWith('enemy:')){
+        const response=enemyDecision(session.battle);
+        actionSequence.push(response);
+        session=actHybrid(session,response);
+      }
+      sideView.playActions(actionSequence);
       if(session.phase==='battle'){showBattle();return;}
       battle.shell.classList.add('hidden');game.mode='play';
       ui.show('touch',!!touchMode?.());
