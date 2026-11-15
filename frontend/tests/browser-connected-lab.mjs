@@ -1,0 +1,110 @@
+// Live browser acceptance for two connected Tiled maps in the original Ghost Signal runtime.
+// Use actual four-way keyboard movement, interact inputs and the on-screen save UI; never teleport.
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+const browser=await chromium.launch({headless:true});
+const page=await browser.newPage({viewport:{width:844,height:390},isMobile:true,hasTouch:true});
+const root=process.env.GS_BASE_URL||'http://127.0.0.1:3000';
+const artifacts=process.env.GS_ARTIFACT_DIR||'frontend/test-artifacts';
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+const state=()=>page.evaluate(()=>window.__connectedLab?.inspect());
+async function travel(direction,destination){
+  await page.keyboard.down(direction);
+  try{
+    await page.waitForFunction(expected=>window.__connectedLab?.inspect().mapId===expected,
+      destination,{timeout:12000});
+  }finally{await page.keyboard.up(direction);}
+}
+async function walkToX(target){
+  let previous=null;
+  try{
+    for(let n=0;n<180;n++){
+      const pos=await page.evaluate(()=>({x:window.__gs.player.x,mode:window.__gs.mode}));
+      assert.equal(pos.mode,'play');
+      if(Math.abs(pos.x-target)<5)return;
+      const key=target<pos.x?'ArrowLeft':'ArrowRight';
+      if(key!==previous){
+        if(previous)await page.keyboard.up(previous);
+        await page.keyboard.down(key);previous=key;
+      }
+      await page.waitForTimeout(32);
+    }
+    throw Error('Movement stalled before X '+target);
+  }finally{if(previous)await page.keyboard.up(previous);}
+}
+try{
+  await page.goto(root+'/index.html?connected-lab=1',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.__connectedLab?.inspect().mapId==='staging',{timeout:15000});
+  const baseline=await state();
+  assert.equal(baseline.mode,'play');
+  assert.equal(baseline.world.inventory['repair-kit'],1);
+  assert.equal(baseline.world.flags['visited-annex'],undefined);
+  assert.equal(await page.evaluate(()=>!!window.__rpgLab),false);
+  const legacy=await page.evaluate(()=>localStorage.getItem('bearframe_ghost_signal_save_v1'));
+
+  await travel('ArrowRight','annex'); // walk through actual east exit
+  let moved=await state();
+  assert.equal(moved.mode,'play');
+  assert.equal(moved.world.flags['visited-annex'],true);
+  assert.equal(moved.field.mission,'annex');
+  assert.ok(moved.field.player.x>32&&moved.field.player.x<76,'Arrival must use west doorway');
+  await walkToX(87);
+  assert.equal(await page.evaluate(()=>window.__gs.target()?.id),'supply-cache');
+  await page.keyboard.press('KeyE'); // real interaction, no direct handler call
+  await page.waitForFunction(()=>window.__connectedLab?.inspect().world.events['supply-cache']===true);
+  let collected=await state();
+  assert.equal(collected.world.inventory['repair-kit'],2);
+  assert.equal(collected.world.flags['supply-cache'],true);
+  assert.equal(await page.evaluate(()=>window.__gs.ent('supply-cache').gone),true);
+  const savedX=collected.field.player.x;
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.__connectedLab?.inspect().mapId==='annex');
+  collected=await state();
+  assert.equal(collected.world.inventory['repair-kit'],2,'Cache reward lost on reloading second map');
+  assert.equal(collected.field.player.x,savedX,'Field position not persisted in annex');
+  assert.equal(await page.evaluate(()=>window.__gs.ent('supply-cache').gone),true);
+  await page.keyboard.press('KeyE');
+  assert.equal((await state()).world.inventory['repair-kit'],2,'Collected cache must not grant duplicate items');
+
+  await travel('ArrowLeft','staging'); // step back through actual west doorway
+  moved=await state();
+  assert.equal(moved.world.flags['returned-staging'],true);
+  assert.equal(moved.field.mission,'staging');
+  assert.ok(moved.field.player.x>185,'Return must use eastern staging spawn');
+  await walkToX(112);
+  assert.equal(await page.evaluate(()=>window.__gs.target()?.id),'power-switch');
+  await page.keyboard.press('KeyE');
+  await page.waitForFunction(()=>window.__connectedLab?.inspect().world.events['power-switch']===true);
+  const powered=await state();
+  assert.equal(powered.world.flags['power-switch'],true);
+  assert.equal(powered.world.inventory['repair-kit'],2);
+  assert.equal(powered.world.quests.expedition,'power-restored');
+  await page.locator('#lab-rpg-menu').click();
+  await page.getByRole('button',{name:'SAVE EXPEDITION'}).click();
+  assert.equal((await state()).save.hasSave,true);
+  assert.match(await page.locator('#rpg-lab-menu').innerText(),/POWER RELAY: ACTIVE/);
+  await page.getByRole('button',{name:'CLOSE'}).click();
+  assert.equal((await state()).mode,'play');
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.__connectedLab?.inspect().mapId==='staging');
+  const final=await state();
+  assert.equal(final.world.flags['visited-annex'],true);
+  assert.equal(final.world.flags['returned-staging'],true);
+  assert.equal(final.world.flags['power-switch'],true);
+  assert.equal(final.world.flags['supply-cache'],true);
+  assert.equal(final.world.inventory['repair-kit'],2);
+  assert.equal(final.world.quests.expedition,'power-restored');
+  assert.equal(await page.evaluate(()=>window.__gs.ent('power-switch').gone),true);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('bearframe_ghost_signal_save_v1')),legacy,
+    'Original Ghost Signal save was overwritten by expedition');
+  assert.equal(errors.length,0,errors.join('\n'));
+  console.log('PASS connected expedition: actual A→B→A walking; two persistent interactables; single reward; menu and save/reload; original save isolated');
+}catch(error){
+  await mkdir(artifacts,{recursive:true});
+  try{await page.screenshot({path:join(artifacts,'connected-expedition-failure.png'),fullPage:true});}catch(_){}
+  let snapshot=null;try{snapshot=await state();}catch(_){}
+  await writeFile(join(artifacts,'connected-expedition-failure.json'),JSON.stringify({error:String(error.stack||error),state:snapshot,pageErrors:errors},null,2));
+  throw error;
+}finally{await browser.close();}
