@@ -100,7 +100,7 @@ export function createSideViewBattleScene(manifest={}) {
     if(!record?.loaded)return false;
     // Action rows start at frame zero when the cue begins; idle keeps its own clock.
     // This remains presentation-only and never changes combat resolution.
-    const actionTime=cue&&cue.actor===slot.key&&pose!=='idle'?
+    const actionTime=cue&&(cue.actor===slot.key||cue.target===slot.key)&&pose!=='idle'?
       Math.max(0,t-cue.when):t;
     const frame=battleAnimationFrame(spec,pose,actionTime);
     const height=Math.min(86,spec.frameHeight*spec.scale),scale=height/spec.frameHeight;
