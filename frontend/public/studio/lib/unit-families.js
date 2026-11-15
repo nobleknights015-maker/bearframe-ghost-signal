@@ -16,7 +16,7 @@ export function industrialEcho(options={}){
    const x=side?(near?0:sign*2):(back?sg:-sg)*9;
    parts.push(P('arm.'+label+'.upper','spine','plate',x,-16,5,10,{ox:2.5,z:back?8:z+1,c:label==='R'?'dark':'bone',...dk}),P('arm.'+label+'.fore','arm.'+label+'.upper','plate',0,10,4,10,{ox:2,z:back?9:z+1,...dk}));
    if(label==='R'&&spec.role==='survey')parts.push(P('tool.R','arm.R.fore','taper',0,10,3,9,{ox:1.5,t:.1,c:'brass',z:back?10:z+2,...dk}),P('tool.R.tip','tool.R','disc',0,7,2,2,{ox:1,g:'accent',z:back?11:z+3,...dk}));
-   else{parts.push(P('tool.'+label,'arm.'+label+'.fore','plate',0,10,5,4,{ox:2.5,c:'dark',z:back?10:z+2,...dk}));if(label==='R')parts.push(P('claw.R','tool.R','taper',2,3,2,5,{t:0,c:'brass',z:back?10:z+2,...dk}));}
+   else{parts.push(P('tool.'+label,'arm.'+label+'.fore','plate',0,10,5,4,{ox:2.5,c:'dark',z:back?10:z+2,...dk}));if(label==='R')parts.push(P('claw.R','tool.R','taper',back?-2:2,3,2,5,{t:0,c:'brass',z:back?10:z+2,...dk}));}
   }
   return parts;
  };
@@ -28,6 +28,9 @@ export function evaluateUnit(rig,dir,type,i,n){
  if(!rig.unitSpec)return rig;if(['six-leg-crawler','orbital-core'].includes(rig.unitSpec.family))return evaluateGrid(rig,dir,type,i,n);if(rig.unitSpec.version!==1||rig.unitSpec.family!=='legacy-industrial-biped')throw Error('Unsupported unit family version');
  const parts=structuredClone(rig.views[dir]);if(!parts)throw Error('Unit family requires an authored '+dir+' view');const map=new Map(parts.map(p=>[p.id,p])),t=n>0?i/n:0,side=['left','right'].includes(dir),sign=dir==='left'?-1:1,walk=type==='walk',one=n>1?i/(n-1):0,fall=type==='defeat'?one:0,b=walk?.3*Math.sin(t*TAU*2):fall*7;
  const pelvis=map.get('pelvis');pelvis.y+=b;
+ const facing=dir==='up'?-1:1;
+ // Repair saved pre-fix back-view tool geometry as well as freshly built recipes.
+ if(dir==='up'&&map.has('claw.R'))map.get('claw.R').x=-2;
  if(dir==='up')for(const p of parts){if(p.id.startsWith('arm.'))p.z=p.id.endsWith('.fore')?9:8;else if(p.id.startsWith('tool.')||p.id.startsWith('claw.'))p.z=p.id.endsWith('.tip')?11:10;}
  for(const [label,sg] of [['L',-1],['R',1]]){
   const upper=map.get('leg.'+label+'.femur'),lower=map.get('leg.'+label+'.tibia'),boot=map.get('leg.'+label+'.boot'),step=walk?foot(t+(label==='R'?.5:0)):{x:0,lift:fall*3};
@@ -37,9 +40,9 @@ export function evaluateUnit(rig,dir,type,i,n){
   const q=projected,a=angle(q.hip,q.knee),g=angle(q.knee,q.ankle),uLen=Math.hypot(q.knee.x-q.hip.x,q.knee.y-q.hip.y),lLen=Math.hypot(q.ankle.x-q.knee.x,q.ankle.y-q.knee.y);
   upper.r=a;upper.h=uLen;lower.y=uLen;lower.r=g-a;lower.h=lLen;map.get('leg.'+label+'.knee').y=uLen;boot.y=lLen;boot.r=-g;
   const arm=map.get('arm.'+label+'.upper'),fore=map.get('arm.'+label+'.fore');const screenSign=dir==='up'?sg:-sg;arm.r=side?sign*(label==='L'?-7:7):screenSign*5;fore.r=side?sign*8:screenSign*4;
-  if(walk)arm.r+=Math.sin(t*TAU+(label==='L'?Math.PI:0))*10*(side?sign:sg);
-  if(['attack','charge'].includes(type)&&label==='R'){const k=Math.sin(one*Math.PI);arm.r-=sign*65*k;fore.r+=sign*35*k;}
-  if(type==='malfunction'&&label==='R')fore.r+=(i%6===2?9:0)*sign;
+  if(walk)arm.r+=Math.sin(t*TAU+(label==='L'?Math.PI:0))*10*(side?sign:sg*facing);
+  if(['attack','charge'].includes(type)&&label==='R'){const k=Math.sin(one*Math.PI);arm.r-=sign*facing*65*k;fore.r+=sign*facing*35*k;}
+  if(type==='malfunction'&&label==='R')fore.r+=(i%6===2?9:0)*sign*facing;
  }
  const anims={...rig.anims,[type]:{}};if(type==='malfunction')anims[type]['optic.main']={flick:.4};if(type==='defeat')anims[type]['optic.main']={glowTo:-1};
  return {...rig,views:{[dir]:parts},anims};

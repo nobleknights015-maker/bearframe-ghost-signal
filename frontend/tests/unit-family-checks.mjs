@@ -3,6 +3,13 @@ export async function unitFamilyChecks(prefix){
  const assert=(v,m)=>{if(!v)throw Error(m);},cv=(w,h)=>Object.assign(document.createElement('canvas'),{width:w,height:h});let reach=0,renders=0;
  for(const a of [0,.2,4,16.5,100])for(const bend of [-1,1]){const r=solveTwoBone({x:0,y:0},{x:a,y:a},8,8.5,bend);assert(Math.abs(Math.hypot(r.knee.x,r.knee.y)-8)<1e-8,'upper length');assert(Math.abs(Math.hypot(r.knee.x-r.ankle.x,r.knee.y-r.ankle.y)-8.5)<1e-8,'lower length');reach++;}
  const custom=SS.machineProject('Custom aspect',industrialEcho());custom.sets.exploration.fw+=1;let failed=false;try{fitMachineProject(custom);}catch{failed=true;}assert(failed&&custom.rig.w===56,'custom aspect silently rescaled');
+ let rearArmCases=0;
+ for(const role of ['survey','maintenance'])for(const type of ['idle','walk','attack','charge','hurt','malfunction','defeat'])for(let i=0;i<8;i++){
+  const r=industrialEcho({role}),front=evaluateUnit(r,'down',type,i,8),back=evaluateUnit(r,'up',type,i,8);
+  for(const id of ['arm.L.upper','arm.L.fore','arm.R.upper','arm.R.fore']){const a=front.views.down.find(p=>p.id===id),b=back.views.up.find(p=>p.id===id);assert(Math.abs(a.r+b.r)<1e-8,'back arm repeats front-facing motion');}
+  const old=structuredClone(r);if(role==='maintenance')old.views.up.find(p=>p.id==='claw.R').x=2;
+  assert(JSON.stringify(evaluateUnit(old,'up',type,i,8).views.up)===JSON.stringify(back.views.up),'saved back-arm correction differs');rearArmCases++;
+ }
  const rig=industrialEcho(),cycle=structuredClone(rig);const arm=d=>rig.views[d].find(p=>p.id==='arm.R.upper');assert(arm('down').x<0&&arm('up').x>0&&arm('right').z>0&&arm('left').z<0,'physical right tool changed sides');cycle.views.down[0].p='spine';let rejected=false;try{validateRig(cycle);}catch{rejected=true;}assert(rejected,'cycle accepted');
  const missing=structuredClone(rig);missing.views.down[1].p='missing';rejected=false;try{validateRig(missing);}catch{rejected=true;}assert(rejected,'missing socket accepted');
  const p=SS.machineProject('Industrial Echo study',rig);fitMachineProject(p);let bounds=0;
@@ -42,5 +49,5 @@ let gridRenders=0,gridBounds=0,contacts=0,vineConnections=0;
   for(const d of ['down','up','right','left']){legacy.views[d]=legacy.views[d].filter(x=>x.id!==vid+'.root');const v=legacy.views[d].find(x=>x.id===vid);delete v.rootSocket;Object.assign(v,{p:original.unitSpec.family==='six-leg-crawler'?'mast':'core',x:-18,y:-16,w:18});const repaired=evaluateUnit(legacy,d,'walk',2,8).views[d],fresh=evaluateUnit(original,d,'walk',2,8).views[d];assert(JSON.stringify(repaired)===JSON.stringify(fresh),'saved vine repair differs');}
   const reopened=await SS.deserialize(SS.serialize(p));assert(reopened.rig.unitSpec.family===original.unitSpec.family,'Grid save family');assert(JSON.stringify(reopened.rig.groundAnchor)===anchor,'Grid save anchor');
  }
- return {vineConnections,gridRenders,gridBounds,contacts,reach,renders,bounds,pages:atlas.pages.length,frames:atlas.meta.frames.length,family:rig.unitSpec.family};
+ return {rearArmCases,vineConnections,gridRenders,gridBounds,contacts,reach,renders,bounds,pages:atlas.pages.length,frames:atlas.meta.frames.length,family:rig.unitSpec.family};
 }
