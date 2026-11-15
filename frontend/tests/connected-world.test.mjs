@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {compileConnectedWorld} from '../public/js/engine/connected-world.js';
@@ -34,4 +35,11 @@ test('rejects duplicate portal IDs and non-cardinal facing',()=>{
  assert.throws(()=>compileConnectedWorld(maps),/duplicate portal/);
  const other=pair();other[0].layers[1].objects[0].properties.facing='diagonal';
  assert.throws(()=>compileConnectedWorld(other),/destination/);
+});
+
+test('checked-in Tiled JSON assets compile as a connected map graph',()=>{
+ const maps=['staging','annex'].map(name=>JSON.parse(readFileSync(new URL('../public/maps/rpg-lab-'+name+'.tmj',import.meta.url),'utf8')));
+ const graph=compileConnectedWorld(maps);
+ assert.equal(graph.destination('staging','east-gate').mapId,'annex');
+ assert.equal(graph.destination('annex','west-gate').mapId,'staging');
 });
