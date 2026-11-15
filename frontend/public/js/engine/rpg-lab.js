@@ -1,7 +1,7 @@
 // Playable noncanonical RPG integration lab, activated ONLY by ?rpg-lab=1.
 // Reuses the existing Ghost Signal Game field, stealth, tiles, fonts, overlays and controls.
 import {createHybridSession,moveHybrid,detectHybrid,actHybrid} from './hybrid-session.js';
-import {currentCombatant,enemyDecision} from './rpg-combat.js';
+import {currentCombatant,enemyDecision,enemyForecast} from './rpg-combat.js';
 import {rpgMenuModel,RPG_TABS} from './rpg-menu-model.js';
 import {createRpgSaveStore} from './rpg-save.js';
 import {useFieldConsumable} from './rpg-field-actions.js';
@@ -23,7 +23,7 @@ const initial=()=>({
 });
 const threat=()=>({
   id:'sentinel-lab',enemies:[
-    {id:'sentry',name:'Old Sentry',hp:42,maxHp:42,ep:0,maxEp:0,attack:9,defense:4,speed:8}
+    {id:'sentry',name:'Old Sentry',hp:42,maxHp:42,ep:0,maxEp:0,attack:9,defense:4,speed:8,tactics:'charged-strike'}
   ],canFlee:true,gearCatalog:LAB_GEAR,rewards:{xp:12,items:{'ancient-scrap':1}}
 });
 const activeEnemy=b=>b.enemies.find(e=>e.hp>0);
@@ -309,10 +309,10 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     battle.panel.appendChild(el('h2','', 'SECURITY ENCOUNTER // ROUND '+b.round));
     const report=el('pre','');
     report.style.cssText='white-space:pre-wrap;font-size:calc(var(--u) * 10);line-height:1.15';
-    const targetForecast=[...b.party].filter(p=>p.hp>0).sort((a,c)=>a.hp/a.maxHp-c.hp/c.maxHp)[0];
+    const warning=enemyForecast(b);
     report.textContent=b.party.map(p=>p.name+'  HP '+p.hp+'/'+p.maxHp+'  EP '+p.ep).join('\n')+
       '\n'+b.enemies.map(e=>e.name+'  HP '+e.hp+'/'+e.maxHp).join('\n')+
-      '\nSENTRY INTENT: STRIKE '+(targetForecast?.name||'UNKNOWN')+'\n'+(b.log.at(-1)||'Observe, defend or disrupt.');
+      '\nSENTRY INTENT: '+warning.text+'\n'+(b.log.at(-1)||'Observe, defend or disrupt.');
     battle.panel.appendChild(report);
     if(!unit)return;
     battle.panel.appendChild(el('div','fine',unit.name.toUpperCase()+' // SELECT COMMAND'));
