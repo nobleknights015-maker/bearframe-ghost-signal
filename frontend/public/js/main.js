@@ -133,7 +133,14 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 showTitle();
-if (new URLSearchParams(location.search).get('rpg-lab') === '1') {
+if (new URLSearchParams(location.search).get('connected-lab') === '1') {
+  import('./engine/connected-lab.js').then(({mountConnectedLab}) =>
+    mountConnectedLab({game,ui,sfx,touchMode}).then(refreshTouch)
+  ).catch(error=>{
+    console.error('Connected expedition test failed to mount',error);
+    ui.toast('CONNECTED EXPEDITION INIT FAILED — SEE CONSOLE',5);
+  });
+} else if (new URLSearchParams(location.search).get('rpg-lab') === '1') {
   import('./engine/rpg-lab.js').then(({mountRpgLab}) => {
     mountRpgLab({game, ui, sfx, touchMode});
     refreshTouch();
