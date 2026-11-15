@@ -4,6 +4,7 @@ import {compileConnectedWorld} from './connected-world.js';
 import {createConnectedFieldTravel} from './connected-field-travel.js';
 import {createConnectedLabMission} from './connected-lab-mission.js';
 import {createRpgSaveStore} from './rpg-save.js';
+import {resolveWorldEvent,CONNECTED_LAB_EVENTS} from './world-events.js';
 
 const copy=x=>structuredClone(x);
 const $=id=>document.getElementById(id);
@@ -57,16 +58,13 @@ export async function mountConnectedLab({game,ui,touchMode}){
     return writeJournal(next);
   };
   const commitEvent=(eventId,e,g)=>{
-    if(journal.world.events[eventId])return;
+    const spec=CONNECTED_LAB_EVENTS[eventId];
+    if(!spec)return;
+    const applied=resolveWorldEvent(journal.world,spec);
+    if(!applied.applied)return;
     const before=g.snapshot(),next=copy(journal);
+    next.world=applied.world;
     e.gone=true;g.flags[eventId]=true;
-    next.world.events[eventId]=true;
-    next.world.flags[eventId]=true;
-    if(eventId==='power-switch')next.world.quests.expedition='power-restored';
-    else if(eventId==='supply-cache'){
-      next.world.inventory['repair-kit']=(next.world.inventory['repair-kit']||0)+1;
-      next.world.quests.expedition='supply-recovered';
-    }
     next.maps[g.m.id]=g.snapshot();
     if(!writeJournal(next)){
       g.applySnap(before);
