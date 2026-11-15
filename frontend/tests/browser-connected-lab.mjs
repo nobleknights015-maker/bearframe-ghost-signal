@@ -93,6 +93,12 @@ try{
   await page.getByRole('button',{name:'SAVE EXPEDITION'}).click();
   assert.equal((await state()).save.hasSave,true);
   assert.match(await page.locator('#rpg-lab-menu').innerText(),/POWER RELAY: ACTIVE/);
+  await page.keyboard.press('Escape');
+  assert.equal((await state()).mode,'play','Escape closes modal without field movement');
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'lab-rpg-menu',
+    'Closing the modal must return keyboard focus to its launcher');
+  await page.keyboard.press('Enter');
+  assert.equal((await state()).mode,'rpgmenu','Focused launcher must reopen using Enter');
   await page.getByRole('button',{name:'CLOSE'}).click();
   assert.equal((await state()).mode,'play');
   await page.reload({waitUntil:'domcontentloaded'});
