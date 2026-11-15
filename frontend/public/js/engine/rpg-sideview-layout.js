@@ -7,13 +7,13 @@ export const ANIMATION_NAMES=Object.freeze([
 ]);
 const ALLY_SLOTS=Object.freeze([
   Object.freeze({x:68,y:106}),
-  Object.freeze({x:119,y:116}),
+  Object.freeze({x:119,y:110}),
   Object.freeze({x:68,y:65}),
   Object.freeze({x:119,y:76})
 ]);
 const ENEMY_SLOTS=Object.freeze([
   Object.freeze({x:308,y:106}),
-  Object.freeze({x:363,y:116}),
+  Object.freeze({x:363,y:110}),
   Object.freeze({x:308,y:65}),
   Object.freeze({x:363,y:76}),
   Object.freeze({x:336,y:90}),
@@ -45,7 +45,7 @@ export function validateBattleArtManifest(manifest) {
     for(const [name,anim] of Object.entries(spec.animations)){
       if(!ANIMATION_NAMES.includes(name)||!anim||
         !Number.isInteger(anim.row)||anim.row<0||anim.row>32||
-        !Number.isInteger(anim.frames)||anim.frames<1||anim.frames>12||
+        !Number.isInteger(anim.frames)||anim.frames<1||anim.frames>6||
         !Number.isFinite(anim.fps)||anim.fps<1||anim.fps>30)
         throw new TypeError('Invalid battler animation '+name);
       rows[name]=Object.freeze({row:anim.row,frames:anim.frames,fps:anim.fps});
