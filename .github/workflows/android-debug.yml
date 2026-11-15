@@ -50,7 +50,10 @@ jobs:
           api-level: 35
           arch: x86_64
           profile: pixel_2
-          disable-animations: true
+          # Runner's automatic animation-settings ADB command failed (exit 224)
+          # after boot, before our smoke script could run. Avoid that setup path;
+          # the test itself checks launch/restart and does not depend on animations.
+          disable-animations: false
           emulator-boot-timeout: 600
           script: bash android/ci/emulator-smoke.sh
       - name: Upload emulator launch screenshot
