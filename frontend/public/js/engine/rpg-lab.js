@@ -9,6 +9,7 @@ import {createParty,equipItem} from './rpg-party.js';
 import {LAB_GEAR} from './rpg-lab-gear.js';
 import {migrateLabWorld} from './rpg-lab-migration.js';
 import {createLabMission,LAB_POLICY_SPEC} from './rpg-lab-mission.js';
+import {createSideViewBattleScene} from './rpg-sideview-scene.js';
 
 const $=id=>document.getElementById(id);
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -76,6 +77,8 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   game.restore=()=>{rollbackPending=true;originalRestore();};
   const menu=overlay('rpg-lab-menu','RPG FIELD RECORD');
   const battle=overlay('rpg-lab-battle','TURN-BASED ENCOUNTER');
+  const sideView=createSideViewBattleScene();
+  battle.panel.style.cssText='padding:calc(var(--u) * 6);gap:calc(var(--u) * 3)';
   const status=()=>session;
   const location=()=>px(game.player.x,game.player.y,game.player.dir);
   const apply=(fn)=>{
@@ -306,18 +309,19 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     battle.panel.replaceChildren();
     if(session.phase!=='battle')return;
     const b=session.battle,actor=currentCombatant(b),unit=b.party.find(u=>'party:'+u.id===actor);
-    battle.panel.appendChild(el('h2','', 'SECURITY ENCOUNTER // ROUND '+b.round));
+    battle.panel.appendChild(el('h2','', 'SIDE-VIEW SECURITY ENCOUNTER // ROUND '+b.round));
+    sideView.setBattle(b,actor);
+    battle.panel.appendChild(sideView.canvas);
     const report=el('pre','');
-    report.style.cssText='white-space:pre-wrap;font-size:calc(var(--u) * 10);line-height:1.15';
+    report.style.cssText='white-space:pre-wrap;overflow:hidden;flex-shrink:0;font-size:calc(var(--u) * 8);line-height:1';
     const warning=enemyForecast(b);
-    report.textContent=b.party.map(p=>p.name+'  HP '+p.hp+'/'+p.maxHp+'  EP '+p.ep).join('\n')+
-      '\n'+b.enemies.map(e=>e.name+'  HP '+e.hp+'/'+e.maxHp).join('\n')+
+    report.textContent=b.party.map(p=>p.name+' HP '+p.hp+'/'+p.maxHp+' EP '+p.ep).join(' / ')+
+      '\n'+b.enemies.map(e=>e.name+' HP '+e.hp+'/'+e.maxHp).join(' / ')+
       '\nSENTRY INTENT: '+warning.text+'\n'+(b.log.at(-1)||'Observe, defend or disrupt.');
     battle.panel.appendChild(report);
     if(!unit)return;
-    battle.panel.appendChild(el('div','fine',unit.name.toUpperCase()+' // SELECT COMMAND'));
     const commands=el('div','btn-row');
-    commands.style.flexWrap='wrap';
+    commands.style.cssText='display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(var(--u) * 3);flex-shrink:0';
     const foe=activeEnemy(b);
     const options=[
       ['ATTACK',{type:'attack',target:'enemy:'+foe.id},true],
@@ -332,7 +336,9 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
         if(command.type==='repair'||command.type==='item')chooseAllyTarget({actor,...command});
         else takeAction({actor,...command});
       });
-      button.disabled=!enabled;commands.appendChild(button);
+      button.disabled=!enabled;
+      button.style.cssText='min-width:0;padding:calc(var(--u) * 3);font-size:calc(var(--u) * 7);text-align:center';
+      commands.appendChild(button);
     }
     battle.panel.appendChild(commands);
     commands.querySelector('button:not(:disabled)')?.focus();
@@ -356,6 +362,7 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   function takeAction(action){
     try{
       session=actHybrid(session,action);
+      sideView.playAction(action);
       while(session.phase==='battle'&&currentCombatant(session.battle)?.startsWith('enemy:'))
         session=actHybrid(session,enemyDecision(session.battle));
       if(session.phase==='battle'){showBattle();return;}
@@ -408,7 +415,8 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   });
   // Lab-specific convenience API: safe for browser automation and reproducible QA.
   window.__rpgLab=Object.freeze({
-    inspect:()=>({mode:game.mode,session:status(),save:db.inspect(),field:game.snapshot()}),
+    inspect:()=>({mode:game.mode,session:status(),save:db.inspect(),field:game.snapshot(),
+      battleView:session.phase==='battle'?'side-view':null}),
     save,menu:openMenu
   });
   return window.__rpgLab;
