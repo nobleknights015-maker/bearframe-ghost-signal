@@ -101,7 +101,10 @@ try{
     'Original Ghost Signal save was overwritten by expedition');
   assert.equal(errors.length,0,errors.join('\n'));
   // The Android debug QA launcher uses real finger-tappable links for both labs.
-  await page.goto(root+'/engine-lab.html',{waitUntil:'domcontentloaded'});
+  await page.locator('#btn-pause').click();
+  await page.waitForFunction(()=>window.__gs?.mode==='pause');
+  await page.locator('#btn-quit').click();
+  await page.waitForURL(/engine-lab\\.html/);
   const launcher=page.getByRole('navigation',{name:'Engine test modes'});
   assert.equal(await launcher.getByRole('link').count(),4);
   assert.equal(await launcher.getByRole('link',{name:'ORIGINAL GHOST SIGNAL'}).getAttribute('href'),'index.html');
@@ -110,7 +113,10 @@ try{
   assert.ok(bounds&&bounds.width>40&&bounds.height>40,'Debug launcher must expose usable touch targets');
   await page.touchscreen.tap(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
   await page.waitForFunction(()=>window.__rpgLab?.inspect().field.mission==='rpg-lab');
-  await page.goto(root+'/engine-lab.html',{waitUntil:'domcontentloaded'});
+  await page.locator('#btn-pause').click();
+  await page.waitForFunction(()=>window.__gs?.mode==='pause');
+  await page.locator('#btn-quit').click();
+  await page.waitForURL(/engine-lab\\.html/);
   const connected=page.getByRole('link',{name:'CONNECTED WORLD'});
   const area=await connected.boundingBox();
   assert.ok(area);
