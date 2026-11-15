@@ -20,6 +20,7 @@ export function createConnectedFieldTravel({game,graph,missionFor,readJournal,wr
     const destination=graph.destination(source,portalId);
     const oldJournal=copy(readJournal());
     const before=game.snapshot();
+    const priorCheckpoint=game.snap ? copy(game.snap) : null;
     const previousMission=game.m;
     busy=true;
     game.mode='transition';
@@ -37,6 +38,8 @@ export function createConnectedFieldTravel({game,graph,missionFor,readJournal,wr
       Object.assign(game.player,{x:destination.x,y:destination.y,dir:destination.facing,moving:false});
       journal.mapId=destination.mapId;
       journal.maps[destination.mapId]=game.snapshot();
+      // Recovery must use the actual arrival, not Game.start's pre-portal checkpoint.
+      game.snap=copy(journal.maps[destination.mapId]);
       // One durable journal write contains both maps and the current location.
       if(writeJournal(journal)!==true)throw new Error('Connected travel: journal write failed');
       game.mode='play';
@@ -44,6 +47,7 @@ export function createConnectedFieldTravel({game,graph,missionFor,readJournal,wr
     }catch(error){
       // Reinitialize the previous map, then restore its exact snapshot.
       startWithoutLegacySave(previousMission,before);
+      game.snap=priorCheckpoint;
       game.mode='play';
       throw error;
     }finally{busy=false;}
