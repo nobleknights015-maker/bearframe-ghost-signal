@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "58203684eb3bc1c16f098bdd54ccbc697f99fa4e",
+  "workflowRun": 43732639526,
+  "nativeChecks": 29,
+  "browserChecks": 43,
+  "build": "PASS",
+  "newCoverage": {
+    "rendersAndBounds": 256,
+    "rootConnectivity": 64
+  },
+  "preserved": "Existing original/engine branches, Industrial Echo, raw legacy presets, crawler/orbital family paths",
+  "review": "Native standing/hover contact frames inspected; owner visual acceptance pending",
+  "notImplemented": "Grounded traversal, new combat actions, engine and device integration"
+}
