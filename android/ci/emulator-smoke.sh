@@ -65,6 +65,20 @@ assert_foreground "Process restart"
 grep -F "$PACKAGE" /tmp/ghost-signal-activities-restart.txt
 adb exec-out screencap -p > ghost-signal-emulator-restart.png
 test -s ghost-signal-emulator-restart.png
+# Inspect actual screenshot geometry rather than merely printing wm size.
+# This catches a portrait Android host despite a landscape-only manifest.
+python3 - <<'PY'
+import struct
+for filename in ("ghost-signal-emulator-launch.png", "ghost-signal-emulator-restart.png"):
+    with open(filename, "rb") as image:
+        header = image.read(24)
+    if header[:8] != b"\\x89PNG\\r\\n\\x1a\\n" or header[12:16] != b"IHDR":
+        raise SystemExit(f"{filename}: invalid PNG screenshot")
+    width, height = struct.unpack(">II", header[16:24])
+    print(f"{filename}: captured display {width}x{height}")
+    if width <= height:
+        raise SystemExit(f"{filename}: portrait display; landscape Android acceptance failed")
+PY
 # Check input delivery again after the Activity has been recreated.
 adb shell input tap 24 24
 sleep 2
