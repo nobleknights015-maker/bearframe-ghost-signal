@@ -170,10 +170,45 @@ export async function mountConnectedLab({game,ui,touchMode}){
     if(save())window.location.assign(new URL('engine-lab.html',window.location.href).href);
     else $('pause-note').textContent='Save unavailable — remain in expedition.';
   };
+  // The field keeps its original input handler; modal commands are handled only
+  // while this additive panel is open, never while the player is walking.
+  const modalButtons=()=>[...panel.querySelectorAll('button:not(:disabled)')];
+  const moveFocus=step=>{
+    const buttons=modalButtons();
+    if(!buttons.length)return;
+    const current=buttons.indexOf(document.activeElement);
+    buttons[(current+step+buttons.length)%buttons.length].focus();
+  };
   document.addEventListener('keydown',e=>{
     if(e.code==='KeyM'&&game.mode==='play'){e.preventDefault();openMenu();}
-    else if(e.code==='Escape'&&game.mode==='rpgmenu'){e.preventDefault();closeMenu();}
+    else if(game.mode==='rpgmenu'){
+      if(e.code==='Escape'||e.code==='Backspace'){e.preventDefault();closeMenu();}
+      else if(e.code==='ArrowRight'||e.code==='ArrowDown'){
+        e.preventDefault();moveFocus(1);
+      }else if(e.code==='ArrowLeft'||e.code==='ArrowUp'){
+        e.preventDefault();moveFocus(-1);
+      }
+    }
   });
+  // Edge-triggered gamepad input: holding confirm must not repeatedly save.
+  // No controller input is consumed outside the expedition modal.
+  let previousPad='';
+  const pollPad=()=>{
+    const pad=game.mode==='rpgmenu'?
+      (navigator.getGamepads?.()||[]).find(p=>p?.connected):null;
+    const active=pad?.buttons?.[1]?.pressed?'back':
+      pad?.buttons?.[0]?.pressed?'confirm':
+      (pad?.buttons?.[15]?.pressed||pad?.axes?.[0]>0.55)?'next':
+      (pad?.buttons?.[14]?.pressed||pad?.axes?.[0]<-0.55)?'previous':'';
+    if(active&&active!==previousPad){
+      if(active==='back')closeMenu();
+      else if(active==='confirm')document.activeElement?.click?.();
+      else moveFocus(active==='next'?1:-1);
+    }
+    previousPad=active;
+    requestAnimationFrame(pollPad);
+  };
+  requestAnimationFrame(pollPad);
   window.__connectedLab=Object.freeze({inspect,save,menu:openMenu});
   return window.__connectedLab;
 }
