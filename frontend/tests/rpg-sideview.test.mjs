@@ -49,3 +49,17 @@ test('side-view rejects external files, traversal, invalid sheet geometry and un
     {...base,animations:{idle:{row:0,frames:4,fps:6},hacked:{row:1,frames:4,fps:6}}}
   ])assert.throws(()=>validateBattleArtManifest({'party:sleeper':bad}),TypeError);
 });
+
+
+test('terminal down and victory animations hold last cel while idle and attack loop',()=>{
+  const art=validateBattleArtManifest({'party:test':{
+    src:'assets/battlers/test.png',frameWidth:64,frameHeight:64,scale:1,
+    animations:{idle:{row:0,frames:4,fps:4},attack:{row:1,frames:6,fps:10},
+      down:{row:6,frames:3,fps:6},victory:{row:7,frames:4,fps:6}}
+  }})['party:test'];
+  assert.equal(battleAnimationFrame(art,'down',10).x,128);
+  assert.equal(battleAnimationFrame(art,'victory',10).x,192);
+  assert.equal(battleAnimationFrame(art,'down',0).x,0);
+  assert.equal(battleAnimationFrame(art,'attack',.6).x,0);
+  assert.equal(battleAnimationFrame(art,'idle',1).x,0);
+});
