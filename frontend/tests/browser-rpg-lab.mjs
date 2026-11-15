@@ -36,7 +36,14 @@ try{
   snap=await labState();
   assert.ok(snap.field.player.x>start+20,'Four-direction field movement did not advance');
 
-  await page.locator('#lab-rpg-menu').click();
+  // Exercise an actual mobile touchscreen tap, not Playwright's synthetic click.
+  // This catches regressions where the visual RPG menu cannot receive touch input.
+  const menuButton=page.locator('#lab-rpg-menu');
+  const touchTarget=await menuButton.boundingBox();
+  assert.ok(touchTarget&&touchTarget.width>0&&touchTarget.height>0,
+    'RPG menu touch target must be visible and measurable');
+  await page.touchscreen.tap(touchTarget.x+touchTarget.width/2,
+    touchTarget.y+touchTarget.height/2);
   await page.locator('#rpg-lab-menu').waitFor({state:'visible'});
   assert.equal((await labState()).mode,'rpgmenu');
   await page.getByRole('button',{name:'SAVE',exact:true}).last().click();
