@@ -5,11 +5,10 @@ export function outfitLayers(args,cloth){
  const type=cfg.outfit||'none',O=cfg.colors.outfit||P.W,T=cfg.colors.accent||P.R;
  const drape=(pts,opts)=>cloth(pts.map(([x,y])=>[x,Math.min(52,y)]),opts);
  const long=['command','research','community','visuals','support'].includes(type);
- const hem=type==='support'?39:type==='visuals'?43:type==='research'?(cfg.outfitVariant==='long'?49:cfg.outfitVariant==='asymmetric'?46:43):47;
  const tails=()=>{
   if(!long)return;
   const petal=['community','visuals','support'].includes(type),length=type==='support'?39:type==='visuals'?43:cfg.outfitVariant==='long'?49:47;
-  if(side){const rearHem=cfg.outfitVariant==='asymmetric'?41:hem;drape([[12,30+b],[15,30+b],[14,36+b],[13,rearHem+b],[9,rearHem-2+b],[10,35+b]],{role:'outfit',flow:'hang'});return;}
+  if(side){drape([[11,18+b],[14,19+b],[13,31+b],[15,length-3+b],[10,length+b],[6,length-4+b],[9,30+b]],{role:'outfit',flow:'hang'});return;}
   for(const sign of [-1,1]){const x=16+sign*5;drape([[x,18+b],[x+sign*2,20+b],[x+sign*1,30+b],[x+sign*5,length-4+b],[x+sign*(petal?2:4),length+b],[x-sign*2,length-3+b],[x-sign*1,30+b]],{role:'outfit',flow:'hang'});}
  };
  const motif=(x,y,kind)=>{
@@ -26,17 +25,10 @@ export function outfitLayers(args,cloth){
    if(side){r(11,16+b,1,3,T);}
    else for(const sign of [-1,1]){poly([[16+sign*3,18+b],[16+sign*5,18+b],[16+sign*3,25+b],[16+sign*1.8,23+b]],O,true);r(16+sign*4,18+b,.6,2,T);}
   }
-  if(side&&long){
-   // Fitted torso and waist-mounted split panels wrap the body in profile.
-   // The independent cloak control remains the source of shoulder-hung capes.
-   poly([[12,18+b],[14,19+b],[14,24+b],[15,29+b],[13,31+b],[11,26+b],[11,20+b]],O,true);
-   poly([[18,18+b],[20,20+b],[19,23+b],[18,25+b],[17,23+b]],O,true);
-   r(13,30+b,6,1,T);
-   drape([[17,31+b],[20,31+b],[20,36+b],[22,hem-1+b],[19,hem+b],[17,hem-3+b]],{role:'outfit',flow:'hang'});
-  }
   if(type==='research'){
    const hem=cfg.outfitVariant==='long'?49:cfg.outfitVariant==='asymmetric'?46:43;
-   if(!side) for(const sign of [-1,1]){const length=cfg.outfitVariant==='asymmetric'&&sign<0?41:hem;drape([[16+sign*4,26+b],[16+sign*6,27+b],[16+sign*6,34+b],[16+sign*8,length+b],[16+sign*3,length-2+b],[16+sign*2,33+b]],{role:'outfit',flow:'hang'});r(16+sign*5,28+b,.65,5,P.R);}
+   if(side)drape([[10,26+b],[13,27+b],[13,37+b],[11,hem+b],[8,hem-2+b]],{role:'outfit',flow:'hang'});
+   else for(const sign of [-1,1]){const length=cfg.outfitVariant==='asymmetric'&&sign<0?41:hem;drape([[16+sign*4,26+b],[16+sign*6,27+b],[16+sign*6,34+b],[16+sign*8,length+b],[16+sign*3,length-2+b],[16+sign*2,33+b]],{role:'outfit',flow:'hang'});r(16+sign*5,28+b,.65,5,P.R);}
    if(cfg.idTag){r(side?12:10,19+b,2,4,P.Gd);r(side?12:10,19.5+b,1.5,2.5,P.W);r(side?12:10,20+b,1,1,P.R);}
   }
   if(type==='community'||type==='visuals'){
@@ -45,7 +37,7 @@ export function outfitLayers(args,cloth){
   }
   if(type==='explorer'){
    if(!side){poly([[9,17+b],[11,17+b],[15,30+b],[13,30+b]],P.B);r(9,25+b,3,4,P.Bd);motif(21,19+b,'star');}
-   else{poly([[17,18+b],[19,18+b],[18,29+b],[17,30+b]],P.B);r(18,27+b,3,4,P.Bd);}
+   else{r(11,18+b,1,11,P.B);r(9,25+b,3,4,P.Bd);}
    if(back)motif(16,30+b,'star');
   }
   if(type==='engineer'){
@@ -53,8 +45,8 @@ export function outfitLayers(args,cloth){
     if(!side){for(const x of [11,20]){r(x,17+b,1.2,14,P.B);r(x-.3,25+b,2,1,T);}r(11,30+b,10,2,P.Bd);}
     else{r(11,18+b,1,14,P.B);r(10,29+b,5,2,P.Bd);}
    }else{
-    drape(side?[[18,24+b],[21,25+b],[22,38+b],[19,40+b],[17,37+b]]:[[12,24+b],[20,24+b],[21,37+b],[16,41+b],[11,37+b]],{role:'outfit',flow:'hang'});
-    r(side?18:13,28+b,side?3:6,3,P.Bd);r(side?18:13,28+b,side?3:6,1,T);r(side?20:18,32+b,1,4,T);
+    drape(side?[[12,24+b],[16,25+b],[16,38+b],[12,40+b],[10,37+b]]:[[12,24+b],[20,24+b],[21,37+b],[16,41+b],[11,37+b]],{role:'outfit',flow:'hang'});
+    r(side?12:13,28+b,side?3:6,3,P.Bd);r(side?12:13,28+b,side?3:6,1,T);r(side?14:18,32+b,1,4,T);
    }
   }
   if(type==='watchtower'){
@@ -71,5 +63,6 @@ export function outfitLayers(args,cloth){
   }else if(cfg.headgear==='crest'){poly(side?[[13,3+b],[15,1+b],[17,4+b]]:[[14,3+b],[16,1+b],[18,3+b],[16,5+b]],T,true);}
   else if(cfg.headgear==='swept'){poly(side?[[11,4+b],[18,2+b],[20,4+b],[15,5+b]]:[[11,4+b],[14,2+b],[20,2+b],[21,4+b],[16,5+b]],P.S,true);r(side?14:14,3+b,side?4:5,.6,P.R);}
  };
+ // Keep the original garment geometry; redraw the near arm above profile clothing.
  return {rear:tails,front,wrapsProfile:side&&(long||type==='engineer'||type==='explorer')};
 }
