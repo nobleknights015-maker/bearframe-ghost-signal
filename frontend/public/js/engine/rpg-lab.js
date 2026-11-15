@@ -10,6 +10,7 @@ import {LAB_GEAR} from './rpg-lab-gear.js';
 import {migrateLabWorld} from './rpg-lab-migration.js';
 import {createLabMission,LAB_POLICY_SPEC} from './rpg-lab-mission.js';
 import {createSideViewBattleScene} from './rpg-sideview-scene.js';
+import {RPG_BATTLER_ART} from './rpg-battle-art.js';
 
 const $=id=>document.getElementById(id);
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -77,7 +78,7 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   game.restore=()=>{rollbackPending=true;originalRestore();};
   const menu=overlay('rpg-lab-menu','RPG FIELD RECORD');
   const battle=overlay('rpg-lab-battle','TURN-BASED ENCOUNTER');
-  const sideView=createSideViewBattleScene();
+  const sideView=createSideViewBattleScene(RPG_BATTLER_ART);
   battle.panel.style.cssText='padding:calc(var(--u) * 6);gap:calc(var(--u) * 3)';
   const status=()=>session;
   const location=()=>px(game.player.x,game.player.y,game.player.dir);
