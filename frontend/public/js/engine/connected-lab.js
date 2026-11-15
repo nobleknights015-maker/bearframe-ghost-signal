@@ -129,7 +129,7 @@ export async function mountConnectedLab({game,ui,touchMode}){
     b.type='button';b.className='menu-btn sm';b.textContent=label;
     b.addEventListener('click',fn);return b;
   };
-  const closeMenu=()=>{shell.classList.add('hidden');game.mode='play';};
+  const closeMenu=()=>{shell.classList.add('hidden');game.mode='play';menuBtn.focus();};
   const renderRecord=()=>{
     panel.replaceChildren();
     const heading=document.createElement('h2');heading.textContent='EXPEDITION FIELD RECORD // TEST';
@@ -198,8 +198,10 @@ export async function mountConnectedLab({game,ui,touchMode}){
       (navigator.getGamepads?.()||[]).find(p=>p?.connected):null;
     const active=pad?.buttons?.[1]?.pressed?'back':
       pad?.buttons?.[0]?.pressed?'confirm':
-      (pad?.buttons?.[15]?.pressed||pad?.axes?.[0]>0.55)?'next':
-      (pad?.buttons?.[14]?.pressed||pad?.axes?.[0]<-0.55)?'previous':'';
+      (pad?.buttons?.[15]?.pressed||pad?.buttons?.[13]?.pressed||
+       pad?.axes?.[0]>0.55||pad?.axes?.[1]>0.55)?'next':
+      (pad?.buttons?.[14]?.pressed||pad?.buttons?.[12]?.pressed||
+       pad?.axes?.[0]<-0.55||pad?.axes?.[1]<-0.55)?'previous':'';
     if(active&&active!==previousPad){
       if(active==='back')closeMenu();
       else if(active==='confirm')document.activeElement?.click?.();
