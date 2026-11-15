@@ -1,3 +1,4 @@
+import {addBattleLibrary} from './battle-motion.js';
 import {validateRig} from './rig-safety.js';
 // Curated original design studies. Identity/lore remains separate from body and job.
 const P=(id,p,s,x,y,w,h,o={})=>({id,p,s,x,y,w,h,...o}),DIRS=['down','up','right','left'];
@@ -38,7 +39,7 @@ export function ancientDefender(options={}){
  const anims={idle:{core:{glow:[.12,0]},'back.node':{glow:[.12,0]}}};
  anims.walk={};
  const clips={exploration:[{name:'idle',type:'idle',frames:8,fps:6,loop:true},{name:'walk',type:'walk',frames:12,fps:8,loop:true,events:[{frame:0,name:'foot.L.contact'},{frame:6,name:'foot.R.contact'}]}],battle:[{name:'idle',type:'idle',frames:8,fps:6,loop:true}]};
- const rig=finish('Ancient defender — '+role,'heavy-biped',role,96,124,{x:48,y:116},[2,2],build,anims,clips);rig.worldSpec.stage='locomotion-prototype';rig.locomotion={strideLength:20/.66,dutyFactor:.66,referenceCycleFrames:12,referenceCycleDurationMs:1500,viewProjection:{right:{x:1,y:0},left:{x:-1,y:0},down:{x:0,y:.28},up:{x:0,y:-.28}}};return rig;
+ const rig=finish('Ancient defender — '+role,'heavy-biped',role,96,124,{x:48,y:116},[2,2],build,anims,clips);rig.worldSpec.stage='locomotion-prototype';rig.locomotion={strideLength:20/.66,dutyFactor:.66,referenceCycleFrames:12,referenceCycleDurationMs:1500,viewProjection:{right:{x:1,y:0},left:{x:-1,y:0},down:{x:0,y:.28},up:{x:0,y:-.28}}};return addBattleLibrary(rig);
 }
 export function slenderCustodian(options={}){
  const role=options.role||'keeper';if(!['keeper','surveyor'].includes(role))throw Error('Unsupported slender role');
@@ -62,7 +63,7 @@ export function slenderCustodian(options={}){
  };
  const clips={exploration:[{name:'idle',type:'idle',frames:8,fps:6,loop:true},{name:'walk',type:'walk',frames:12,fps:9,loop:true,events:[{frame:0,name:'foot.L.contact'},{frame:6,name:'foot.R.contact'}]}],battle:[{name:'idle',type:'idle',frames:8,fps:6,loop:true}]};
  const rig=finish('Slender custodian — '+role,'slender-biped',role,64,112,{x:32,y:108},[1,1],build,{idle:{core:{glow:[.12,0]}},walk:{}},clips);
- rig.worldSpec.stage='locomotion-prototype';rig.locomotion={controller:'slender-v1',strideLength:14/.62,dutyFactor:.62,referenceCycleFrames:12,referenceCycleDurationMs:12000/9,viewProjection:{right:{x:1,y:0},left:{x:-1,y:0},down:{x:0,y:.28},up:{x:0,y:-.28}}};return rig;
+ rig.worldSpec.stage='locomotion-prototype';rig.locomotion={controller:'slender-v1',strideLength:14/.62,dutyFactor:.62,referenceCycleFrames:12,referenceCycleDurationMs:12000/9,viewProjection:{right:{x:1,y:0},left:{x:-1,y:0},down:{x:0,y:.28},up:{x:0,y:-.28}}};return addBattleLibrary(rig);
 }
 export function suspendedCustodian(options={}){
  const role=options.role||'archive';if(!['archive','relay'].includes(role))throw Error('Unsupported suspended role');
@@ -86,7 +87,7 @@ export function suspendedCustodian(options={}){
  const idle={root:{y:[1.2,0]},lantern:{glow:[.12,0]},optic:{glow:[.12,0]},'arm.L.upper':{rot:[1.5,0]},'arm.R.upper':{rot:[1.5,.5]}};
  const walk={...structuredClone(idle),root:{y:[1.2,0],rot:[.8,.25]}};
  const clips={exploration:[{name:'idle',type:'idle',frames:8,fps:6},{name:'hover',type:'walk',frames:8,fps:6}],battle:[{name:'idle',type:'idle',frames:8,fps:6}]};
- return finish('Suspended custodian — '+role,role==='relay'?'asymmetric-relay-custodian':'suspended-archive-spindle',role,128,152,{x:64,y:146},[3,3],build,{idle,walk},clips);
+ return addBattleLibrary(finish('Suspended custodian — '+role,role==='relay'?'asymmetric-relay-custodian':'suspended-archive-spindle',role,128,152,{x:64,y:146},[3,3],build,{idle,walk},clips));
 }
 export const WORLD_VARIETIES={
  'Ancient Bulwark (design study)':()=>ancientDefender({role:'bulwark'}),

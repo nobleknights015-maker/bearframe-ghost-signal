@@ -30,6 +30,7 @@ export function machineProject(name, rig) {
       p.sets[name].anims=structuredClone(clips);
     }
   }
+  if(rig.battleSpec?.version===1)p.sets.battle.dirs=[...DIRS];
   if(rig.groundAnchor)for(const s of Object.values(p.sets)){const k=Math.min(s.fw/rig.w,s.fh/rig.h);s.anchor={x:rig.groundAnchor.x*k,y:rig.groundAnchor.y*k};}
   return p;
 }

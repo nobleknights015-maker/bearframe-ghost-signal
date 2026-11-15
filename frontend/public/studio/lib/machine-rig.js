@@ -33,7 +33,8 @@ function evalPart(rig, p, type, i, n) {
   if (p.rm != null) { const dv = rot - (p.r || 0); y -= p.rm > 0 ? Math.max(0, dv) * p.rm : Math.abs(dv) * -p.rm; rot = p.r || 0; } // front/back views: swing becomes lift
   const glow = Math.max(0, Math.min(1, .6 + osc('glow') + (ch.glowTo || 0) * ez - (ch.flick && h2(i, 3, sd) > .5 ? ch.flick : 0)));
   const spin = TAU * 3 / (p.seg || 12) * (ch.spin || 0) * t + (ch.spinJit ? (h2(i, 5, sd) - .5) * ch.spinJit : 0);
-  return { rot, x, y, glow, spin, sway: TAU * t + sd, tt: t };
+  const material=rig.materialPhase??t;
+  return { rot, x, y, glow:rig.poseGlow?.[p.id]??glow, spin, off:rig.poseGlow?.[p.id]===0, sway: TAU * material + sd, tt: material };
 }
 
 function shadePlate(p, u, v, w, h, e, K, M, T, pal, W, sd, taper) {
@@ -121,6 +122,7 @@ function shadeBanner(p, u, v, w, h, e, K, T, pal, st, W, sd) {
 function shadeGlass(p, u, v, w, h, e, K, pal, L, st, sd) {
   if (u < 0 || u >= w || v < 0 || v >= h) return null; const G = pal[p.g || 'glow'], B = pal.brass;
   if (Math.min(u, w - u) < e) return B[2]; if (v < e || h - v < e) return B[3]; if ((v / h * 5) % 1 < .1) return B[1];
+  if (st.off) return pal.under[1];
   const cp = Math.floor(u * K), ds = Math.abs(v - st.tt * h), lv = L + (ds < 2 ? .5 : 0) + (h2(cp, Math.floor(v * K / 2) + Math.floor(st.tt * 8), sd) > .8 ? .3 : 0);
   return cp % 3 === 0 ? (lv > .7 ? G[0] : G[1]) : lv > .95 ? G[0] : lv > .45 ? G[1] : lv > .12 ? G[2] : G[3];
 }
@@ -140,6 +142,7 @@ export function renderRig(ctx, rig, dir, type, i, n, fw, fh, opts = {}) {
   let view = rig.views[dir], flip = false;
   if (!view) { if (dir === 'left' && rig.views.right) { view = rig.views.right; flip = true; } else if (dir === 'right' && rig.views.left) { view = rig.views.left; flip = true; } else view = rig.views.right || rig.views.down || Object.values(rig.views)[0]; }
   else if ((rig.flipViews || []).includes(dir)) flip = true;
+  if(opts.effects===false)view=view.filter(p=>!p.id.startsWith('battle.fx.'));
   const K = Math.min(fw / rig.w, fh / rig.h), offX = Math.round((fw - rig.w * K) / 2), offY = Math.round(fh - rig.h * K), e = 1 / K;
   const pal = {}, palD = {}; for (const k in DEFAULT_COLORS) { const t = tones(hex((rig.colors || {})[k] || DEFAULT_COLORS[k])); pal[k] = t; palD[k] = [t[1], t[2], t[3], mix(t[3], [0, 0, 0], .3)]; }
   const wz = rig.weather || {}, byId = new Map(view.map(p => [p.id, p])), Ms = new Map();
@@ -156,6 +159,7 @@ export function renderRig(ctx, rig, dir, type, i, n, fw, fh, opts = {}) {
     return {left:Math.min(...points.map(p=>p.x))-2,top:Math.min(...points.map(p=>p.y))-2,right:Math.max(...points.map(p=>p.x))+2,bottom:Math.max(...points.map(p=>p.y))+2};
   }
   if (opts.pivotsOnly) return marks();
+  if(opts.sockets)return opts.sockets.map(s=>{const part=byId.get(s.part);if(!part)throw Error('Missing action socket '+s.part);const M=world(part),sx=(s.x||0),sy=(s.y||0),x=(M.tx+M.c*sx-M.s*sy)*K+offX,y=(M.ty+M.s*sx+M.c*sy)*K+offY;return {name:s.name,x:flip?fw-x:x,y};});
   const img = new ImageData(fw, fh), D = img.data;
   const order = view.map((p, k) => [p, k]).sort((A, B) => ((A[0].z || 0) - (B[0].z || 0)) || A[1] - B[1]);
   for (const [p] of order) {

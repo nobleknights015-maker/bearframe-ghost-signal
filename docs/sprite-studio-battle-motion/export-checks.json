@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "framesRecomposed": 2880,
+  "atlasPages": 29,
+  "zipBytes": 7805328,
+  "zipSha256": "d765145c0d3e2220d616f7e028bf7ccf888beed30a92ed274980b5709183f28f",
+  "method": "Pillow independently crops atlas rectangles and compares RGBA SHA256 to source canvas hashes"
+}

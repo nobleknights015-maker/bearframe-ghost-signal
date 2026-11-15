@@ -1,0 +1,206 @@
+{
+  "baseline": "f6f8f09b7d6c452f158a67473ac35c2fb374da6f",
+  "status": "PASS",
+  "runtime": "@napi-rs/canvas + jsdom; no browser layout test",
+  "checks": [
+    {
+      "name": "Pixel-exact original renderer compatibility",
+      "passed": true,
+      "detail": 1320
+    },
+    {
+      "name": "Sleek binary-alpha nonempty renders",
+      "passed": true,
+      "detail": 1320
+    },
+    {
+      "name": "Original pose library and machine pivots unchanged",
+      "passed": true,
+      "detail": 360
+    },
+    {
+      "name": "Texture import renderer unchanged",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Mirror fallback",
+      "passed": true,
+      "detail": 2
+    },
+    {
+      "name": "Wardrobe, wear and smooth visor render checks",
+      "passed": true,
+      "detail": 576
+    },
+    {
+      "name": "Existing cape/body unchanged and cloth texture anchored",
+      "passed": true,
+      "detail": 48
+    },
+    {
+      "name": "Ring alpha, body/face preservation, clipping and saved margins",
+      "passed": true,
+      "detail": {
+        "cases": 1440,
+        "bodies": 1440,
+        "bounds": 1200
+      }
+    },
+    {
+      "name": "Back arm visibility and preserved front/back garments",
+      "passed": true,
+      "detail": {
+        "stableOutfits": 312,
+        "stableEcho": 336,
+        "armPixels": 0,
+        "profileArmSamples": 468,
+        "rearFabricPixels": 2864
+      }
+    },
+    {
+      "name": "Unit family reach, bounds, registration, edits and paged atlas",
+      "passed": true,
+      "detail": {
+        "battle": {
+          "roles": 6,
+          "actionsPerRole": 7,
+          "frames": 2688,
+          "contacts": 2560,
+          "endpoints": 288,
+          "socketChecks": 2688,
+          "fxFrames": 48,
+          "save": "PASS",
+          "atlas": "PASS"
+        },
+        "motion": {
+          "stanceSamples": 600,
+          "footChecks": 192,
+          "loopChecks": 16,
+          "slenderFeet": 192,
+          "slenderLoops": 8,
+          "timing": "holds, loops, one-shots, events, atlas and save PASS"
+        },
+        "varietyRootChecks": 432,
+        "varietyRenders": 1728,
+        "rearArmCases": 112,
+        "vineConnections": 896,
+        "gridRenders": 896,
+        "gridBounds": 896,
+        "contacts": 240,
+        "reach": 10,
+        "renders": 224,
+        "bounds": 148,
+        "pages": 3,
+        "frames": 10,
+        "family": "legacy-industrial-biped"
+      }
+    },
+    {
+      "name": "Narrow front modules, unchanged profiles, clean silhouette and Classic compatibility",
+      "passed": true,
+      "detail": {
+        "narrowed": 4,
+        "sideMatches": 4,
+        "alphaMatches": 8,
+        "classicMatches": 8
+      }
+    },
+    {
+      "name": "Slim chassis, leg length, flat soles and character recipes",
+      "passed": true,
+      "detail": {
+        "cases": 1440,
+        "bones": 1440,
+        "soles": 192,
+        "outfits": 624
+      }
+    },
+    {
+      "name": "Actual editor boot/generation",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Hand-edited pixels protected through regeneration/style changes",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "New controls regenerate while protecting edited pixels",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Save/reopen preserves pixels, edits and style",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Transparent PNG sheet reimports pixel-exact",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "ZIP generated for independent validation",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Independent exploration/battle sets",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Display-head option generates all directions",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Ring UI margins/save/removal retain canvas",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Independent chassis/outfit controls and character recipe persistence",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Original example opens and generates: wraith-wtr07",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Original example opens and generates: heavy-sentinel",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Original example opens and generates: hexapod-cartography-engine",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Original example opens and generates: archive-sentinel",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Original example opens and generates: micro-drone",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Direction control",
+      "passed": true,
+      "detail": true
+    },
+    {
+      "name": "Separate copy autosave namespace",
+      "passed": true,
+      "detail": true
+    }
+  ],
+  "out": "docs/sprite-studio-battle-motion"
+}

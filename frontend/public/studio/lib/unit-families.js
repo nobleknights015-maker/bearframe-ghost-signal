@@ -1,3 +1,4 @@
+import {evaluateBattle} from './battle-motion.js';
 import {evaluateSlender} from './slender-motion.js';
 import {evaluateHeavy} from './heavy-motion.js';
 import {evaluateGrid} from './grid-families.js';
@@ -27,6 +28,7 @@ export function industrialEcho(options={}){
 function foot(phase){const p=((phase%1)+1)%1,d=.6,stride=6;if(p<d)return {x:stride/2-stride*p/d,lift:0,stance:true};const u=(p-d)/(1-d),u2=u*u,u3=u2*u,m=-stride*(1-d)/d;return {x:(2*u3-3*u2+1)*(-stride/2)+(u3-2*u2+u)*m+(-2*u3+3*u2)*(stride/2)+(u3-u2)*m,lift:48*u2*(1-u)*(1-u),stance:false};}
 const angle=(a,b)=>Math.atan2(-(b.x-a.x),b.y-a.y)*180/Math.PI;
 export function evaluateUnit(rig,dir,type,i,n){
+ const battle=evaluateBattle(rig,dir,type,i,n);if(battle)return battle;
  if(rig.worldSpec?.family==='slender-biped')return evaluateSlender(rig,dir,type,i,n);
  if(rig.worldSpec?.family==='heavy-biped')return evaluateHeavy(rig,dir,type,i,n);
  if(!rig.unitSpec)return rig;if(['six-leg-crawler','orbital-core'].includes(rig.unitSpec.family))return evaluateGrid(rig,dir,type,i,n);if(rig.unitSpec.version!==1||rig.unitSpec.family!=='legacy-industrial-biped')throw Error('Unsupported unit family version');

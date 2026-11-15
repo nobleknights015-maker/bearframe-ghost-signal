@@ -1,3 +1,4 @@
+import {battleMetadata} from './lib/battle-export.js';
 import {clipTiming,frameAtTime,resizeClip} from './lib/clip-timing.js';
 import {gridCrawler,orbitalCore} from './lib/grid-families.js';
 import {industrialEcho} from './lib/unit-families.js';
@@ -102,7 +103,7 @@ function buildCfg() {
       el('div', { className: 'hint', textContent: `Design grid ${r.w}×${r.h}. ${Object.keys(r.views).join(' / ')} views.` }));
     if (!r.ref) box.append(field('Style', sel(['classic', 'sleek'], r.style || 'classic', v => { r.style = v; regenSoon(); }, 'machine-style')));
     ['rust', 'moss', 'wear'].forEach(k => box.append(field('Weathering: ' + k, range(0, 1, .05, r.weather[k] || 0, v => { r.weather[k] = v; regenSoon(); }, 'weather-' + k))));
-    if(r.worldSpec)box.append(el('div',{className:'hint',textContent:'Design study: '+r.worldSpec.family+' / '+r.worldSpec.role+'. Only supported clips are listed; these silhouettes await visual review.'}));
+    if(r.worldSpec)box.append(el('div',{className:'hint',textContent:(r.battleSpec?'Battle animation prototype: ':'Design study: ')+r.worldSpec.family+' / '+r.worldSpec.role+'. Only supported clips are listed; these animations await visual review.'}));
     if(r.unitSpec){const family=r.unitSpec.family,builder=family==='six-leg-crawler'?gridCrawler:family==='orbital-core'?orbitalCore:industrialEcho,roles=family==='six-leg-crawler'?['cartographer','salvager']:family==='orbital-core'?['analyst','relay']:['survey','maintenance'];box.append(field('Unit role',sel(roles,r.unitSpec.role,v=>{const next=builder({...r.unitSpec,role:v});if(r.unitSpec.offset){const {x,y}=r.unitSpec.offset;for(const parts of Object.values(next.views))for(const p of parts)if(!p.p){p.x+=x;p.y+=y;}next.w=r.w;next.h=r.h;next.groundAnchor=r.groundAnchor;}P.rig={...next,colors:r.colors,weather:r.weather};refresh();regenSoon();},'unit-role')));}
     const fit=el('button',{textContent:'Fit all animation margins'});fit.dataset.testid='fit-machine';fit.onclick=async()=>{try{fitMachineProject(P);undo=[];refresh();await generate('unedited');status('Machine margins fitted without scaling the body or footprint.');}catch(e){status(e.message);}};box.append(fit);
     box.append(colors(r.colors, COLOR_ROLES));
@@ -250,7 +251,7 @@ $('tw').onchange = $('th').onchange = () => { P.tiles = [Math.max(1, +$('tw').va
 $('gen-all').onclick = () => { if (!S.edited.size || confirm('This overwrites hand-edited frames. Continue?')) generate('all'); };
 $('gen-unedited').onclick = () => generate('unedited'); $('gen-frame').onclick = () => generate('frame');
 const fileBase = () => P.name.replace(/\W+/g, '-').toLowerCase() + '_' + P.active;
-const meta = () => ({ name: P.name, kind: P.kind, set: P.active, footprintTiles: P.tiles,locomotion:P.rig?.locomotion,...(P.rig?.worldSpec?{unit:P.rig.worldSpec,designSize:{w:P.rig.w,h:P.rig.h},motionUnits:'design-pixels'}:{}) });
+const meta = () => ({ battle:battleMetadata(P.rig,S),name: P.name, kind: P.kind, set: P.active, footprintTiles: P.tiles,locomotion:P.rig?.locomotion,...(P.rig?.worldSpec?{unit:P.rig.worldSpec,designSize:{w:P.rig.w,h:P.rig.h},motionUnits:'design-pixels'}:{}) });
 const atlasButton=el('button',{textContent:'Export paged atlas ZIP'});atlasButton.dataset.testid='export-atlas';$('btn-export').parentNode.append(atlasButton);
 atlasButton.onclick=async()=>{try{const {pages,meta:m}=SS.buildAtlasPages(S,meta()),files=[];for(let i=0;i<pages.length;i++){const b=await new Promise(res=>pages[i].toBlob(res,'image/png'));files.push({name:'page-'+i+'.png',data:new Uint8Array(await b.arrayBuffer())});}files.push({name:'metadata.json',data:new TextEncoder().encode(JSON.stringify(m,null,1))});SS.download(fileBase()+'_atlas.zip',SS.zipStore(files));status('Exported bounded atlas pages with frame rectangles and registration.');}catch(e){status('Atlas export: '+e.message);}};
 $('btn-export').onclick = () => { const { canvas, meta: m } = SS.buildSheet(S, meta()); canvas.toBlob(b => { SS.download(fileBase() + '.png', b); setTimeout(() => SS.download(fileBase() + '.json', JSON.stringify(m, null, 1)), 300); status(`Exported ${canvas.width}×${canvas.height} transparent sheet + metadata.`); }, 'image/png'); };
