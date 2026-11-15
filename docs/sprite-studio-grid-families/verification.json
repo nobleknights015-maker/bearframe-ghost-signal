@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "770557cf2ac0d2579e4c3cc57ea4f8bdcd443476",
+  "workflowRun": 43666444483,
+  "native": "PASS (29 checks)",
+  "browser": "PASS",
+  "build": "PASS",
+  "newCoverage": {
+    "renders": 896,
+    "bounds": 896,
+    "supportSamples": 240
+  },
+  "visual": "Native contact frames inspected; owner approval pending",
+  "runtime": "Not integrated or device tested"
+}
