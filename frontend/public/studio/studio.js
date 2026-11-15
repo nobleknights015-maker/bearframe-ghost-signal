@@ -1,3 +1,4 @@
+import {clipTiming,frameAtTime,resizeClip} from './lib/clip-timing.js';
 import {gridCrawler,orbitalCore} from './lib/grid-families.js';
 import {industrialEcho} from './lib/unit-families.js';
 import {fitMachineProject} from './lib/machine-bounds.js';
@@ -16,6 +17,7 @@ import { initRefUI } from './ref-ui.js';
 const $ = id => document.getElementById(id), LS = 'bearframe_sprite_studio_sleek_copy_autosave_v1';
 const EXAMPLES = ['wraith-wtr07', 'heavy-sentinel', 'hexapod-cartography-engine', 'archive-sentinel', 'micro-drone'];
 let P, S, cur = { dir: 'down', a: 0, f: 0 }, tool = 'pencil', color = '#ff3b30', zoom = 8, clip = null, undo = [], ref = null, playing = true, busy = false, pivots = [], saveT = 0;
+let previewClip=null,previewTime=0,previewLast=null;
 const A = () => S.anims[cur.a], C = () => SS.cell(S, cur.dir, A().name, cur.f), K = () => SS.key(cur.dir, A().name, cur.f);
 const status = t => { $('status').textContent = t; };
 const el = (tag, props = {}, kids = []) => { const e = Object.assign(document.createElement(tag), props); kids.forEach(k => e.append(k)); return e; };
@@ -134,7 +136,8 @@ $('rig-del').onclick = () => { const view = P.rig.views[$('rig-view').value], id
 function buildTabs() {
   const d = $('dirs'); d.innerHTML = ''; S.dirs.forEach(dir => { const b = el('button', { textContent: dir.toUpperCase(), className: dir === cur.dir ? 'on' : '' }); b.dataset.testid = 'dir-' + dir; b.onclick = () => { cur.dir = dir; undo = []; buildTabs(); buildStrip(); buildRig(); drawEditor(); }; d.append(b); });
   const a = $('anims'); a.innerHTML = ''; S.anims.forEach((an, i) => { const b = el('button', { textContent: an.name, className: i === cur.a ? 'on' : '' }); b.dataset.testid = 'anim-' + an.name; b.onclick = () => { cur.a = i; cur.f = 0; undo = []; buildTabs(); buildStrip(); buildRig(); drawEditor(); }; a.append(b); });
-  const types = [...new Set([...ANIM_TYPES, ...(P.rig ? Object.keys(P.rig.anims) : [])])], ts = $('a-type'); ts.innerHTML = ''; types.forEach(t => ts.append(el('option', { value: t, textContent: t })));
+  const types = P.rig?.worldSpec?Object.keys(P.rig.anims):[...new Set([...ANIM_TYPES, ...(P.rig ? Object.keys(P.rig.anims) : [])])], ts = $('a-type'); ts.innerHTML = ''; types.forEach(t => ts.append(el('option', { value: t, textContent: t })));
+  $('a-loop').checked=A().loop!==false;$('a-durations').value=A().durationsMs?.join(', ')||'';$('a-events').value=JSON.stringify(A().events||[]);previewClip=null;
   $('a-name').value = A().name; ts.value = A().type; $('a-frames').value = A().frames; $('a-fps').value = A().fps;
   const pv = $('dirprev'); pv.innerHTML = ''; S.dirs.forEach(dir => { const cv = el('canvas'); cv.dataset.dir = dir; pv.append(el('div', {}, [cv, dir])); });
 }
@@ -142,13 +145,18 @@ function buildStrip() {
   const s = $('strip'); s.innerHTML = ''; const sc = Math.max(1, Math.floor(64 / S.fh)) || 1, k = S.fh > 64 ? 64 / S.fh : sc;
   for (let i = 0; i < A().frames; i++) {
     const cv = el('canvas', { width: S.fw, height: S.fh }); cv.style.width = Math.round(S.fw * k) + 'px'; cv.style.height = Math.round(S.fh * k) + 'px'; cv.getContext('2d').drawImage(SS.cell(S, cur.dir, A().name, i), 0, 0);
-    const b = el('div', { className: 'fr' + (i === cur.f ? ' on' : '') + (S.edited.has(SS.key(cur.dir, A().name, i)) ? ' ed' : '') }, [cv, String(i + 1)]); b.dataset.testid = 'frame-' + i; b.onclick = () => { cur.f = i; undo = []; buildStrip(); drawEditor(); }; s.append(b);
+    const b = el('div', { className: 'fr' + (i === cur.f ? ' on' : '') + (S.edited.has(SS.key(cur.dir, A().name, i)) ? ' ed' : '') }, [cv, String(i + 1)]); b.title=clipTiming(A()).durationsMs[i]+' ms'+(A().events?.filter(e=>e.frame===i).map(e=>' / '+e.name).join('')||'');b.dataset.testid = 'frame-' + i; b.onclick = () => { cur.f = i; undo = []; buildStrip(); drawEditor(); }; s.append(b);
   }
 }
 $('a-name').onchange = e => { const v = e.target.value.trim().replace(/[|\s]/g, '_'); if (!v || S.anims.some(a => a.name === v)) return buildTabs(); SS.renameAnim(S, A().name, v); A().name = v; buildTabs(); autosave(); };
 $('a-type').onchange = e => { A().type = e.target.value; buildRig(); regenSoon(); };
-$('a-frames').onchange = e => { A().frames = Math.max(1, Math.min(32, +e.target.value || 1)); cur.f = Math.min(cur.f, A().frames - 1); buildTabs(); regenSoon(); };
-$('a-fps').onchange = e => { A().fps = Math.max(1, Math.min(30, +e.target.value || 1)); autosave(); };
+$('a-frames').onchange = e => { Object.assign(A(),resizeClip(A(),Math.max(1,Math.min(32,+e.target.value||1))));cur.f=Math.min(cur.f,A().frames-1);buildTabs();regenSoon();status('Frame count changed: holds reset; event positions rescaled.'); };
+$('a-fps').onchange = e => { A().fps = Math.max(1, Math.min(30, +e.target.value || 1)); previewClip=null;autosave(); };
+function editTiming(patch){try{const candidate={...A(),...patch};clipTiming(candidate);Object.assign(A(),patch);previewClip=null;buildStrip();autosave();status('Timing saved. Event markers are data only.');}catch(e){status(e.message);buildTabs();}}
+$('a-loop').onchange=e=>editTiming({loop:e.target.checked});
+$('a-durations').onchange=e=>{const text=e.target.value.trim();editTiming({durationsMs:text?text.split(',').map(x=>Number(x.trim())):undefined});};
+$('a-events').onchange=e=>{try{editTiming({events:JSON.parse(e.target.value||'[]')});}catch(err){status('Invalid event JSON: '+err.message);buildTabs();}};
+
 $('a-add').onclick = () => { let n = 'anim' + (S.anims.length + 1); while (S.anims.some(a => a.name === n)) n += '_'; S.anims.push({ name: n, type: 'idle', frames: 4, fps: 8 }); cur.a = S.anims.length - 1; cur.f = 0; buildTabs(); buildRig(); regenSoon(); };
 $('a-del').onclick = () => { if (S.anims.length < 2) return; const a = A(); for (const k of [...S.cells.keys()]) if (k.split('|')[1] === a.name) { S.cells.delete(k); S.edited.delete(k); } S.anims.splice(cur.a, 1); cur.a = 0; cur.f = 0; buildTabs(); buildStrip(); drawEditor(); autosave(); };
 
@@ -209,14 +217,18 @@ addEventListener('keydown', e => { if (/INPUT|TEXTAREA|SELECT/.test(e.target.tag
 // ---------- preview ----------
 function tick(now) {
   if (P && A()) {
-    const a = A(), i = playing ? Math.floor(now / 1000 * a.fps) % a.frames : cur.f, pc = $('preview'), k = Math.max(1, Math.min(6, Math.floor(Math.min(240 / S.fw, 260 / S.fh)))) || 1, s = S.fw > 240 || S.fh > 260 ? Math.min(240 / S.fw, 260 / S.fh) : k;
+    const a=A();if(previewClip!==a){previewClip=a;previewTime=0;previewLast=null;}if(playing&&previewLast!=null)previewTime+=Math.max(0,now-previewLast);previewLast=now;
+    const sampled=frameAtTime(a,previewTime);if(playing&&sampled.done){cur.f=sampled.index;playing=false;$('play').textContent='Play';buildStrip();}
+    const i=playing?sampled.index:cur.f;const timing=clipTiming(a);$('preview-events').textContent=(timing.events.filter(e=>e.frame===i).map(e=>e.name).join(' · '));
+    const pc = $('preview'), k = Math.max(1, Math.min(6, Math.floor(Math.min(240 / S.fw, 260 / S.fh)))) || 1, s = S.fw > 240 || S.fh > 260 ? Math.min(240 / S.fw, 260 / S.fh) : k;
     if (pc.width !== S.fw || pc.height !== S.fh) { pc.width = S.fw; pc.height = S.fh; } pc.style.width = Math.round(S.fw * s) + 'px'; pc.style.height = Math.round(S.fh * s) + 'px';
     const c = pc.getContext('2d'); c.clearRect(0, 0, S.fw, S.fh); c.drawImage(SS.cell(S, cur.dir, a.name, i), 0, 0);
     document.querySelectorAll('#dirprev canvas').forEach(cv => { if (cv.width !== S.fw) { cv.width = S.fw; cv.height = S.fh; const q = Math.min(1, 60 / S.fw, 80 / S.fh) * (S.fw <= 30 ? 2 : 1); cv.style.width = Math.round(S.fw * q) + 'px'; cv.style.height = Math.round(S.fh * q) + 'px'; } const x = cv.getContext('2d'); x.clearRect(0, 0, S.fw, S.fh); x.drawImage(SS.cell(S, cv.dataset.dir, a.name, i), 0, 0); });
   }
   requestAnimationFrame(tick);
 }
-$('play').onclick = () => { playing = !playing; $('play').textContent = playing ? 'Pause' : 'Play'; };
+document.addEventListener('visibilitychange',()=>{previewLast=null;});
+$('play').onclick = () => { if(!playing&&frameAtTime(A(),previewTime).done){previewTime=0;cur.f=0;}previewLast=null;playing = !playing; $('play').textContent = playing ? 'Pause' : 'Play'; };
 
 // ---------- project / import / export ----------
 $('pname').onchange = e => { P.name = e.target.value || 'untitled'; autosave(); };
@@ -238,7 +250,7 @@ $('tw').onchange = $('th').onchange = () => { P.tiles = [Math.max(1, +$('tw').va
 $('gen-all').onclick = () => { if (!S.edited.size || confirm('This overwrites hand-edited frames. Continue?')) generate('all'); };
 $('gen-unedited').onclick = () => generate('unedited'); $('gen-frame').onclick = () => generate('frame');
 const fileBase = () => P.name.replace(/\W+/g, '-').toLowerCase() + '_' + P.active;
-const meta = () => ({ name: P.name, kind: P.kind, set: P.active, footprintTiles: P.tiles,locomotion:P.rig?.locomotion });
+const meta = () => ({ name: P.name, kind: P.kind, set: P.active, footprintTiles: P.tiles,locomotion:P.rig?.locomotion,...(P.rig?.worldSpec?{unit:P.rig.worldSpec,designSize:{w:P.rig.w,h:P.rig.h},motionUnits:'design-pixels'}:{}) });
 const atlasButton=el('button',{textContent:'Export paged atlas ZIP'});atlasButton.dataset.testid='export-atlas';$('btn-export').parentNode.append(atlasButton);
 atlasButton.onclick=async()=>{try{const {pages,meta:m}=SS.buildAtlasPages(S,meta()),files=[];for(let i=0;i<pages.length;i++){const b=await new Promise(res=>pages[i].toBlob(res,'image/png'));files.push({name:'page-'+i+'.png',data:new Uint8Array(await b.arrayBuffer())});}files.push({name:'metadata.json',data:new TextEncoder().encode(JSON.stringify(m,null,1))});SS.download(fileBase()+'_atlas.zip',SS.zipStore(files));status('Exported bounded atlas pages with frame rectangles and registration.');}catch(e){status('Atlas export: '+e.message);}};
 $('btn-export').onclick = () => { const { canvas, meta: m } = SS.buildSheet(S, meta()); canvas.toBlob(b => { SS.download(fileBase() + '.png', b); setTimeout(() => SS.download(fileBase() + '.json', JSON.stringify(m, null, 1)), 300); status(`Exported ${canvas.width}×${canvas.height} transparent sheet + metadata.`); }, 'image/png'); };

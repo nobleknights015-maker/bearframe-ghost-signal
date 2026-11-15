@@ -1,3 +1,4 @@
+import {evaluateHeavy} from './heavy-motion.js';
 import {evaluateGrid} from './grid-families.js';
 import {solveTwoBone,validateRig} from './rig-safety.js';
 const TAU=2*Math.PI,P=(id,p,s,x,y,w,h,o={})=>({id,p,s,x,y,w,h,...o});
@@ -25,6 +26,7 @@ export function industrialEcho(options={}){
 function foot(phase){const p=((phase%1)+1)%1,d=.6,stride=6;if(p<d)return {x:stride/2-stride*p/d,lift:0,stance:true};const u=(p-d)/(1-d),u2=u*u,u3=u2*u,m=-stride*(1-d)/d;return {x:(2*u3-3*u2+1)*(-stride/2)+(u3-2*u2+u)*m+(-2*u3+3*u2)*(stride/2)+(u3-u2)*m,lift:48*u2*(1-u)*(1-u),stance:false};}
 const angle=(a,b)=>Math.atan2(-(b.x-a.x),b.y-a.y)*180/Math.PI;
 export function evaluateUnit(rig,dir,type,i,n){
+ if(rig.worldSpec?.family==='heavy-biped')return evaluateHeavy(rig,dir,type,i,n);
  if(!rig.unitSpec)return rig;if(['six-leg-crawler','orbital-core'].includes(rig.unitSpec.family))return evaluateGrid(rig,dir,type,i,n);if(rig.unitSpec.version!==1||rig.unitSpec.family!=='legacy-industrial-biped')throw Error('Unsupported unit family version');
  const parts=structuredClone(rig.views[dir]);if(!parts)throw Error('Unit family requires an authored '+dir+' view');const map=new Map(parts.map(p=>[p.id,p])),t=n>0?i/n:0,side=['left','right'].includes(dir),sign=dir==='left'?-1:1,walk=type==='walk',one=n>1?i/(n-1):0,fall=type==='defeat'?one:0,b=walk?.3*Math.sin(t*TAU*2):fall*7;
  const pelvis=map.get('pelvis');pelvis.y+=b;

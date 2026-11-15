@@ -32,11 +32,13 @@ export function ancientDefender(options={}){
    if(label==='L'&&role==='bulwark')o.push(P('shield.L','arm.L.fore','taper',side?-sign*5:physical(d,sg)*3,-3,side?7:20,29,{ox:side?3.5:10,t:.55,z:z+.5,c:'bone',...dk}),P('shield.L.inlay','shield.L','plate',0,5,side?2:3,16,{ox:side?1:1.5,c:'brass',z:z+.6,...dk}));
    if(label==='R'&&role==='breaker')o.push(P('cannon.R','arm.R.fore','plate',side?sign*4:0,8,side?16:9,9,{ox:side?8:4.5,c:'dark',z:z+.5,...dk}),P('cannon.R.lens','cannon.R','disc',side?sign*7:0,5,side?3:6,6,{ox:side?1.5:3,oy:3,g:'glow',z:z+.6,...dk}));
   }
-  o.push(P('tabard','torso','banner',side?-sign*10:-12,-2,9,32,{ox:4.5,c:'cloth',g:'accent',z:back?12:5,amp:.25}));
+  o.push(P('tabard','torso','banner',side?-sign*10:-12,-2,9,32,{ox:4.5,c:'cloth',g:'accent',z:back?12:5,amp:.25,closedLoop:true}));
   rooted(o,'shoulder.L','growth',0,2,12);return o;
  };
  const anims={idle:{core:{glow:[.12,0]},'back.node':{glow:[.12,0]}}};
- return finish('Ancient defender — '+role,'heavy-biped',role,96,124,{x:48,y:116},[2,2],build,anims);
+ anims.walk={};
+ const clips={exploration:[{name:'idle',type:'idle',frames:8,fps:6,loop:true},{name:'walk',type:'walk',frames:12,fps:8,loop:true,events:[{frame:0,name:'foot.L.contact'},{frame:6,name:'foot.R.contact'}]}],battle:[{name:'idle',type:'idle',frames:8,fps:6,loop:true}]};
+ const rig=finish('Ancient defender — '+role,'heavy-biped',role,96,124,{x:48,y:116},[2,2],build,anims,clips);rig.worldSpec.stage='locomotion-prototype';rig.locomotion={strideLength:20/.66,dutyFactor:.66,referenceCycleFrames:12,referenceCycleDurationMs:1500,viewProjection:{right:{x:1,y:0},left:{x:-1,y:0},down:{x:0,y:.28},up:{x:0,y:-.28}}};return rig;
 }
 export function slenderCustodian(options={}){
  const role=options.role||'keeper';if(!['keeper','surveyor'].includes(role))throw Error('Unsupported slender role');

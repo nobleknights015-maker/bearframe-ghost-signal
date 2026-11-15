@@ -115,7 +115,7 @@ function shadeBanner(p, u, v, w, h, e, K, T, pal, st, W, sd) {
   const col = Math.floor(uu * K), pv = Math.floor(v * K); if (v > h * (.7 + .3 * h2(col >> 1, 3, sd))) return null;
   if (W.wear && v > h * .3 && h2(col >> 1, pv >> 1, sd) < W.wear * .08) return null;
   if (p.g) { const cx = Math.abs(uu - w / 2), cy = Math.abs(v - h * .4), dd = cx + cy; if (dd < w * .3 && dd > w * .16) return pal[p.g][1]; if (dd < e) return pal[p.g][1]; }
-  const f = Math.sin(uu * 1.3 + st.sway * .7 + v * .12);
+  const f = Math.sin(uu * 1.3 + (p.closedLoop ? TAU * st.tt + sd * .7 : st.sway * .7) + v * .12);
   return v < e ? T[0] : f > .5 ? T[3] : f < -.6 ? T[0] : uu > w * .7 ? T[2] : T[1];
 }
 function shadeGlass(p, u, v, w, h, e, K, pal, L, st, sd) {

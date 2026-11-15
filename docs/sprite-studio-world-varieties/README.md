@@ -1,5 +1,7 @@
 # World variety: six original design studies
 
+Update: the two heavy presets now have a separate tested walk prototype. See `../animation-research-2026-11-15/README.md` and `../sprite-studio-heavy-motion/`. The frozen recipes/previews below remain the original standing-design checkpoint; slender units still have idle only.
+
 Separate options on sprite-studio-sleek-copy. The original game/main, engine branch, Industrial Echo (including owner-requested rear cloth coverage), existing crawler/orbital core, and legacy machine presets are preserved. These are procedural examples of bodies and jobs that can populate the world, not new canon individuals or copies of the reference sheet.
 
 | Preset | Silhouette/equipment | Available clips |
