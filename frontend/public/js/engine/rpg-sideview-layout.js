@@ -59,6 +59,10 @@ export function validateBattleArtManifest(manifest) {
 export function battleAnimationFrame(spec,name,elapsedSeconds) {
   const anim=spec.animations[name]||spec.animations.idle;
   const elapsed=Math.max(0,Number.isFinite(elapsedSeconds)?elapsedSeconds:0);
-  return Object.freeze({x:(Math.floor(elapsed*anim.fps)%anim.frames)*spec.frameWidth,
+  const index=Math.floor(elapsed*anim.fps);
+  // Terminal poses must hold their last frame instead of looping back to standing.
+  const terminal=name==='down'||name==='victory';
+  const frame=terminal?Math.min(index,anim.frames-1):index%anim.frames;
+  return Object.freeze({x:frame*spec.frameWidth,
     y:anim.row*spec.frameHeight,width:spec.frameWidth,height:spec.frameHeight});
 }
