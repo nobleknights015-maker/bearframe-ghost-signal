@@ -49,6 +49,18 @@ jobs:
       - name: Browser tactics — charged sentry intent and guard response
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab-tactics.mjs
 
+      - name: Side-view battle — animated stage, inputs and pixel screenshot
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-sideview.mjs
+
+      - name: Upload side-view battle preview
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aeon-sideview-battle-preview
+          path: frontend/test-artifacts/sideview-battle-preview.png
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Connected expedition — real Tiled map crossing, interactions, saves
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-connected-lab.mjs
 
