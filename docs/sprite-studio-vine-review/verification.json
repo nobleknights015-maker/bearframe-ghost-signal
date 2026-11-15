@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "5c9bdfcc8bd8d7b99fc912b82a5286750c88572f",
+  "workflowRun": 43726286066,
+  "nativeChecks": 29,
+  "browserChecks": 37,
+  "build": "PASS",
+  "vineConnectivityCases": 896,
+  "savedRecipeRepair": "PASS",
+  "visualReview": "Native fixed-vine and other-unit gallery frames inspected; owner review pending",
+  "scope": "Copy branch only. Existing raw legacy gallery designs are unchanged."
+}
