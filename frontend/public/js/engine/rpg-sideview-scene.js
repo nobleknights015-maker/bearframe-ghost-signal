@@ -98,7 +98,11 @@ export function createSideViewBattleScene(manifest={}) {
   function sheet(slot,spec,unit,t,pose,selected){
     const record=images[slot.key];
     if(!record?.loaded)return false;
-    const frame=battleAnimationFrame(spec,pose,t);
+    // Action rows start at frame zero when the cue begins; idle keeps its own clock.
+    // This remains presentation-only and never changes combat resolution.
+    const actionTime=cue&&cue.actor===slot.key&&pose!=='idle'?
+      Math.max(0,t-cue.when):t;
+    const frame=battleAnimationFrame(spec,pose,actionTime);
     const height=Math.min(86,spec.frameHeight*spec.scale),scale=height/spec.frameHeight;
     const width=spec.frameWidth*scale;
     let nudge=0;
