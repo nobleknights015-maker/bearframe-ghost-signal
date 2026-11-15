@@ -60,7 +60,9 @@ export function slenderCustodian(options={}){
   }
   o.push(P('scarf','torso','plate',0,-27,side?12:19,5,{ox:side?6:9.5,c:'cloth',z:7}));rooted(o,'shoulder.L','growth',0,1,8);return o;
  };
- return finish('Slender custodian — '+role,'slender-biped',role,64,112,{x:32,y:108},[1,1],build,{idle:{core:{glow:[.12,0]}}});
+ const clips={exploration:[{name:'idle',type:'idle',frames:8,fps:6,loop:true},{name:'walk',type:'walk',frames:12,fps:9,loop:true,events:[{frame:0,name:'foot.L.contact'},{frame:6,name:'foot.R.contact'}]}],battle:[{name:'idle',type:'idle',frames:8,fps:6,loop:true}]};
+ const rig=finish('Slender custodian — '+role,'slender-biped',role,64,112,{x:32,y:108},[1,1],build,{idle:{core:{glow:[.12,0]}},walk:{}},clips);
+ rig.worldSpec.stage='locomotion-prototype';rig.locomotion={controller:'slender-v1',strideLength:14/.62,dutyFactor:.62,referenceCycleFrames:12,referenceCycleDurationMs:12000/9,viewProjection:{right:{x:1,y:0},left:{x:-1,y:0},down:{x:0,y:.28},up:{x:0,y:-.28}}};return rig;
 }
 export function suspendedCustodian(options={}){
  const role=options.role||'archive';if(!['archive','relay'].includes(role))throw Error('Unsupported suspended role');

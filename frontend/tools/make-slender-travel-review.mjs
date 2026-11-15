@@ -1,0 +1,10 @@
+import {createRequire} from 'node:module';import {mkdirSync,writeFileSync} from 'node:fs';import path from 'node:path';
+const require=createRequire(import.meta.url),{createCanvas,ImageData}=require('@napi-rs/canvas');globalThis.ImageData=ImageData;globalThis.document={createElement:()=>createCanvas(1,1)};
+const {slenderCustodian}=await import('../public/studio/lib/world-varieties.js'),{evaluateSlender,SLENDER_GAIT}=await import('../public/studio/lib/slender-motion.js'),{renderRig}=await import('../public/studio/lib/machine-rig.js'),{machineProject}=await import('../public/studio/lib/sprite-sheet.js'),{fitMachineProject}=await import('../public/studio/lib/machine-bounds.js');
+const out=path.resolve(process.argv[2]||'docs/sprite-studio-slender-motion');mkdirSync(out,{recursive:true});const units=['keeper','surveyor'].map(role=>{const p=machineProject(role,slenderCustodian({role}));fitMachineProject(p);return p;});
+for(let i=0;i<36;i++){const c=createCanvas(560,600),x=c.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle='#202630';x.fillRect(0,0,c.width,c.height);x.font='15px sans-serif';for(const [row,p] of units.entries()){const y=row*300+28,ground=y+p.rig.groundAnchor.y*2,travel=i/12*SLENDER_GAIT.strideLength,offset=24+travel*2;
+ x.strokeStyle='#48505a';x.beginPath();x.moveTo(0,ground);x.lineTo(560,ground);for(let k=0;k<560;k+=32){x.moveTo(k,ground);x.lineTo(k,ground+12);}x.stroke();
+ const f=createCanvas(p.rig.w,p.rig.h);renderRig(f.getContext('2d'),p.rig,'right','walk',i%12,12,f.width,f.height);x.drawImage(f,offset,y,f.width*2,f.height*2);
+ for(const q of evaluateSlender(p.rig,'right','walk',i%12,12).slenderPose)if(q.stance){const foot=q.screenAnkle.x+1;x.fillStyle='#73c4af';x.fillRect(Math.round(offset+foot*2)-3,ground+3,6,4);}
+ x.fillStyle='#dce3e8';x.fillText(p.name+' — green marks = planted contacts',12,row*300+18);x.fillText('Travel matches exported stride. Three cycles; position resets.',12,row*300+290);
+ }writeFileSync(path.join(out,`travel-${i}.png`),c.toBuffer('image/png'));}
