@@ -74,6 +74,9 @@ try{
   battleState=await labState();
   assert.equal(battleState.session.phase,'battle');
   assert.equal(battleState.session.battle.party[0].ep,5,'Pulse resource cost must persist through enemy counterattack');
+  assert.equal(battleState.session.battle.enemies[0].chargeTarget,'party:sleeper',
+    'The sentry must visibly lock a heavy strike target on its first turn');
+  assert.match(await page.locator('#rpg-lab-battle').innerText(),/HEAVY STRIKE ON SLEEPER TEST/);
 
   // Echo's REPAIR is a tactical party-target choice, not an automatic lowest-HP action.
   await page.locator('#rpg-lab-battle button').filter({hasText:'REPAIR (5 EP)'}).click();
@@ -86,6 +89,13 @@ try{
   assert.equal(afterRepair.session.battle.party[1].hp,29,'Echo must repair the chosen party member');
   assert.equal(afterRepair.session.battle.party[1].ep,5,'Repair must deduct EP only when used');
   await pulse.click();
+  const disrupted=await labState();
+  assert.equal(disrupted.session.battle.enemies[0].chargeTarget,null,
+    'Pulse must actually interrupt the charged enemy strike');
+  assert.ok(disrupted.session.battle.log.some(row=>row.includes('CHARGE DISRUPTED')),
+    'The fight log must explain why the heavy attack was cancelled');
+  assert.ok(disrupted.session.battle.party[0].hp<38,
+    'Disrupting a heavy strike should still leave the normal enemy attack as a threat');
   await attack.click();
   await attack.click();
 
