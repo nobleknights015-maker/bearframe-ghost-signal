@@ -72,7 +72,7 @@ import struct
 for filename in ("ghost-signal-emulator-launch.png", "ghost-signal-emulator-restart.png"):
     with open(filename, "rb") as image:
         header = image.read(24)
-    if header[:8] != b"\\x89PNG\\r\\n\\x1a\\n" or header[12:16] != b"IHDR":
+    if header[:8] != bytes((137, 80, 78, 71, 13, 10, 26, 10)) or header[12:16] != b"IHDR":
         raise SystemExit(f"{filename}: invalid PNG screenshot")
     width, height = struct.unpack(">II", header[16:24])
     print(f"{filename}: captured display {width}x{height}")
