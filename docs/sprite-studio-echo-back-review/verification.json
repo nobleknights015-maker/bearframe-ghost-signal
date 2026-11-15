@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "9814b4910b560d7e38c26f21343f2ae62df232a4",
+  "workflowRun": 43728076597,
+  "nativeChecks": 29,
+  "browserChecks": 37,
+  "build": "PASS",
+  "rearArmCases": 112,
+  "unchangedOtherEchoRenderCases": 336,
+  "visualReview": "Before/after native contact inspected; owner review pending",
+  "scope": "Up arms/tool direction only. Existing visibility, other directions and body retained."
+}
