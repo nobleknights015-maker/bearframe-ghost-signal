@@ -9,6 +9,7 @@ test('side-view has stable unique authored party/enemy positions with correct fa
   assert.deepEqual(BATTLE_VIEW,{width:416,height:116});
   const layout=sideViewSlots({party,enemies});
   assert.equal(layout.length,10);
+  assert.ok(layout.every(slot=>slot.y>=0&&slot.y<BATTLE_VIEW.height),'Every actor must have feet within canvas');
   assert.equal(new Set(layout.map(s=>s.x+':'+s.y)).size,10);
   assert.ok(layout.filter(x=>x.side==='party').every(x=>x.facing==='right'&&x.x<200));
   assert.ok(layout.filter(x=>x.side==='enemy').every(x=>x.facing==='left'&&x.x>200));
@@ -43,6 +44,7 @@ test('side-view rejects external files, traversal, invalid sheet geometry and un
     {...base,src:'assets/battlers/../../secrets.png'},
     {...base,frameWidth:0},
     {...base,scale:0},
+    {...base,animations:{idle:{row:0,frames:7,fps:6}}},
     {...base,animations:{attack:{row:1,frames:4,fps:6}}},
     {...base,animations:{idle:{row:0,frames:4,fps:6},hacked:{row:1,frames:4,fps:6}}}
   ])assert.throws(()=>validateBattleArtManifest({'party:sleeper':bad}),TypeError);
