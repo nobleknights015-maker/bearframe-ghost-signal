@@ -17,6 +17,14 @@ sleep 15
 adb shell pidof "$PACKAGE" | tee /tmp/ghost-signal-emulator-pid
 test -s /tmp/ghost-signal-emulator-pid
 adb shell dumpsys activity activities > /tmp/ghost-signal-activities.txt
+# A live process is insufficient: verify that our Activity is actually resumed.
+RESUMED="$(adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity|ResumedActivity" || true)"
+if ! grep -Fq "$PACKAGE/" <<< "$RESUMED"; then
+  echo "Ghost Signal is not the resumed foreground Activity: $RESUMED" >&2; exit 1
+fi
+# Game is landscape-only; confirm emulator rotation at the window manager level.
+DISPLAY="$(adb shell wm size | tr -d '\\r')"
+echo "Emulator display: $DISPLAY"
 grep -F "$PACKAGE" /tmp/ghost-signal-activities.txt
 adb exec-out screencap -p > ghost-signal-emulator-launch.png
 test -s ghost-signal-emulator-launch.png
@@ -33,6 +41,10 @@ if [[ -z "$RESTART_PID" ]]; then
   echo "App failed to relaunch after force-stop" >&2; exit 1
 fi
 adb shell dumpsys activity activities > /tmp/ghost-signal-activities-restart.txt
+RESUMED_RESTART="$(adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity|ResumedActivity" || true)"
+if ! grep -Fq "$PACKAGE/" <<< "$RESUMED_RESTART"; then
+  echo "Ghost Signal did not resume to foreground after force-stop: $RESUMED_RESTART" >&2; exit 1
+fi
 grep -F "$PACKAGE" /tmp/ghost-signal-activities-restart.txt
 adb exec-out screencap -p > ghost-signal-emulator-restart.png
 test -s ghost-signal-emulator-restart.png
