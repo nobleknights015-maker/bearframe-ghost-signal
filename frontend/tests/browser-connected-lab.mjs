@@ -82,6 +82,14 @@ try{
   assert.equal(powered.world.inventory['repair-kit'],2);
   assert.equal(powered.world.quests.expedition,'power-restored');
   await page.locator('#lab-rpg-menu').click();
+  assert.equal(await page.evaluate(()=>document.activeElement?.textContent),'SAVE EXPEDITION');
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await page.evaluate(()=>document.activeElement?.textContent),'CLOSE',
+    'Arrow keys must navigate modal without moving the field actor');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await page.evaluate(()=>document.activeElement?.textContent),'SAVE EXPEDITION');
+  await page.keyboard.press('Enter'); // real keyboard confirmation
+  assert.equal((await state()).mode,'rpgmenu','Confirm must keep record open');
   await page.getByRole('button',{name:'SAVE EXPEDITION'}).click();
   assert.equal((await state()).save.hasSave,true);
   assert.match(await page.locator('#rpg-lab-menu').innerText(),/POWER RELAY: ACTIVE/);
