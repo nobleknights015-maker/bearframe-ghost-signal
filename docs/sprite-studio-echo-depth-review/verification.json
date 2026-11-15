@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "2297a5f05d1a7385ae0f31325fdcab355513a685",
+  "workflowRun": 43729764098,
+  "nativeChecks": 29,
+  "browserChecks": 37,
+  "build": "PASS",
+  "rasterOcclusion": {
+    "nearArmPixels": 411,
+    "farArmOccludedPixels": 294,
+    "nearBodyOverlapPixels": 136
+  },
+  "unchangedOtherEchoRenders": 336,
+  "visualReview": "Quarter-cycle contact frames inspected; owner visual acceptance pending.",
+  "supersedes": "Blanket back-arm all-visible rule and coverage test."
+}
