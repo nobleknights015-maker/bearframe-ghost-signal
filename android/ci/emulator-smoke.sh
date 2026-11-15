@@ -7,10 +7,12 @@ AAPT="$(find "$SDK_ROOT/build-tools" -maxdepth 2 -type f -name aapt | sort -V | 
 if [[ -z "$AAPT" ]]; then echo "Android aapt not found under $SDK_ROOT/build-tools" >&2; exit 1; fi
 PACKAGE="$("$AAPT" dump badging "$APK" | awk -F "'" '/^package: name=/ && !found {package=$2; found=1} END {if (found) print package}')"
 if [[ -z "$PACKAGE" ]]; then echo "Cannot read APK package" >&2; exit 1; fi
-echo "Installing $APK ($PACKAGE)"
+LAUNCH_ACTIVITY="$("$AAPT" dump badging "$APK" | awk -F "\x27" '/^launchable-activity: name=/ {print $2; exit}')"
+if [[ -z "$LAUNCH_ACTIVITY" ]]; then echo "No launchable Activity declared in APK" >&2; exit 1; fi
+echo "Installing $APK ($PACKAGE; launch $LAUNCH_ACTIVITY)"
 adb install -r "$APK"
 adb shell am force-stop "$PACKAGE" || true
-adb shell monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1
+adb shell am start -W -n "$PACKAGE/$LAUNCH_ACTIVITY"
 sleep 15
 adb shell pidof "$PACKAGE" | tee /tmp/ghost-signal-emulator-pid
 test -s /tmp/ghost-signal-emulator-pid
@@ -24,7 +26,7 @@ adb shell am force-stop "$PACKAGE"
 if adb shell pidof "$PACKAGE" >/dev/null 2>&1; then
   echo "App process survived force-stop" >&2; exit 1
 fi
-adb shell monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1
+adb shell am start -W -n "$PACKAGE/$LAUNCH_ACTIVITY"
 sleep 10
 RESTART_PID="$(adb shell pidof "$PACKAGE" | tr -d '\r')"
 if [[ -z "$RESTART_PID" ]]; then
