@@ -46,8 +46,17 @@ try{
     touchTarget.y+touchTarget.height/2);
   await page.locator('#rpg-lab-menu').waitFor({state:'visible'});
   assert.equal((await labState()).mode,'rpgmenu');
-  await page.getByRole('button',{name:'SAVE',exact:true}).last().click();
-  await page.getByRole('button',{name:'SAVE RPG TEST RECORD'}).click();
+  // Follow the same physical touch path through the save tab and commit action.
+  // A tap must hit the rendered button, not invoke an element's click handler directly.
+  async function tapVisibleButton(locator){
+    const bounds=await locator.boundingBox();
+    assert.ok(bounds&&bounds.width>0&&bounds.height>0,
+      'Save control must remain visible and touch-addressable');
+    await page.touchscreen.tap(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+  }
+  await tapVisibleButton(page.getByRole('button',{name:'SAVE',exact:true}).last());
+  await page.getByRole('button',{name:'SAVE RPG TEST RECORD'}).waitFor({state:'visible'});
+  await tapVisibleButton(page.getByRole('button',{name:'SAVE RPG TEST RECORD'}));
   assert.equal((await labState()).save.hasSave,true);
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.__rpgLab && window.__gs?.m?.id==='rpg-lab');
