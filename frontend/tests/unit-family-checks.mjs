@@ -16,5 +16,20 @@ export async function unitFamilyChecks(prefix){
  // Force multiple pages and independently recompose every frame rectangle.
  const set=SS.newSet(20,20,['down','up'],[{name:'idle',type:'idle',frames:5,fps:8}]);for(const d of set.dirs)for(let i=0;i<5;i++){const x=SS.cell(set,d,'idle',i).getContext('2d');x.fillStyle=`rgb(${i*20+1},${d==='up'?100:10},33)`;x.fillRect(0,0,20,20);}
  const atlas=SS.buildAtlasPages(set,{},40);assert(atlas.pages.length===3,'page count');for(const f of atlas.meta.frames){assert(atlas.pages[f.page].width<=40&&atlas.pages[f.page].height<=40,'page limit');const x=atlas.pages[f.page].getContext('2d').getImageData(f.x,f.y,1,1).data,y=SS.cell(set,f.direction,f.animation,f.index).getContext('2d').getImageData(0,0,1,1).data;assert([...x].every((v,i)=>v===y[i]),'atlas rectangle wrong');}
- return {reach,renders,bounds,pages:atlas.pages.length,frames:atlas.meta.frames.length,family:rig.unitSpec.family};
+ const G=await import(prefix+'grid-families.js');
+ // A planted foot cancels constant world travel, including the slower ripple stride.
+ for(const duty of [.6,5/6]){const a=G.crawlerStep(.1,duty),b=G.crawlerStep(.2,duty);assert(Math.abs(b.x-a.x+10/duty*.1)<1e-8,'planted crawler foot slides');}
+let gridRenders=0,gridBounds=0,contacts=0;
+ for(const gait of ['tripod','ripple'])for(let i=0;i<120;i++){let support=0;for(let k=0;k<6;k++){const phase=gait==='ripple'?k/6:([0,2,4].includes(k)?0:.5);if(G.crawlerStep(i/120+phase,gait==='ripple'?5/6:.6).stance)support++;}assert(support>=(gait==='ripple'?5:3),'crawler support lost');contacts++;}
+ for(const build of [()=>G.gridCrawler(),()=>G.gridCrawler({gait:'ripple',role:'salvager'}),()=>G.orbitalCore(),()=>G.orbitalCore({role:'relay'})]){
+  const original=build(),p=SS.machineProject(original.name,original);fitMachineProject(p);const anchor=JSON.stringify(p.rig.groundAnchor);
+  for(const d of ['down','up','right','left'])for(const type of Object.keys(original.anims))for(let i=0;i<8;i++){
+   const e=evaluateUnit(p.rig,d,type,i,8);assert(JSON.stringify(e.groundAnchor)===anchor,'hover anchor moved');validateRig(e);
+   if(original.unitSpec.family==='six-leg-crawler'){for(const id of G.CRAWLER_LEGS){const u=e.views[d].find(x=>x.id==='leg.'+id+'.upper'),l=e.views[d].find(x=>x.id==='leg.'+id+'.lower');assert(u.h===22&&l.h===24,'crawler bone length changed');}}
+   const c=cv(p.rig.w,p.rig.h);renderRig(c.getContext('2d'),p.rig,d,type,i,8,c.width,c.height);const px=c.getContext('2d').getImageData(0,0,c.width,c.height).data;assert(px.some((v,k)=>k%4===3&&v===255),'empty Grid view');assert(px.every((v,k)=>k%4!==3||v===0||v===255),'Grid alpha');gridRenders++;
+   const b=renderRig(null,p.rig,d,type,i,8,p.rig.w,p.rig.h,{boundsOnly:true});assert(b.left>=0&&b.top>=0&&b.right<=p.rig.w&&b.bottom<=p.rig.h,'Grid clipping');gridBounds++;
+  }
+  const reopened=await SS.deserialize(SS.serialize(p));assert(reopened.rig.unitSpec.family===original.unitSpec.family,'Grid save family');assert(JSON.stringify(reopened.rig.groundAnchor)===anchor,'Grid save anchor');
+ }
+ return {gridRenders,gridBounds,contacts,reach,renders,bounds,pages:atlas.pages.length,frames:atlas.meta.frames.length,family:rig.unitSpec.family};
 }

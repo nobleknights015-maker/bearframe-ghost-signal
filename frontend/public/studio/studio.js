@@ -1,3 +1,4 @@
+import {gridCrawler,orbitalCore} from './lib/grid-families.js';
 import {industrialEcho} from './lib/unit-families.js';
 import {fitMachineProject} from './lib/machine-bounds.js';
 import {validateRig} from './lib/rig-safety.js';
@@ -99,7 +100,7 @@ function buildCfg() {
       el('div', { className: 'hint', textContent: `Design grid ${r.w}×${r.h}. ${Object.keys(r.views).join(' / ')} views.` }));
     if (!r.ref) box.append(field('Style', sel(['classic', 'sleek'], r.style || 'classic', v => { r.style = v; regenSoon(); }, 'machine-style')));
     ['rust', 'moss', 'wear'].forEach(k => box.append(field('Weathering: ' + k, range(0, 1, .05, r.weather[k] || 0, v => { r.weather[k] = v; regenSoon(); }, 'weather-' + k))));
-    if(r.unitSpec){box.append(field('Industrial role',sel(['survey','maintenance'],r.unitSpec.role,v=>{const next=industrialEcho({...r.unitSpec,role:v});if(r.unitSpec.offset){const {x,y}=r.unitSpec.offset;for(const parts of Object.values(next.views))for(const p of parts)if(!p.p){p.x+=x;p.y+=y;}next.w=r.w;next.h=r.h;next.groundAnchor=r.groundAnchor;}P.rig={...next,colors:r.colors,weather:r.weather};refresh();regenSoon();},'unit-role')));}
+    if(r.unitSpec){const family=r.unitSpec.family,builder=family==='six-leg-crawler'?gridCrawler:family==='orbital-core'?orbitalCore:industrialEcho,roles=family==='six-leg-crawler'?['cartographer','salvager']:family==='orbital-core'?['analyst','relay']:['survey','maintenance'];box.append(field('Unit role',sel(roles,r.unitSpec.role,v=>{const next=builder({...r.unitSpec,role:v});if(r.unitSpec.offset){const {x,y}=r.unitSpec.offset;for(const parts of Object.values(next.views))for(const p of parts)if(!p.p){p.x+=x;p.y+=y;}next.w=r.w;next.h=r.h;next.groundAnchor=r.groundAnchor;}P.rig={...next,colors:r.colors,weather:r.weather};refresh();regenSoon();},'unit-role')));}
     const fit=el('button',{textContent:'Fit all animation margins'});fit.dataset.testid='fit-machine';fit.onclick=async()=>{try{fitMachineProject(P);undo=[];refresh();await generate('unedited');status('Machine margins fitted without scaling the body or footprint.');}catch(e){status(e.message);}};box.append(fit);
     box.append(colors(r.colors, COLOR_ROLES));
   } else box.append(el('div', { className: 'hint', textContent: 'Hand-drawn project. Use the pixel tools, import a PNG sheet, or switch type to start from a rig.' }));

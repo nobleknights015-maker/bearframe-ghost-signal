@@ -78,6 +78,10 @@ try {
   while(at+30<data.length&&data.readUInt32LE(at)===0x04034b50){const size=data.readUInt32LE(at+18),nl=data.readUInt16LE(at+26),el=data.readUInt16LE(at+28),name=data.subarray(at+30,at+30+nl).toString(),start=at+30+nl+el;if(name==='metadata.json')metadata=JSON.parse(data.subarray(start,start+size).toString());if(name.endsWith('.png')){pages++;assert(data.readUInt32BE(start+16)<=2048&&data.readUInt32BE(start+20)<=2048);}at=start+size;}
   assert(metadata&&pages>0);assert.equal(metadata.format,'bearframe-paged-atlas');assert.equal(metadata.frames.length,80);assert.equal(metadata.locomotion.strideLength,10);check('Industrial role, authored views, fitted save and real bounded atlas ZIP',{pages,frames:metadata.frames.length});
  }
+ if(!beforeOnly)for(const [preset,role,family] of [['Grid Crawler (family prototype)','salvager','six-leg-crawler'],['Orbital Core (family prototype)','relay','orbital-core']]){
+  await page.getByTestId('machine-preset').selectOption(preset);await wait();await page.getByTestId('unit-role').selectOption(role);await wait();await page.getByTestId('fit-machine').click();await wait();
+  assert.equal(await page.evaluate(()=>__studio.project.rig.unitSpec.family),family);assert.equal(await page.evaluate(()=>__studio.project.rig.unitSpec.role),role);await page.getByTestId('dir-left').click();await wait();check('Grid family role and four-view editor: '+family);
+ }
  await page.setViewportSize({width:915,height:412});await page.getByTestId('dir-left').click();await wait();check('Phone landscape generation/direction switch');await page.screenshot({path:path.join(out,'phone-landscape-editor.png'),fullPage:true});
  assert.deepEqual(results.pageErrors,[]);check('No browser page errors');
  // Exact raw native renders for reproducible visual review; no screenshot/phone metadata.
