@@ -49,6 +49,9 @@ jobs:
       - name: Browser tactics — charged sentry intent and guard response
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab-tactics.mjs
 
+      - name: Connected expedition — real Tiled map crossing, interactions, saves
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-connected-lab.mjs
+
       - name: Upload browser failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
