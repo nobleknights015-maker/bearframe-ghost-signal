@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {startBattle,currentCombatant,combatAction,enemyDecision,battleResultPatch} from '../public/js/engine/rpg-combat.js';
+import {startBattle,currentCombatant,combatAction,enemyDecision,enemyForecast,battleResultPatch} from '../public/js/engine/rpg-combat.js';
 const units=()=>({party:[{id:'sleeper',name:'Sleeper',hp:35,maxHp:40,ep:10,maxEp:10,attack:12,defense:4,speed:11}],enemies:[{id:'drone',hp:30,maxHp:30,attack:7,defense:2,speed:6}],inventory:{'repair-kit':2},rewards:{xp:12,items:{scrap:2}}});
 test('initial battle sorts deterministic turns and freezes state',()=>{
  const s=startBattle(units()); assert.equal(currentCombatant(s),'party:sleeper'); assert.ok(Object.isFrozen(s.party[0]));
@@ -60,4 +60,59 @@ test('authored party skill catalogs are enforced by the battle rules, not just b
  s=combatAction(s,enemyDecision(s));
  assert.throws(()=>startBattle({...units(),party:[{...units().party[0],skills:['pulse','pulse']}]}),/Invalid combatant skills/);
  assert.throws(()=>startBattle({...units(),party:[{...units().party[0],skills:['hack-world']}]}),/Invalid combatant skills/);
+});
+
+
+test('authored sentry telegraphs charged damage, allowing targeted guard mitigation',()=>{
+ const config=units();
+ config.party=[{...config.party[0],id:'sleeper',hp:38,maxHp:38,speed:10,skills:['pulse','guard']},
+  {id:'echo',hp:29,maxHp:29,ep:10,maxEp:10,attack:7,defense:2,speed:7,skills:['repair','guard']}];
+ config.enemies=[{id:'sentry',name:'Old Sentry',hp:100,maxHp:100,attack:9,defense:4,speed:8,tactics:'charged-strike'}];
+ let battle=startBattle(config);
+ assert.equal(enemyForecast(battle).kind,'charge');
+ battle=combatAction(battle,{actor:'party:sleeper',type:'attack',target:'enemy:sentry'});
+ assert.equal(enemyDecision(battle).type,'charge');
+ battle=combatAction(battle,enemyDecision(battle));
+ assert.equal(battle.enemies[0].chargeTarget,'party:sleeper');
+ assert.equal(enemyForecast(battle).kind,'overload');
+ assert.match(enemyForecast(battle).text,/SLEEPER.*GUARD OR DISRUPT/);
+ assert.equal(battle.party[0].hp,38,'Telegraph turn itself deals no damage');
+ battle=combatAction(battle,{actor:'party:echo',type:'guard'});
+ battle=combatAction(battle,{actor:'party:sleeper',type:'guard'});
+ assert.equal(enemyDecision(battle).type,'overload');
+ assert.throws(()=>combatAction(battle,{actor:'enemy:sentry',type:'overload',target:'party:echo'}),/No charged strike/);
+ battle=combatAction(battle,enemyDecision(battle));
+ assert.equal(battle.party[0].hp,29,'Guard must halve the exact 18-point heavy attack to 9');
+ assert.equal(battle.enemies[0].chargeTarget,null);
+ assert.equal(enemyForecast(battle).kind,'charge','Sentry must telegraph the next heavy attack too');
+});
+test('Pulse interrupts a visible charge but does not grant a free enemy turn',()=>{
+ const config=units();
+ config.party=[{...config.party[0],id:'sleeper',hp:38,maxHp:38,speed:10,skills:['pulse','guard']},
+  {id:'echo',hp:29,maxHp:29,ep:10,maxEp:10,attack:7,defense:2,speed:7,skills:['repair','guard']}];
+ config.enemies=[{id:'sentry',hp:100,maxHp:100,attack:9,defense:4,speed:8,tactics:'charged-strike'}];
+ let battle=startBattle(config);
+ battle=combatAction(battle,{actor:'party:sleeper',type:'attack',target:'enemy:sentry'});
+ battle=combatAction(battle,enemyDecision(battle));
+ battle=combatAction(battle,{actor:'party:echo',type:'guard'});
+ const original=battle;
+ battle=combatAction(battle,{actor:'party:sleeper',type:'pulse',target:'enemy:sentry'});
+ assert.equal(battle.party[0].ep,5);
+ assert.equal(battle.enemies[0].chargeTarget,null);
+ assert.equal(battle.enemies[0].disrupted,true);
+ assert.equal(enemyForecast(battle).kind,'attack');
+ assert.match(battle.log.at(-1),/CHARGE DISRUPTED/);
+ assert.equal(original.enemies[0].chargeTarget,'party:sleeper','Battle transitions cannot mutate earlier snapshots');
+ assert.equal(enemyDecision(battle).type,'attack');
+ battle=combatAction(battle,enemyDecision(battle));
+ assert.equal(battle.enemies[0].disrupted,false);
+ assert.equal(battle.party[0].hp,31,'Disrupted attack remains a normal threat with a meaningful consequence');
+});
+test('authored enemy tactics reject invalid and forged player charge actions',()=>{
+ const config=units();
+ assert.throws(()=>startBattle({...config,enemies:[{...config.enemies[0],tactics:'infinite-win'}]}),/Invalid enemy combat tactics/);
+ assert.throws(()=>startBattle({...config,party:[{...config.party[0],tactics:'charged-strike'}]}),/Invalid enemy combat tactics/);
+ const battle=startBattle(config);
+ assert.throws(()=>combatAction(battle,{actor:'party:sleeper',type:'charge',target:'enemy:drone'}),/Charge action unavailable/);
+ assert.throws(()=>combatAction(battle,{actor:'party:sleeper',type:'overload',target:'enemy:drone'}),/No charged strike/);
 });
