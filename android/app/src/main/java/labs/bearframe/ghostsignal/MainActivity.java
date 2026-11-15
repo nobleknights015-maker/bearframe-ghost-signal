@@ -51,8 +51,8 @@ public final class MainActivity extends Activity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient());
-        // Development APK opens the isolated integration lab. Release keeps the original game entrypoint.
-        webView.loadUrl(BuildConfig.DEBUG ? APP_URL + "?rpg-lab=1" : APP_URL);
+        // Development APK offers both opt-in labs; production still launches untouched Ghost Signal.
+        webView.loadUrl(BuildConfig.DEBUG ? "https://appassets.androidplatform.net/engine-lab.html" : APP_URL);
     }
 
     @Override public void onBackPressed() {
