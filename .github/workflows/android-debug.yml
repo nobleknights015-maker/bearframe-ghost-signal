@@ -7,6 +7,9 @@ on:
       - 'frontend/public/**'
       - '.github/workflows/android-debug.yml'
   workflow_dispatch:
+concurrency:
+  group: ghost-signal-android-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   assemble:
     runs-on: ubuntu-24.04
@@ -35,8 +38,25 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Assemble development APK
-        run: gradle -p android :app:assembleDebug --no-daemon --stacktrace
+      - name: Assemble development APK (retry network rate limits only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if gradle -p android :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/ghost-signal-gradle.log; then
+              exit 0
+            fi
+            if ! grep -Eq 'Received status code 429|Too Many Requests|Could not GET|Read timed out|Connection reset' /tmp/ghost-signal-gradle.log; then
+              echo "Gradle failed for a non-network reason; no blind retries."
+              exit 1
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "Gradle dependency network throttling persisted after bounded retries."
+              exit 1
+            fi
+            echo "Gradle download failed from external repository. Backoff before retry $((attempt+1))."
+            sleep $((attempt * 35))
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: ghost-signal-engine-android-debug
