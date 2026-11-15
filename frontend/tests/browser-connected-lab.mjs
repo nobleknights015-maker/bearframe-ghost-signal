@@ -104,7 +104,7 @@ try{
   await page.locator('#btn-pause').click();
   await page.waitForFunction(()=>window.__gs?.mode==='pause');
   await page.locator('#btn-quit').click();
-  await page.waitForURL(/engine-lab\\.html/);
+  await page.waitForURL(/engine-lab\.html/);
   const launcher=page.getByRole('navigation',{name:'Engine test modes'});
   assert.equal(await launcher.getByRole('link').count(),4);
   assert.equal(await launcher.getByRole('link',{name:'ORIGINAL GHOST SIGNAL'}).getAttribute('href'),'index.html');
@@ -116,7 +116,7 @@ try{
   await page.locator('#btn-pause').click();
   await page.waitForFunction(()=>window.__gs?.mode==='pause');
   await page.locator('#btn-quit').click();
-  await page.waitForURL(/engine-lab\\.html/);
+  await page.waitForURL(/engine-lab\.html/);
   const connected=page.getByRole('link',{name:'CONNECTED WORLD'});
   const area=await connected.boundingBox();
   assert.ok(area);
