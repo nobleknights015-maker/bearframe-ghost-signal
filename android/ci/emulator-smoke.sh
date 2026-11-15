@@ -9,6 +9,23 @@ PACKAGE="$("$AAPT" dump badging "$APK" | awk -F "'" '/^package: name=/ && !found
 if [[ -z "$PACKAGE" ]]; then echo "Cannot read APK package" >&2; exit 1; fi
 LAUNCH_ACTIVITY="$("$AAPT" dump badging "$APK" | awk -F "\x27" '/^launchable-activity: name=/ {print $2; exit}')"
 if [[ -z "$LAUNCH_ACTIVITY" ]]; then echo "No launchable Activity declared in APK" >&2; exit 1; fi
+# Emulator ADB and activity-manager reporting can lag after cold starts. Poll the
+# actual resumed Activity instead of treating a single empty dumpsys as failure.
+assert_foreground() {
+  local phase="$1" resumed="" attempt
+  for attempt in $(seq 1 12); do
+    resumed="$(adb shell dumpsys activity activities 2>/dev/null | grep -E 'mResumedActivity|topResumedActivity|ResumedActivity' || true)"
+    if grep -Fq "$PACKAGE/" <<< "$resumed"; then
+      echo "$phase foreground confirmed on attempt $attempt: $resumed"
+      return 0
+    fi
+    sleep 5
+  done
+  echo "$phase: no foreground Activity after 60s; last resumed: $resumed" >&2
+  adb shell dumpsys activity activities | tail -100 >&2 || true
+  adb logcat -d -t 250 | grep -E 'FATAL EXCEPTION|ANR in|ghostsignal' | tail -60 >&2 || true
+  return 1
+}
 echo "Installing $APK ($PACKAGE; launch $LAUNCH_ACTIVITY)"
 adb install -r "$APK"
 adb shell am force-stop "$PACKAGE" || true
@@ -18,10 +35,7 @@ adb shell pidof "$PACKAGE" | tee /tmp/ghost-signal-emulator-pid
 test -s /tmp/ghost-signal-emulator-pid
 adb shell dumpsys activity activities > /tmp/ghost-signal-activities.txt
 # A live process is insufficient: verify that our Activity is actually resumed.
-RESUMED="$(adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity|ResumedActivity" || true)"
-if ! grep -Fq "$PACKAGE/" <<< "$RESUMED"; then
-  echo "Ghost Signal is not the resumed foreground Activity: $RESUMED" >&2; exit 1
-fi
+assert_foreground "Initial launch"
 # Game is landscape-only; confirm emulator rotation at the window manager level.
 DISPLAY="$(adb shell wm size | tr -d '\\r')"
 echo "Emulator display: $DISPLAY"
@@ -47,10 +61,7 @@ if [[ -z "$RESTART_PID" ]]; then
   echo "App failed to relaunch after force-stop" >&2; exit 1
 fi
 adb shell dumpsys activity activities > /tmp/ghost-signal-activities-restart.txt
-RESUMED_RESTART="$(adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity|ResumedActivity" || true)"
-if ! grep -Fq "$PACKAGE/" <<< "$RESUMED_RESTART"; then
-  echo "Ghost Signal did not resume to foreground after force-stop: $RESUMED_RESTART" >&2; exit 1
-fi
+assert_foreground "Process restart"
 grep -F "$PACKAGE" /tmp/ghost-signal-activities-restart.txt
 adb exec-out screencap -p > ghost-signal-emulator-restart.png
 test -s ghost-signal-emulator-restart.png
@@ -60,8 +71,5 @@ sleep 2
 if ! adb shell pidof "$PACKAGE" >/dev/null 2>&1; then
   echo "Restarted app died after injected touch" >&2; exit 1
 fi
-RESUMED_TOUCH="$(adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity|ResumedActivity" || true)"
-if ! grep -Fq "$PACKAGE/" <<< "$RESUMED_TOUCH"; then
-  echo "App left foreground after injected touch: $RESUMED_TOUCH" >&2; exit 1
-fi
+assert_foreground "Post-restart touch"
 echo "Emulator install, launch, touch-dispatch and process-restart smoke passed: $PACKAGE (pid $RESTART_PID)"
