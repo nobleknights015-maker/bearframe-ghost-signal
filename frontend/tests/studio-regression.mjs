@@ -82,6 +82,9 @@ try {
   await page.getByTestId('machine-preset').selectOption(preset);await wait();await page.getByTestId('unit-role').selectOption(role);await wait();await page.getByTestId('fit-machine').click();await wait();
   assert.equal(await page.evaluate(()=>__studio.project.rig.unitSpec.family),family);assert.equal(await page.evaluate(()=>__studio.project.rig.unitSpec.role),role);await page.getByTestId('dir-left').click();await wait();check('Grid family role and four-view editor: '+family);
  }
+ if(!beforeOnly)for(const preset of ['Ancient Bulwark (design study)','Ancient Breaker (design study)','Slender Keeper (design study)','Slender Surveyor (design study)','Suspended Archivist (design study)','Asymmetric Relay (design study)']){
+  await page.getByTestId('machine-preset').selectOption(preset);await wait();await page.getByTestId('fit-machine').click();await wait();const state=await page.evaluate(()=>({spec:__studio.project.rig.worldSpec,clips:__studio.set.anims.map(a=>a.name)}));assert.equal(state.spec.stage,'design-study');assert(state.clips.includes('idle'));assert(!state.clips.includes('attack'));await page.getByTestId('dir-up').click();await wait();check('World variety design and supported clips: '+preset);
+ }
  await page.setViewportSize({width:915,height:412});await page.getByTestId('dir-left').click();await wait();check('Phone landscape generation/direction switch');await page.screenshot({path:path.join(out,'phone-landscape-editor.png'),fullPage:true});
  assert.deepEqual(results.pageErrors,[]);check('No browser page errors');
  // Exact raw native renders for reproducible visual review; no screenshot/phone metadata.

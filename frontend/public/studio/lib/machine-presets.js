@@ -1,3 +1,4 @@
+import {WORLD_VARIETIES} from './world-varieties.js';
 import {gridCrawler,orbitalCore} from './grid-families.js';
 import {industrialEcho} from './unit-families.js';
 // Example machine rigs for Bearframe Sprite Studio. Pure data builders (no DOM): usable from Node to write example projects.
@@ -127,4 +128,4 @@ function microDrone() {
 }
 function blank() { return { name: 'Custom machine', w: 48, h: 48, tiles: [1, 1], colors: { ...ANCIENT }, weather: { rust: 0, moss: 0, wear: 0 }, views: { down: [P('body', null, 'plate', 24, 28, 20, 16, { oy: 8 }), P('eye', 'body', 'disc', 0, 0, 6, 6, { ox: 3, oy: 3, g: 'glow', z: 1 })], right: [P('body', null, 'plate', 24, 28, 20, 16, { oy: 8 }), P('eye', 'body', 'disc', 6, 0, 6, 6, { ox: 3, oy: 3, g: 'glow', z: 1 })] }, anims: { idle: { body: { y: [1, 0] }, eye: { glow: [.3, 0] } }, walk: { body: { y: [1, 0, 2] } } } }; }
 
-export const MACHINE_PRESETS = { 'Grid Crawler (family prototype)': gridCrawler, 'Grid Crawler ripple (family prototype)': ()=>gridCrawler({gait:'ripple'}), 'Orbital Core (family prototype)': orbitalCore, 'Industrial Echo (family prototype)': industrialEcho, 'Heavy Sentinel (humanoid titan)': heavySentinel, 'Hexapod Cartography Engine': hexapod, 'Archive Sentinel (floating boss)': archiveSentinel, 'Micro-drone (flyer)': microDrone, 'Custom machine (blank rig)': blank };
+export const MACHINE_PRESETS = { ...WORLD_VARIETIES, 'Grid Crawler (family prototype)': gridCrawler, 'Grid Crawler ripple (family prototype)': ()=>gridCrawler({gait:'ripple'}), 'Orbital Core (family prototype)': orbitalCore, 'Industrial Echo (family prototype)': industrialEcho, 'Heavy Sentinel (humanoid titan)': heavySentinel, 'Hexapod Cartography Engine': hexapod, 'Archive Sentinel (floating boss)': archiveSentinel, 'Micro-drone (flyer)': microDrone, 'Custom machine (blank rig)': blank };

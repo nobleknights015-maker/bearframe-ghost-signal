@@ -22,6 +22,13 @@ export function machineProject(name, rig) {
   validateRig(rig);const p = base(name, 'machine'); p.rig = JSON.parse(JSON.stringify(rig)); p.tiles = rig.tiles || [1, 1];
   p.sets = { exploration: newSet(rig.w, rig.h, [...DIRS], [A('idle', 6, 6), A('walk', 8, 10), A('malfunction', 6, 10)]),
     battle: newSet(Math.round(rig.w * 1.5), Math.round(rig.h * 1.5), ['right', 'left'], [A('idle', 6, 6), A('attack', 6, 10), A('charge', 6, 10), A('hurt', 4, 10), A('malfunction', 6, 10), A('defeat', 6, 6)]) };
+  if(rig.clips){
+    for(const name of ['exploration','battle']){
+      const clips=rig.clips[name];if(!Array.isArray(clips)||!clips.length)throw Error('Missing supported '+name+' clips');
+      const names=new Set();for(const a of clips){if(!a||typeof a.name!=='string'||!a.name||names.has(a.name)||!Object.hasOwn(rig.anims,a.type)||!Number.isInteger(a.frames)||a.frames<1||a.frames>120||!Number.isFinite(a.fps)||a.fps<=0||a.fps>60)throw Error('Invalid supported clip');names.add(a.name);}
+      p.sets[name].anims=structuredClone(clips);
+    }
+  }
   if(rig.groundAnchor)for(const s of Object.values(p.sets)){const k=Math.min(s.fw/rig.w,s.fh/rig.h);s.anchor={x:rig.groundAnchor.x*k,y:rig.groundAnchor.y*k};}
   return p;
 }

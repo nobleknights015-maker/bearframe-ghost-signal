@@ -29,7 +29,7 @@ export async function renderChecks({beforeOnly=false,currentPrefix='/studio/lib/
    previews.push({name,kind:'humanoid',w:64,h:112,frames});
   }
   for(const [name,build] of Object.entries(presets.MACHINE_PRESETS)){
-   const rig=build();if(rig.unitSpec)continue;
+   const rig=build();if(rig.unitSpec||rig.worldSpec)continue;
    for(const type of Object.keys(rig.anims))for(const dir of old.DIRS)for(const i of [0,3,7]){
     const a=canvas(rig.w,rig.h),b=canvas(rig.w,rig.h);oldMachine.renderRig(a.getContext('2d'),rig,dir,type,i,8,rig.w,rig.h);machine.renderRig(b.getContext('2d'),rig,dir,type,i,8,rig.w,rig.h);valid(b);
     if(!equal(pixels(a),pixels(b)))throw Error('legacy machine changed '+[name,type,dir,i]);classic++;
