@@ -28,7 +28,7 @@ export function createSideViewBattleScene(manifest={}) {
     img.onerror=()=>{images[key].loaded=false;};
     img.src=new URL('../../'+spec.src,import.meta.url).href;
   }
-  let state=null,activeKey=null,cue=null,started=performance.now(),isRunning=false,frameToken=null;
+  let state=null,activeKey=null,cue=null,queue=[],started=performance.now(),isRunning=false,frameToken=null;
   const elapsed=()=>Math.max(0,(performance.now()-started)/1000);
   function background(t) {
     rect(c,0,0,416,116,COL.bg);
@@ -63,7 +63,7 @@ export function createSideViewBattleScene(manifest={}) {
     const active=selected?COL.red:side==='party'?COL.ally:COL.foe;
     const phase=Math.round(Math.sin(t*5+index)*1);
     let offset=0;
-    if(pose==='attack'||pose==='ranged')offset=side==='party'?12:-12;
+    if(['attack','ranged','overload'].includes(pose))offset=side==='party'?12:-12;
     if(pose==='hit')offset=(Math.floor(t*34)%2?2:-2);
     const X=x+offset,Y=y+phase;
     const isFoe=side==='enemy';
@@ -82,7 +82,7 @@ export function createSideViewBattleScene(manifest={}) {
     rect(c,-3,-29,8,3,isFoe?COL.red:'#b9e2eb'); // old-core diagnostic stripe
     rect(c,-13,-34,4,18,'#71828d');
     rect(c,9,-34,4,18,'#71828d');
-    if(pose==='attack'||pose==='ranged'){
+    if(['attack','ranged','overload'].includes(pose)){
       rect(c,10,-34,15,4,isFoe?'#f2bd75':'#dcd6d8');
       rect(c,22,-36,4,8,COL.red);
     } else if(pose==='guard'){
@@ -102,7 +102,7 @@ export function createSideViewBattleScene(manifest={}) {
     const height=Math.min(86,spec.frameHeight*spec.scale),scale=height/spec.frameHeight;
     const width=spec.frameWidth*scale;
     let nudge=0;
-    if(pose==='attack'||pose==='ranged')nudge=slot.side==='party'?12:-12;
+    if(['attack','ranged','overload'].includes(pose))nudge=slot.side==='party'?12:-12;
     if(pose==='hit')nudge=(Math.floor(t*24)%2?2:-2);
     c.save();
     c.translate(Math.round(slot.x+nudge),Math.round(slot.y));
@@ -117,7 +117,7 @@ export function createSideViewBattleScene(manifest={}) {
   function cues(slots,t){
     if(!cue)return;
     const age=t-cue.when;
-    if(age<0||age>.68){if(age>.68)cue=null;return;}
+    if(age<0||age>.55)return;
     const target=slots.find(x=>x.key===cue.target);
     const from=slots.find(x=>x.key===cue.actor);
     const spread=Math.round(age*10);
@@ -140,6 +140,8 @@ export function createSideViewBattleScene(manifest={}) {
     const t=(now-started)/1000;
     background(t);
     if(!state)return;
+    cue=queue.find(entry=>t>=entry.when&&t-entry.when<.55)||null;
+    if(!cue&&queue.length&&t>queue[queue.length-1].when+.55)queue=[];
     const slots=sideViewSlots(state);
     for(const slot of slots){
       const unit=get(state,slot.key);
@@ -147,7 +149,8 @@ export function createSideViewBattleScene(manifest={}) {
       if(active&&unit.hp>0){rect(c,slot.x-18,slot.y+11,36,1,COL.red);}
       const delta=cue?t-cue.when:1e5;
       const pose=unit.hp===0?'down':
-        cue&&delta>=0&&delta<.34&&cue.actor===slot.key?cue.kind:
+        cue&&delta>=0&&delta<.34&&cue.actor===slot.key?
+          (['pulse','repair','item'].includes(cue.kind)?'cast':cue.kind):
         cue&&delta>=0&&delta<.42&&cue.target===slot.key?
           (cue.kind==='attack'||cue.kind==='pulse'||cue.kind==='overload'?'hit':'idle'):
         unit.guard?'guard':unit.chargeTarget?'charge':'idle';
@@ -181,9 +184,12 @@ export function createSideViewBattleScene(manifest={}) {
         ' allied frames left, '+battle.enemies.length+' enemies right');
       draw(performance.now());start();
     },
-    playAction(action){
-      cue={actor:action.actor,target:action.target||null,
-        kind:action.type,when:elapsed()};
+    playActions(actions){
+      if(!Array.isArray(actions))throw new TypeError('Expected ordered combat actions');
+      const begin=elapsed();
+      queue=actions.map((action,index)=>({actor:action.actor,target:action.target||null,
+        kind:action.type,when:begin+index*.55}));
+      cue=null;
     },
     get layout(){return state?sideViewSlots(state):[];},
     stop
