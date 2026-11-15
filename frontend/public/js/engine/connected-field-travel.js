@@ -4,6 +4,14 @@
 const copy=value=>structuredClone(value);
 export function createConnectedFieldTravel({game,graph,missionFor,readJournal,writeJournal}){
   if(!game||!graph||!missionFor||!readJournal||!writeJournal)throw new Error('Connected travel: missing dependency');
+  // Game.start() checkpoints fresh missions. A connected-area transition must not
+  // write to Ghost Signal's original mission save namespace.
+  const startWithoutLegacySave=(mission,snapshot)=>{
+    const originalStore=game.store;
+    if(!originalStore||typeof originalStore.save!=='function')throw new Error('Connected travel: missing Game save adapter');
+    game.store={...originalStore,save:()=>true};
+    try{game.start(mission,snapshot);}finally{game.store=originalStore;}
+  };
   let busy=false;
   const transition=async(portalId)=>{
     if(busy||game.mode!=='play')return false;
@@ -24,7 +32,7 @@ export function createConnectedFieldTravel({game,graph,missionFor,readJournal,wr
       journal.maps[source]=before;
       const prior=journal.maps[destination.mapId]??null;
       // Game.start is the existing renderer/collision/drone initialization path.
-      game.start(mission,prior);
+      startWithoutLegacySave(mission,prior);
       if(!game.free(destination.x,destination.y))throw new Error('Connected travel: blocked arrival');
       Object.assign(game.player,{x:destination.x,y:destination.y,dir:destination.facing,moving:false});
       journal.mapId=destination.mapId;
@@ -35,7 +43,7 @@ export function createConnectedFieldTravel({game,graph,missionFor,readJournal,wr
       return true;
     }catch(error){
       // Reinitialize the previous map, then restore its exact snapshot.
-      game.start(previousMission,before);
+      startWithoutLegacySave(previousMission,before);
       game.mode='play';
       throw error;
     }finally{busy=false;}
