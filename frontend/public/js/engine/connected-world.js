@@ -3,6 +3,7 @@
 const DIRECTIONS=new Set(['up','down','left','right']);
 const isId=x=>typeof x==='string'&&/^[a-z][a-z0-9-]*$/.test(x);
 const fail=m=>{throw new Error('Connected map: '+m);};
+const props=p=>Array.isArray(p)?Object.fromEntries(p.map(v=>[v.name,v.value])):p;
 export function compileConnectedWorld(maps){
   if(!Array.isArray(maps)||maps.length<2)fail('at least two maps required');
   const byId=new Map();
@@ -22,8 +23,8 @@ export function compileConnectedWorld(maps){
       ids.add(p.name);
       if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||p.x%32||p.y%32)
         fail('portal must be tile-aligned');
-      if(!p.properties||!isId(p.properties.toMap)||!isId(p.properties.toPortal)||
-         !DIRECTIONS.has(p.properties.facing))fail('invalid destination '+p.name);
+      if(!p.properties||!isId(props(p.properties).toMap)||!isId(props(p.properties).toPortal)||
+         !DIRECTIONS.has(props(p.properties).facing))fail('invalid destination '+p.name);
     }
     byId.set(map.id,map);
   }
@@ -33,9 +34,9 @@ export function compileConnectedWorld(maps){
       m.layers.find(l=>l.name==='collision').data[ty*m.width+tx]===0;
   };
   for(const map of maps)for(const p of map.layers.find(l=>l.name==='portals').objects){
-    const target=byId.get(p.properties.toMap);
-    const reverse=target?.layers.find(l=>l.name==='portals')?.objects.find(q=>q.name===p.properties.toPortal);
-    if(!reverse||reverse.properties.toMap!==map.id||reverse.properties.toPortal!==p.name)
+    const target=byId.get(props(p.properties).toMap);
+    const reverse=target?.layers.find(l=>l.name==='portals')?.objects.find(q=>q.name===props(p.properties).toPortal);
+    if(!reverse||props(reverse.properties).toMap!==map.id||props(reverse.properties).toPortal!==p.name)
       fail('nonreciprocal portal '+map.id+'/'+p.name);
     for(const [m,portal] of [[map,p],[target,reverse]]){
       if(!walkable(m,portal.x+16,portal.y+16))fail('unsafe portal tile '+m.id+'/'+portal.name);
@@ -51,9 +52,9 @@ export function compileConnectedWorld(maps){
     destination(mapId,portalId){
       const m=byId.get(mapId),p=m?.layers.find(l=>l.name==='portals')?.objects.find(x=>x.name===portalId);
       if(!p)fail('unknown portal '+mapId+'/'+portalId);
-      const to=byId.get(p.properties.toMap);
-      const arrival=to.layers.find(l=>l.name==='portals').objects.find(x=>x.name===p.properties.toPortal);
-      return Object.freeze({mapId:to.id,portalId:arrival.name,x:arrival.x+16,y:arrival.y+16,facing:p.properties.facing});
+      const to=byId.get(props(p.properties).toMap);
+      const arrival=to.layers.find(l=>l.name==='portals').objects.find(x=>x.name===props(p.properties).toPortal);
+      return Object.freeze({mapId:to.id,portalId:arrival.name,x:arrival.x+16,y:arrival.y+16,facing:props(p.properties).facing});
     }
   });
 }
