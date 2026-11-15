@@ -100,7 +100,25 @@ try{
   assert.equal(await page.evaluate(()=>localStorage.getItem('bearframe_ghost_signal_save_v1')),legacy,
     'Original Ghost Signal save was overwritten by expedition');
   assert.equal(errors.length,0,errors.join('\n'));
-  console.log('PASS connected expedition: actual A→B→A walking; two persistent interactables; single reward; menu and save/reload; original save isolated');
+  // The Android debug QA launcher uses real finger-tappable links for both labs.
+  await page.goto(root+'/engine-lab.html',{waitUntil:'domcontentloaded'});
+  const launcher=page.getByRole('navigation',{name:'Engine test modes'});
+  assert.equal(await launcher.getByRole('link').count(),4);
+  assert.equal(await launcher.getByRole('link',{name:'ORIGINAL GHOST SIGNAL'}).getAttribute('href'),'index.html');
+  const link=launcher.getByRole('link',{name:'JRPG COMBAT'});
+  const bounds=await link.boundingBox();
+  assert.ok(bounds&&bounds.width>40&&bounds.height>40,'Debug launcher must expose usable touch targets');
+  await page.touchscreen.tap(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+  await page.waitForFunction(()=>window.__rpgLab?.inspect().field.mission==='rpg-lab');
+  await page.goto(root+'/engine-lab.html',{waitUntil:'domcontentloaded'});
+  const connected=page.getByRole('link',{name:'CONNECTED WORLD'});
+  const area=await connected.boundingBox();
+  assert.ok(area);
+  await page.touchscreen.tap(area.x+area.width/2,area.y+area.height/2);
+  await page.waitForFunction(()=>window.__connectedLab?.inspect().mapId==='staging');
+  assert.equal((await state()).world.inventory['repair-kit'],2,
+    'Switching test modes must retain connected expedition save');
+  console.log('PASS connected expedition: real A→B→A, durable events, touchscreen QA launcher, separate RPG modes');
 }catch(error){
   await mkdir(artifacts,{recursive:true});
   try{await page.screenshot({path:join(artifacts,'connected-expedition-failure.png'),fullPage:true});}catch(_){}
