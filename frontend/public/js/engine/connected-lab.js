@@ -167,7 +167,7 @@ export async function mountConnectedLab({game,ui,touchMode}){
     $('pause-note').textContent=save()?'Expedition journal saved.':'Expedition save failed.';
   };
   $('btn-quit').onclick=()=>{
-    if(save())window.location.assign(window.location.pathname);
+    if(save())window.location.assign(new URL('engine-lab.html',window.location.href).href);
     else $('pause-note').textContent='Save unavailable — remain in expedition.';
   };
   document.addEventListener('keydown',e=>{
