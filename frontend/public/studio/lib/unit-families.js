@@ -9,7 +9,7 @@ export function industrialEcho(options={}){
   parts.push(P('pelvis',null,'plate',28,46,12,5,{ox:6,oy:2,c:'dark',z:0}),P('spine','pelvis','plate',0,-3,13,18,{ox:6.5,oy:18,r:side?sign*spec.hunch:0,z:0,m:1}),P('backpack','spine','plate',side?-sign*7:0,-15,side?6:11,12,{ox:side?3:5.5,z:back?4:-2,c:'dark',m:1}),P('pipes','spine','cable',side?-sign*5:-4,-13,8,21,{ox:4,n:3,c:'rust',z:side?-1:2,amp:.3}),P('neck','spine','plate',0,-23,4,7,{ox:2,c:'under',z:2}),P('head','spine','plate',side?sign*2:0,-23,11,10,{ox:5.5,oy:10,r:side?-sign*spec.hunch:0,z:4,m:1}));
   if(!back){parts.push(P('optic.main','head',side? 'disc':'disc',side?sign*3:-1,-6,spec.optic==='slit'?7:4,spec.optic==='slit'?2:4,{ox:spec.optic==='slit'?3.5:2,oy:2,g:'glow',z:6}));if(spec.optic==='cluster')parts.push(P('optic.small','head','disc',side?sign*3:3,-3,2,2,{ox:1,oy:1,g:'accent',z:6}));}
   else parts.push(P('head.vent','head','plate',0,-7,6,4,{ox:3,c:'dark',z:6}));
-  if(spec.cloth)parts.push(P('mantle','spine','banner',side?-sign*6:-7,-18,side?6:9,25,{ox:4,c:'cloth',z:back?5:-3,amp:.7}));
+  if(spec.cloth)parts.push(P('mantle','spine','banner',side?-sign*6:-7,-18,side?6:9,25,{ox:4,c:'cloth',z:back?12:-3,amp:.7}));
   for(const [label,sg] of [['L',-1],['R',1]]){
    const near=side?(dir==='right'?label==='R':label==='L'):true,z=side?(near?5:-5):2,dk=side&&!near?{dk:1}:{};
    parts.push(P('leg.'+label+'.femur','pelvis','plate',side?(near?-1:1):(back?sg:-sg)*4,0,6,12,{ox:3,z,...dk}),P('leg.'+label+'.tibia','leg.'+label+'.femur','taper',0,12,5,13,{ox:2.5,t:.72,z,...dk}),P('leg.'+label+'.knee','leg.'+label+'.femur','disc',0,12,6,6,{ox:3,oy:3,c:'dark',z:z+.2,...dk}),P('leg.'+label+'.boot','leg.'+label+'.tibia','plate',0,13,side?8:6,4,{ox:side?(sign>0?3:5):3,c:'dark',z:z+.3,...dk}));
@@ -31,6 +31,8 @@ export function evaluateUnit(rig,dir,type,i,n){
  const facing=dir==='up'?-1:1;
  // Repair saved pre-fix back-view tool geometry as well as freshly built recipes.
  if(dir==='up'&&map.has('claw.R'))map.get('claw.R').x=-2;
+ // Owner preference: rear fabric covers the arms, including saved recipes.
+ if(dir==='up'&&map.has('mantle'))map.get('mantle').z=12;
  for(const [label,sg] of [['L',-1],['R',1]]){
   const upper=map.get('leg.'+label+'.femur'),lower=map.get('leg.'+label+'.tibia'),boot=map.get('leg.'+label+'.boot'),step=walk?foot(t+(label==='R'?.5:0)):{x:0,lift:fall*3};
   const hip={x:0,y:46+b},ankle={x:step.x,y:70-step.lift},L=solveTwoBone(hip,ankle,12,13,1);
