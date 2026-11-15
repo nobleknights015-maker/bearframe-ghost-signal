@@ -19,7 +19,7 @@ export async function unitFamilyChecks(prefix){
  const G=await import(prefix+'grid-families.js');
  // A planted foot cancels constant world travel, including the slower ripple stride.
  for(const duty of [.6,5/6]){const a=G.crawlerStep(.1,duty),b=G.crawlerStep(.2,duty);assert(Math.abs(b.x-a.x+10/duty*.1)<1e-8,'planted crawler foot slides');}
-let gridRenders=0,gridBounds=0,contacts=0;
+let gridRenders=0,gridBounds=0,contacts=0,vineConnections=0;
  for(const gait of ['tripod','ripple'])for(let i=0;i<120;i++){let support=0;for(let k=0;k<6;k++){const phase=gait==='ripple'?k/6:([0,2,4].includes(k)?0:.5);if(G.crawlerStep(i/120+phase,gait==='ripple'?5/6:.6).stance)support++;}assert(support>=(gait==='ripple'?5:3),'crawler support lost');contacts++;}
  for(const build of [()=>G.gridCrawler(),()=>G.gridCrawler({gait:'ripple',role:'salvager'}),()=>G.orbitalCore(),()=>G.orbitalCore({role:'relay'})]){
   const original=build(),p=SS.machineProject(original.name,original);fitMachineProject(p);const anchor=JSON.stringify(p.rig.groundAnchor);
@@ -27,9 +27,20 @@ let gridRenders=0,gridBounds=0,contacts=0;
    const e=evaluateUnit(p.rig,d,type,i,8);assert(JSON.stringify(e.groundAnchor)===anchor,'hover anchor moved');validateRig(e);
    if(original.unitSpec.family==='six-leg-crawler'){for(const id of G.CRAWLER_LEGS){const u=e.views[d].find(x=>x.id==='leg.'+id+'.upper'),l=e.views[d].find(x=>x.id==='leg.'+id+'.lower');assert(u.h===22&&l.h===24,'crawler bone length changed');}}
    const c=cv(p.rig.w,p.rig.h);renderRig(c.getContext('2d'),p.rig,d,type,i,8,c.width,c.height);const px=c.getContext('2d').getImageData(0,0,c.width,c.height).data;assert(px.some((v,k)=>k%4===3&&v===255),'empty Grid view');assert(px.every((v,k)=>k%4!==3||v===0||v===255),'Grid alpha');gridRenders++;
+   // Isolate roots/strands while retaining their complete parent transforms. Every vine pixel
+   // must belong to the connected root patch at native scale (8-neighbour raster adjacency).
+   const mask=structuredClone(p.rig),id=original.unitSpec.family==='six-leg-crawler'?'growth':'rooted-growth';
+   for(const parts of Object.values(mask.views))for(const part of parts)if(part.id!==id&&part.id!==id+'.root'){part.s='tex';part.t='missing';}
+   const mc=cv(p.rig.w,p.rig.h);renderRig(mc.getContext('2d'),mask,d,type,i,8,mc.width,mc.height,{outline:false});const alpha=mc.getContext('2d').getImageData(0,0,mc.width,mc.height).data,all=[];
+   for(let k=3;k<alpha.length;k+=4)if(alpha[k])all.push((k-3)/4);assert(all.length,'missing rooted growth');const seen=new Set([all[0]]),queue=[all[0]];
+   for(let q=0;q<queue.length;q++){const v=queue[q],x=v%mc.width,y=Math.floor(v/mc.width);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy,k=yy*mc.width+xx;if(xx>=0&&xx<mc.width&&yy>=0&&yy<mc.height&&alpha[k*4+3]&&!seen.has(k)){seen.add(k);queue.push(k);}}}
+   assert(seen.size===all.length,'detached vine pixels');vineConnections++;
    const b=renderRig(null,p.rig,d,type,i,8,p.rig.w,p.rig.h,{boundsOnly:true});assert(b.left>=0&&b.top>=0&&b.right<=p.rig.w&&b.bottom<=p.rig.h,'Grid clipping');gridBounds++;
   }
+  // Older saved Grid recipes receive the same attachment correction on regeneration.
+  const legacy=structuredClone(original),vid=original.unitSpec.family==='six-leg-crawler'?'growth':'rooted-growth';
+  for(const d of ['down','up','right','left']){legacy.views[d]=legacy.views[d].filter(x=>x.id!==vid+'.root');const v=legacy.views[d].find(x=>x.id===vid);delete v.rootSocket;Object.assign(v,{p:original.unitSpec.family==='six-leg-crawler'?'mast':'core',x:-18,y:-16,w:18});const repaired=evaluateUnit(legacy,d,'walk',2,8).views[d],fresh=evaluateUnit(original,d,'walk',2,8).views[d];assert(JSON.stringify(repaired)===JSON.stringify(fresh),'saved vine repair differs');}
   const reopened=await SS.deserialize(SS.serialize(p));assert(reopened.rig.unitSpec.family===original.unitSpec.family,'Grid save family');assert(JSON.stringify(reopened.rig.groundAnchor)===anchor,'Grid save anchor');
  }
- return {gridRenders,gridBounds,contacts,reach,renders,bounds,pages:atlas.pages.length,frames:atlas.meta.frames.length,family:rig.unitSpec.family};
+ return {vineConnections,gridRenders,gridBounds,contacts,reach,renders,bounds,pages:atlas.pages.length,frames:atlas.meta.frames.length,family:rig.unitSpec.family};
 }

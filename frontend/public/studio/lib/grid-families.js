@@ -10,6 +10,16 @@ export function crawlerStep(phase,duty=.6){
  const u=(p-duty)/(1-duty),m=-stride*(1-duty)/duty;
  return {x:(2*u**3-3*u*u+1)*(-stride/2)+(u**3-2*u*u+u)*m+(-2*u**3+3*u*u)*(stride/2)+(u**3-u*u)*m,lift:64*u*u*(1-u)*(1-u),stance:false};
 }
+// A parent link alone is insufficient: the visible strand roots must overlap solid material.
+// Also repairs unedited frames from pre-fix saved family rigs.
+export function anchorGridGrowth(parts,family){
+ const id=family==='six-leg-crawler'?'growth':'rooted-growth',vine=parts.find(p=>p.id===id);
+ if(!vine||vine.rootSocket)return parts;
+ const parent=family==='six-leg-crawler'?'deck':'shell',x=family==='six-leg-crawler'?-4:0;
+ parts.push(P(id+'.root',parent,'plate',x,1,10,3,{ox:5,c:'moss',z:8,wx:0}));
+ Object.assign(vine,{p:id+'.root',x:0,y:1,w:8,h:family==='six-leg-crawler'?13:11,ox:4,oy:0,n:3,amp:.5,z:9,rootSocket:parent});
+ return parts;
+}
 export function gridCrawler(options={}){
  const spec={version:1,family:'six-leg-crawler',gait:'tripod',role:'cartographer',...options};
  if(spec.version!==1||!['tripod','ripple'].includes(spec.gait)||!['cartographer','salvager'].includes(spec.role))throw Error('Unsupported crawler recipe');
@@ -26,7 +36,7 @@ export function gridCrawler(options={}){
    const sg=id[0]==='L'?-1:1,j='FMR'.indexOf(id[1]),near=side?(dir==='right'?sg===1:sg===-1):j===0,z=side?(near?5:-4):5-j*3,dk=near?{}:{dk:1},hx=side?sign*(22-j*22):(back?sg:-sg)*11,hy=side?2:(back?1-j: j-1)*4;
    o.push(P('leg.'+id+'.upper','body','plate',hx,hy,6,22,{ox:3,c:'dark',z,...dk}),P('leg.'+id+'.lower','leg.'+id+'.upper','taper',0,22,6,24,{ox:3,t:.65,z,...dk}),P('leg.'+id+'.joint','leg.'+id+'.upper','disc',0,22,8,8,{ox:4,oy:4,c:'brass',z:z+.3,...dk}),P('leg.'+id+'.foot','leg.'+id+'.lower','plate',0,24,9,4,{ox:4.5,oy:2,c:'dark',z:z+.4,...dk}));
   }
-  return o;
+  return anchorGridGrowth(o,spec.family);
  };
  return validateRig({name:'Grid crawler study',w:128,h:96,tiles:[4,2],groundAnchor:{x:64,y:84},unitSpec:spec,locomotion:{strideLength:10/(spec.gait==='ripple'?5/6:.6),dutyFactor:spec.gait==='ripple'?5/6:.6},colors:{...colors},weather:{rust:.35,moss:.55,wear:.2},views:Object.fromEntries(dirs.map(d=>[d,build(d)])),anims:Object.fromEntries(actions.map(a=>[a,{}]))});
 }
@@ -38,12 +48,13 @@ export function orbitalCore(options={}){
   if(!back)o.push(P('optic','core','disc',side?sign*10:0,0,side?7:15,15,{ox:side?3.5:7.5,oy:7.5,g:'glow',z:3}),P('optic.rim','core','ring',side?sign*10:0,0,side?11:21,21,{ox:side?5.5:10.5,oy:10.5,th:2,seg:12,c:'brass',z:3}));
   else o.push(P('archive','core','glass',0,0,12,18,{ox:6,oy:9,g:'glow',z:3}));
   for(const sg of [-1,1])o.push(P('banner.'+(sg<0?'L':'R'),'core','banner',sg*(side?10:17),12,8,25,{ox:4,c:'cloth',z:-1,amp:.5,g:'accent'}));
-  o.push(P('tag','core','plate',spec.role==='relay'?19:-19,10,5,10,{ox:2.5,c:'brass',z:6}),P('rooted-growth','core','cable',-18,-16,18,13,{ox:9,c:'moss',n:3,z:6}));return o;
+  o.push(P('tag','core','plate',spec.role==='relay'?19:-19,10,5,10,{ox:2.5,c:'brass',z:6}),P('rooted-growth','core','cable',-18,-16,18,13,{ox:9,c:'moss',n:3,z:6}));return anchorGridGrowth(o,spec.family);
  };
  return validateRig({name:'Orbital core study',w:96,h:88,tiles:[2,2],groundAnchor:{x:48,y:79},unitSpec:spec,colors:{...colors},weather:{rust:.25,moss:.3,wear:.15},views:Object.fromEntries(dirs.map(d=>[d,build(d)])),anims:Object.fromEntries(actions.map(a=>[a,{}]))});
 }
 export function evaluateGrid(rig,dir,type,i,n){
  const spec=rig.unitSpec;if(spec.version!==1)throw Error('Unsupported Grid family version');const parts=structuredClone(rig.views[dir]);if(!parts)throw Error('Grid family needs explicit '+dir+' view');
+ anchorGridGrowth(parts,spec.family);
  const map=new Map(parts.map(p=>[p.id,p])),t=n>0?i/n:0,side=['left','right'].includes(dir),sign=dir==='left'?-1:1,back=dir==='up',one=n>1?i/(n-1):0,fall=type==='defeat'?one*one*(3-2*one):0,channels={};
  if(spec.family==='six-leg-crawler'){
   const body=map.get('body'),restY=body.y;body.y+=fall*7;
