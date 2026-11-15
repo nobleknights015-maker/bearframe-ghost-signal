@@ -26,6 +26,12 @@ fi
 DISPLAY="$(adb shell wm size | tr -d '\\r')"
 echo "Emulator display: $DISPLAY"
 grep -F "$PACKAGE" /tmp/ghost-signal-activities.txt
+# OS touch-dispatch smoke only; this does not prove RPG touch controls.
+adb shell input tap 24 24
+sleep 2
+if ! adb shell pidof "$PACKAGE" >/dev/null 2>&1; then
+  echo "App died after injected touch" >&2; exit 1
+fi
 adb exec-out screencap -p > ghost-signal-emulator-launch.png
 test -s ghost-signal-emulator-launch.png
 # Verify a fresh Activity launch after a process kill. This checks Android lifecycle
@@ -48,4 +54,14 @@ fi
 grep -F "$PACKAGE" /tmp/ghost-signal-activities-restart.txt
 adb exec-out screencap -p > ghost-signal-emulator-restart.png
 test -s ghost-signal-emulator-restart.png
-echo "Emulator install, launch and process-restart smoke passed: $PACKAGE (pid $RESTART_PID)"
+# Check input delivery again after the Activity has been recreated.
+adb shell input tap 24 24
+sleep 2
+if ! adb shell pidof "$PACKAGE" >/dev/null 2>&1; then
+  echo "Restarted app died after injected touch" >&2; exit 1
+fi
+RESUMED_TOUCH="$(adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity|ResumedActivity" || true)"
+if ! grep -Fq "$PACKAGE/" <<< "$RESUMED_TOUCH"; then
+  echo "App left foreground after injected touch: $RESUMED_TOUCH" >&2; exit 1
+fi
+echo "Emulator install, launch, touch-dispatch and process-restart smoke passed: $PACKAGE (pid $RESTART_PID)"
