@@ -9,7 +9,7 @@ function fixture(){
  }};
  const missions={staging:{id:'staging'},annex:{id:'annex'}};
  let journal={mapId:'staging',maps:{}},writes=0,legacyWrites=0,failWrite=false,failLoad=false,blocked=false;
- const game={store:{save:()=>{legacyWrites++;return true;}},m:missions.staging,mode:'play',player:{x:48,y:48,dir:'right',moving:false},
+ const game={store:{save:()=>{legacyWrites++;return true;}},m:missions.staging,mode:'play',snap:{mission:'staging',player:{x:32,y:48,dir:'up'}},player:{x:48,y:48,dir:'right',moving:false},
   snapshot(){return {mission:this.m.id,player:clone(this.player),flags:{collected:this.m.id==='staging'}};},
   start(m,snap){this.m=m;this.mode='play';this.player=clone(snap?.player??{x:16,y:16,dir:'down'});if(!snap)this.store.save(this.snapshot());},
   free(){return !blocked;}};
@@ -52,4 +52,17 @@ test('connected travel never overwrites the original Ghost Signal mission save, 
  f.failWrite();
  await assert.rejects(f.travel.transition('west-gate'));
  assert.equal(f.legacyWrites,0);assert.equal(f.game.store,originalStore);
+});
+
+test('arrival checkpoint matches portal spawn and rollback retains source checkpoint',async()=>{
+ const f=fixture();const sourceCheckpoint=clone(f.game.snap);
+ await f.travel.transition('east-gate');
+ assert.equal(f.game.snap.mission,'annex');
+ assert.equal(f.game.snap.player.x,80);
+ assert.equal(f.game.snap.player.y,80);
+ const arrivalCheckpoint=clone(f.game.snap);
+ f.failWrite();
+ await assert.rejects(f.travel.transition('west-gate'));
+ assert.deepEqual(f.game.snap,arrivalCheckpoint);
+ assert.notDeepEqual(f.game.snap,sourceCheckpoint);
 });
