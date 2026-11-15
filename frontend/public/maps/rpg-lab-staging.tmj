@@ -78,7 +78,7 @@
         {
           "id": 1,
           "name": "east-gate",
-          "x": 160,
+          "x": 192,
           "y": 96,
           "width": 32,
           "height": 32,
@@ -87,7 +87,7 @@
           "properties": {
             "toMap": "annex",
             "toPortal": "west-gate",
-            "facing": "left"
+            "facing": "right"
           }
         }
       ]
