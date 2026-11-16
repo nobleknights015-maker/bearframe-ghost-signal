@@ -89,6 +89,22 @@
             "toPortal": "west-gate",
             "facing": "right"
           }
+        },
+        {
+          "id": 2,
+          "name": "service-hatch",
+          "x": 128,
+          "y": 64,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "visible": true,
+          "properties": {
+            "toMap": "annex",
+            "toPortal": "service-return",
+            "facing": "up",
+            "requiresFlag": "power-switch"
+          }
         }
       ]
     }
