@@ -44,13 +44,18 @@ export function validateBattleArtManifest(manifest) {
     const rows={};
     for(const [name,anim] of Object.entries(spec.animations)){
       if(!ANIMATION_NAMES.includes(name)||!anim||
-        !Number.isInteger(anim.row)||anim.row<0||anim.row>32||
+        !Number.isInteger(anim.row)||anim.row<0||anim.row>=ANIMATION_NAMES.length||
         !Number.isInteger(anim.frames)||anim.frames<1||anim.frames>6||
         !Number.isFinite(anim.fps)||anim.fps<1||anim.fps>30)
         throw new TypeError('Invalid battler animation '+name);
       rows[name]=Object.freeze({row:anim.row,frames:anim.frames,fps:anim.fps});
     }
     if(!rows.idle)throw new TypeError('Battler needs idle animation');
+    // The authored 6x9 contract requires each action to occupy its canonical row.
+    // Reject misplaced rows before any asset is bound, even when the PNG dimensions fit.
+    for(const [name,anim] of Object.entries(rows)){
+      if(anim.row!==ANIMATION_NAMES.indexOf(name))throw new TypeError('Battler action row mismatch '+name);
+    }
     validated[key]=Object.freeze({src:spec.src,frameWidth:spec.frameWidth,
       frameHeight:spec.frameHeight,scale:spec.scale,animations:Object.freeze(rows)});
   }
