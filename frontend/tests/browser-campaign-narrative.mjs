@@ -7,7 +7,6 @@ const base=process.env.GS_BASE_URL||'http://127.0.0.1:3000';
 const errors=[];page.on('pageerror',error=>errors.push(String(error)));
 async function install(){
  await page.evaluate(async()=>{
-  const {UI}=await import('/js/ui.js');
   const {mountCampaignNarrative}=await import('/js/engine/campaign-narrative.js');
   const content={schemaVersion:1,revision:2,
    flagSchema:{gameplay_flags:['read','done'],exclusive_enums:{route:['unset','left','right']}},
@@ -17,9 +16,9 @@ async function install(){
     {line_id:'branch',speaker:'SYSTEM',text:'Synthetic branch.',sequence:2,condition:'route=right',event_effects:''}],
    choices:[{id:'route',scene:'opening',prompt:'Synthetic route?',selection_count:1,
     options:{LEFT:'route=left',RIGHT:'route=right'}}]};
-  const ui=new UI({static(){},blip(){},beep(){}});
+  const game=window.__gs,ui=game.ui;
+  ui.sfx={static(){},blip(){},beep(){}};
   ui.show('title',false);
-  const game={mode:'play'};
   const read=()=>JSON.parse(localStorage.getItem('synthetic_campaign_adapter')||'{"flags":{"legacy":true}}');
   const controller=mountCampaignNarrative({game,ui,content,
    readWorld:read,commitWorld:world=>{
@@ -31,8 +30,9 @@ async function install(){
 }
 const saved=()=>page.evaluate(()=>window.__adapter.read());
 async function advance(){
- // First pointer finishes original typewriter, second acknowledges the line.
- await page.locator('#dialog').click();await page.locator('#dialog').click();
+ // Acknowledge a fully displayed line through the original pointer handler.
+ await page.evaluate(()=>{const ui=window.__adapter.ui;ui.shown=ui.line.t.length;});
+ await page.locator('#dialog').click({position:{x:10,y:10}});
 }
 try{
  await page.goto(base+'/index.html',{waitUntil:'networkidle'});await install();
@@ -53,7 +53,7 @@ try{
  assert.equal(await page.locator('#dialog-speaker').textContent(),'SYSTEM');
  await advance();assert.equal((await saved()).narrative.completed.opening,true);
  assert.equal((await saved()).flags.legacy,true);
- assert.equal(await page.evaluate(()=>window.__adapter.game.mode),'play');
+ assert.equal(await page.evaluate(()=>window.__adapter.game.mode),'title');
  // Pointerdown plus its subsequent click must not consume a newly opened line.
  await page.evaluate(()=>{localStorage.removeItem('synthetic_campaign_adapter');window.__adapter.controller.trigger('WAKE');});
  await advance();

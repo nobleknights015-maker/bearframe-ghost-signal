@@ -95,6 +95,18 @@ export function mountCampaignNarrative({
       // detail 0, and needs its own bridge without editing the locked UI source.
       const renderToken=token;
       choiceRoot?.querySelectorAll('button').forEach((button,index)=>{
+        button.addEventListener('keydown',event=>{
+          if(token!==renderToken||stopped)return;
+          if(['Enter','Space'].includes(event.code)){
+            event.preventDefault();event.stopPropagation();
+            if(!event.repeat)ui.pick(index);
+          }else if(['ArrowLeft','ArrowUp','ArrowRight','ArrowDown'].includes(event.code)){
+            event.preventDefault();event.stopPropagation();
+            const buttons=[...choiceRoot.querySelectorAll('button')];
+            const delta=['ArrowLeft','ArrowUp'].includes(event.code)?-1:1;
+            buttons[(index+delta+buttons.length)%buttons.length]?.focus();
+          }
+        });
         button.addEventListener('click',event=>{
           if(event.detail===0&&token===renderToken&&!stopped)ui.pick(index);
         });
