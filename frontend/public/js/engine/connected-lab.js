@@ -168,6 +168,7 @@ export async function mountConnectedLab({game,ui,touchMode}){
     const f=journal.world.flags;
     record.textContent='AREA: '+game.m.id.toUpperCase()+
       '\\nPOWER RELAY: '+(f['power-switch']?'ACTIVE':'OFFLINE')+
+      '\\nSERVICE HATCH: '+(f['power-switch']?'ACCESS GRANTED':'SEALED')+
       '\\nANNEX SUPPLY: '+(f['supply-cache']?'RECOVERED':'UNKNOWN')+
       '\\nRETURN ROUTE: '+(f['returned-staging']?'EXPLORED':'UNEXPLORED')+
       '\\nREPAIR KITS: '+(journal.world.inventory['repair-kit']||0)+
