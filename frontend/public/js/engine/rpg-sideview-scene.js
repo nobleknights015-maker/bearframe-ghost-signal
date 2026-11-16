@@ -29,6 +29,16 @@ export function createSideViewBattleScene(manifest={}) {
     img.src=new URL('../../'+spec.src,import.meta.url).href;
   }
   let state=null,activeKey=null,cue=null,queue=[],started=performance.now(),isRunning=false,frameToken=null;
+  // Keep animation exposure clocks per actor and pose. Terminal victory/down must
+  // begin at their transition, not at the global battle clock's arbitrary phase.
+  const poseClocks=new Map();
+  function poseElapsed(key,pose,t,cueWhen=null){
+    const prior=poseClocks.get(key);
+    if(!prior||prior.pose!==pose||prior.cueWhen!==cueWhen){
+      poseClocks.set(key,{pose,cueWhen,since:cueWhen===null?t:cueWhen});
+    }
+    return Math.max(0,t-poseClocks.get(key).since);
+  }
   const elapsed=()=>Math.max(0,(performance.now()-started)/1000);
   function background(t) {
     rect(c,0,0,416,116,COL.bg);
@@ -178,6 +188,7 @@ export function createSideViewBattleScene(manifest={}) {
   return Object.freeze({
     canvas,
     setBattle(battle,actor){
+      if(!state)poseClocks.clear();
       state=battle;activeKey=actor;
       canvas.setAttribute('aria-label','Side-view battle: '+battle.party.length+
         ' allied frames left, '+battle.enemies.length+' enemies right');
