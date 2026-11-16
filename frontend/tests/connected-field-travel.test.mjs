@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createConnectedFieldTravel} from '../public/js/engine/connected-field-travel.js';
 const clone=x=>structuredClone(x);
-function fixture(){
+function fixture({requiresFlag,flags={}}={}){
  const graph={get:id=>['staging','annex'].includes(id)?{}:null,destination:(id,p)=>{
   assert.equal(p,id==='staging'?'east-gate':'west-gate');
-  return id==='staging'?{mapId:'annex',x:80,y:80,facing:'left'}:{mapId:'staging',x:48,y:48,facing:'right'};
+  return id==='staging'?{mapId:'annex',x:80,y:80,facing:'left',...(requiresFlag?{requiresFlag}:{})}:{mapId:'staging',x:48,y:48,facing:'right'};
  }};
  const missions={staging:{id:'staging'},annex:{id:'annex'}};
- let journal={mapId:'staging',maps:{}},writes=0,legacyWrites=0,failWrite=false,failLoad=false,blocked=false;
+ let journal={mapId:'staging',maps:{},world:{flags}},writes=0,legacyWrites=0,failWrite=false,failLoad=false,blocked=false;
  const game={store:{save:()=>{legacyWrites++;return true;}},m:missions.staging,mode:'play',snap:{mission:'staging',player:{x:32,y:48,dir:'up'}},player:{x:48,y:48,dir:'right',moving:false},
   snapshot(){return {mission:this.m.id,player:clone(this.player),flags:{collected:this.m.id==='staging'}};},
   start(m,snap){this.m=m;this.mode='play';this.player=clone(snap?.player??{x:16,y:16,dir:'down'});if(!snap)this.store.save(this.snapshot());},
@@ -65,4 +65,19 @@ test('arrival checkpoint matches portal spawn and rollback retains source checkp
  await assert.rejects(f.travel.transition('west-gate'));
  assert.deepEqual(f.game.snap,arrivalCheckpoint);
  assert.notDeepEqual(f.game.snap,sourceCheckpoint);
+});
+
+test('locked conditional door leaves player, journal and legacy saves untouched',async()=>{
+ const f=fixture({requiresFlag:'relay-online'});
+ const before=clone(f.game.player);
+ assert.equal(await f.travel.transition('east-gate'),false);
+ assert.deepEqual(f.game.player,before);
+ assert.equal(f.game.m.id,'staging');
+ assert.equal(f.writes,0);assert.equal(f.legacyWrites,0);
+ assert.equal(f.travel.busy,false);
+});
+test('conditional door opens only for explicit true durable flag',async()=>{
+ const f=fixture({requiresFlag:'relay-online',flags:{'relay-online':true}});
+ assert.equal(await f.travel.transition('east-gate'),true);
+ assert.equal(f.game.m.id,'annex');assert.equal(f.writes,1);
 });
