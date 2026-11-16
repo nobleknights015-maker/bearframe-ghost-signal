@@ -49,3 +49,20 @@ test('authored v5 release and full pose duration do not end a strike at the old 
  assert.equal(sideViewPose(victim,'enemy','active',cue,.15,.56,.42,.22),'idle');
  assert.equal(sideViewPose(victim,'enemy','active',cue,.3,.56,.42,.22),'hit');
 });
+test('v5 rejects invalid authored frame exposure and out-of-clip release markers',()=>{
+ const invalid=(mutate)=>{
+   const character=structuredClone(fixture.characters[0]);
+   mutate(character.battle.animations.attack);
+   return {...fixture,characters:[character,...fixture.characters.slice(1)]};
+ };
+ for(const value of [0,-1,1.5,Infinity,10001]){
+   const manifest=invalid(clip=>{clip.durationsMs[0]=value;});
+   assert.throws(()=>mapV5Art(manifest,{'party:sleeper':'sleeper_B'}),/Invalid authored action timing/);
+ }
+ const releasePastEnd=invalid(clip=>{clip.events=[{kind:'release',atMs:721}];});
+ assert.throws(()=>mapV5Art(releasePastEnd,{'party:sleeper':'sleeper_B'}),/Invalid authored release timing/);
+ const releaseAtZero=invalid(clip=>{clip.events=[{kind:'release',atMs:0}];});
+ const result=mapV5Art(releaseAtZero,{'party:sleeper':'sleeper_B'});
+ assert.equal(result['party:sleeper'].animations.attack.releaseMs,0);
+ assert.deepEqual(result['party:sleeper'].animations.attack.durationsMs,Array(6).fill(120));
+});
