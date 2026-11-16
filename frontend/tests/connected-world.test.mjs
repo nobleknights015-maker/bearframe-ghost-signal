@@ -43,3 +43,12 @@ test('checked-in Tiled JSON assets compile as a connected map graph',()=>{
  assert.equal(graph.destination('staging','east-gate').mapId,'annex');
  assert.equal(graph.destination('annex','west-gate').mapId,'staging');
 });
+
+test('conditional portal metadata is validated and preserved without changing ordinary doors',()=>{
+ const maps=pair();maps[0].layers[1].objects[0].properties.requiresFlag='relay-online';
+ const graph=compileConnectedWorld(maps);
+ assert.equal(graph.destination('staging','east-gate').requiresFlag,'relay-online');
+ assert.equal(graph.destination('annex','west-gate').requiresFlag,undefined);
+ maps[0].layers[1].objects[0].properties.requiresFlag='../../unsafe';
+ assert.throws(()=>compileConnectedWorld(maps),/invalid portal flag/);
+});
