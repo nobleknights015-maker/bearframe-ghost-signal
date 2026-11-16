@@ -136,7 +136,12 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 showTitle();
-if (location.pathname.endsWith('/aeon.html')) {
+if (location.pathname.endsWith('/campaign.html')) {
+  import('./engine/campaign-game.js').then(({mountCampaignGame})=>
+    mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}))
+    .catch(error=>{console.error('Private campaign initialization failed',error);
+      ui.toast('CAMPAIGN INSTALLATION MISSING — SEE CONSOLE',5);});
+} else if (location.pathname.endsWith('/aeon.html')) {
   import('./engine/aeon-game.js').then(({mountAeonGame})=>mountAeonGame({game,ui,sfx,touchMode,refreshTouch}))
     .catch(error=>{console.error('Aeon initialization failed',error);ui.toast('AEON INITIALIZATION FAILED',5);});
 } else if (new URLSearchParams(location.search).get('connected-lab') === '1') {
