@@ -12,15 +12,16 @@ import {createLabMission,LAB_POLICY_SPEC} from './rpg-lab-mission.js';
 import {createSideViewBattleScene} from './rpg-sideview-scene.js';
 import {RPG_BATTLER_ART} from './rpg-battle-art.js';
 import {GENERATED_CHARACTERS} from './rpg-generated-registrations.js';
+import {bindV5WorldSheet} from './aeon-v5-bridge.js';
 const demoRequest=typeof location==='undefined'?null:new URLSearchParams(location.search).get('character-demo');
 const DEV_CHARACTER=demoRequest&&GENERATED_CHARACTERS[demoRequest]?.status==='development-only'?demoRequest:null;
 
 const $=id=>document.getElementById(id);
 const clone=x=>JSON.parse(JSON.stringify(x));
 const px=(x,y,facing='right')=>({mapId:'rpg-lab',x,y,facing});
-const initial=()=>({
+const initial=(selectedStarter=null)=>({
   location:px(5.5*32,9*32),party:[
-    {id:DEV_CHARACTER||'sleeper',lineage:'sleeper',name:DEV_CHARACTER?'Noncanonical Test Frame':'Sleeper Test',hp:38,maxHp:38,ep:10,maxEp:10,attack:11,defense:4,speed:10,level:1,skills:['pulse','guard']},
+    {id:DEV_CHARACTER||'sleeper',lineage:'sleeper',...(selectedStarter?{artId:selectedStarter,skinId:selectedStarter.slice(-1)}:{}),name:selectedStarter?'Sleeper '+selectedStarter.slice(-1):DEV_CHARACTER?'Noncanonical Test Frame':'Sleeper Test',hp:38,maxHp:38,ep:10,maxEp:10,attack:11,defense:4,speed:10,level:1,skills:['pulse','guard']},
     {id:'echo',lineage:'echo',name:'Echo Test',hp:29,maxHp:29,ep:10,maxEp:10,attack:7,defense:2,speed:7,level:1,skills:['repair','guard']}
   ],inventory:{'repair-kit':1,'legacy-blade':1,'echo-link':1,'foundry-module':1},equipment:{[DEV_CHARACTER||'sleeper']:{weapon:'legacy-tool'},echo:{}},
   quests:{archive:'unknown',perimeter:'unexplored',sentry:'unresolved'},progression:{xp:0},
@@ -46,11 +47,15 @@ function overlay(id,title){
   shell.appendChild(panel);$('stage').appendChild(shell);return {shell,panel};
 }
 
-export function mountRpgLab({game,ui,sfx,touchMode}) {
+export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
   // Never write a Ghost Signal mission save/progress key from the lab.
   game.store={save:()=>true,clear:()=>{},loadProgress:()=>({unlocked:{},done:{},case:null}),saveProgress:()=>true};
-  const db=createRpgSaveStore(localStorage,'bearframe_ghost_signal_rpg_lab_v1');
-  let session=createHybridSession(initial(),LAB_POLICY_SPEC),cooldown=0,menuTab='status';
+  // Separate per-starter QA save namespaces; no original save migration or mutations.
+  const db=createRpgSaveStore(localStorage,v5?
+    'bearframe_ghost_signal_rpg_v5_'+v5.starterId+'_v1':
+    'bearframe_ghost_signal_rpg_lab_v1');
+  const fresh=()=>initial(v5?.starterId||null);
+  let session=createHybridSession(fresh(),LAB_POLICY_SPEC),cooldown=0,menuTab='status';
   let checkpointRpg=clone(session.exploration);
   const originalCheckpoint=game.checkpoint.bind(game);
   game.checkpoint=(silent)=>{
@@ -81,7 +86,8 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   game.restore=()=>{rollbackPending=true;originalRestore();};
   const menu=overlay('rpg-lab-menu','RPG FIELD RECORD');
   const battle=overlay('rpg-lab-battle','TURN-BASED ENCOUNTER');
-  const sideView=createSideViewBattleScene(RPG_BATTLER_ART);
+  const sideView=createSideViewBattleScene(v5?.battleArt||RPG_BATTLER_ART);
+  if(v5)bindV5WorldSheet(game,v5.field);
   battle.panel.style.cssText='padding:calc(var(--u) * 6);gap:calc(var(--u) * 3)';
   const status=()=>session;
   const location=()=>px(game.player.x,game.player.y,game.player.dir);
@@ -146,7 +152,7 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     saved.world?.location?.mapId==='rpg-lab'&&saved.field?.mission==='rpg-lab';
   if(valid){
     try{session=createHybridSession(migrateLabWorld(saved.world),LAB_POLICY_SPEC);}
-    catch(_){session=createHybridSession(initial(),LAB_POLICY_SPEC);}
+    catch(_){session=createHybridSession(fresh(),LAB_POLICY_SPEC);}
   }
   ui.show('title',false);ui.show('ending',false);
   let restored=false;
@@ -154,7 +160,7 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   catch (error) {
     // Corrupt or future-incompatible snapshots never destroy the original game or brick the lab.
     console.warn('RPG lab restore invalid, starting fresh',error);
-    session=createHybridSession(initial(),LAB_POLICY_SPEC);
+    session=createHybridSession(fresh(),LAB_POLICY_SPEC);
     game.start(mission,null);
     ui.toast('INVALID RPG TEST SAVE — STARTED A FRESH SECTOR',4);
   }
@@ -424,7 +430,8 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
   // Lab-specific convenience API: safe for browser automation and reproducible QA.
   window.__rpgLab=Object.freeze({
     inspect:()=>({mode:game.mode,session:status(),save:db.inspect(),field:game.snapshot(),
-      battleView:session.phase==='battle'?'side-view':null}),
+      battleView:session.phase==='battle'?'side-view':null,
+      v5:v5?{starterId:v5.starterId,catalogCount:v5.catalogCount,worldFrameColumns:14}:null}),
     save,menu:openMenu
   });
   return window.__rpgLab;
