@@ -78,3 +78,21 @@ test('edited Studio frame stays unchanged through separate-process regeneration'
   assert(after.sets.exploration.edited.includes(key));
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+
+test('nonhumanoid hexapod and heavy rigs remain machine-specific with independently sized battle cells',async()=>{
+ for(const [body,id] of [['hexapod','test_hexapod_01'],['heavy','test_heavy_01']]){
+  const root=await mkdtemp(path.join(tmpdir(),'aeon-machine-'));
+  try{
+   await generateCharacter({id,kind:'machine',body,faction:'noncanonical-qa',seed:13},{outputRoot:root});
+   const w=await generateOverworldAnimations(id,{outputRoot:root});
+   const b=await generateBattleAnimations(id,{outputRoot:root});
+   await exportCharacter(id,{outputRoot:root});
+   assert(b.frameWidth===96,'Large machine must have 96-pixel battle cell');
+   assert(w.frameWidth>32&&w.frameHeight>56,'Machine world sprite must not be forced into humanoid frame');
+   assert(w.footprintTiles[0]>=1);
+   const qa=await validateCharacter(id,{outputRoot:root});
+   assert(qa.ok,qa.problems.join('; '));
+  }finally{await rm(root,{recursive:true,force:true});}
+ }
+});
