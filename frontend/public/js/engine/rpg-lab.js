@@ -167,6 +167,10 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
   if(connected){
     connected.bind({getWorld:()=>session.exploration,...callbacks,onPortal:portalId=>{
       if(!portalId){portalArmed=true;return;}
+      // Arrival stays quiet until the player deliberately moves outward. A saved
+      // doorway may have no space beyond it to leave the activation circle.
+      const direction=game.input?.dir||(game.player.moving?game.player.dir:null);
+      if(direction===connected.graph.destination(game.m.id,portalId).facing)portalArmed=true;
       if(!portalArmed||traveler?.busy||game.mode!=='play'||session.phase!=='exploration')return;
       portalArmed=false;
       traveler.transition(portalId).then(ok=>{if(ok){checkpointRpg=clone(session.exploration);updateLocation();}})

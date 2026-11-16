@@ -11,7 +11,7 @@ The two connected rooms are explicitly **noncanonical integration fixtures**. Th
 ## State and compatibility
 
 - One per-starter dual-record journal owns world flags/events, inventory, quests, party identity, formation, RPG stats, current field and area snapshots.
-- Interactions and portals commit once, and roll back on failed storage. Victory rewards and completion flags are saved together before their presentation can be interrupted.
+- Interactions and portals commit once, and roll back on failed storage. Restored doorway positions accept deliberate outward travel without idle arrival bouncing. Victory rewards and completion flags are saved together before their presentation can be interrupted.
 - Original RPG/v5 labs retain their own namespaces and routes. New Game asks before replacing an existing unified character record.
 - Campaign formation selects only active units for battle; reserve HP/EP and identity metadata survive victory, defeat and withdrawal. Older four-slot integrations remain compatible.
 - Equipment restrictions and combat calculations are retained. Explicit authored normal-area encounters can use `beginHybridEncounter`; stealth detection retains its separate policy gate. Multiple-hostile target selection is supported when an encounter supplies several living enemies; the current fixture still contains one sentry.
@@ -28,7 +28,7 @@ Keyboard, touch and controller use the same menus. Picker cancellation and contr
 
 ## Verification and remaining gates
 
-- Local Node suite: 115 passing tests, including a mounted-runtime connected travel/interaction/save/reload test using actual Game snapshot methods and a minimal host. This is not browser or device proof.
+- Local Node suite: 116 passing tests, including a mounted-runtime connected travel/interaction/save/reload test using actual Game snapshot methods and a minimal host. This is not browser or device proof.
 - All 88 installed world/battle PNG files match the supplied art archive byte-for-byte; private art/story are excluded from public git.
 - Chromium acceptance includes the original game/labs plus a new four-starter unified route suite with keyboard traversal, patrol battle, results, area map, formation, rewards and Continue. The first CI run caught stale intent text during presentation; the readout now updates immediately while input stays locked. Current CI results are recorded on PR #4.
 - Local Chromium execution is blocked by a socket restriction. Local Android compilation/emulation is unavailable because Gradle/SDK/adb are absent. Neither is represented as passing.

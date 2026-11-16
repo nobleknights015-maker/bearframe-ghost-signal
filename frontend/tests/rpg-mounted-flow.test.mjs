@@ -170,3 +170,36 @@ test('new game bypasses old progress and atomically replaces it without deleting
   assert.equal(db.inspect().redundant,true,'Old record remains available for corruption fallback');
  }finally{env.restore();}
 });
+
+test('saved doorway resumes without idle bounce and accepts deliberate outward movement',async()=>{
+ const values=new Map();
+ const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};
+ let env=environment(storage);
+ try{
+  let game=host(),connected=await createAeonConnectedField({readMaps:maps});
+  game.input={dir:null};
+  let lab=mountRpgLab({game,connected,v5,ui:{show(){},toast(){}},sfx:{}});
+  game.m.update(game,.016); // arm first departure from the interior
+  game.player.x=208;game.player.y=112;game.input.dir='right';game.m.update(game,.016);
+  await settled();
+  assert.equal(game.m.id,'annex');assert.equal(game.player.x,48);
+  // Held arrival direction points into the room and must not immediately bounce.
+  game.m.update(game,.016);await settled();assert.equal(game.m.id,'annex');
+  game.input.dir='left';game.m.update(game,.016);await settled();
+  assert.equal(game.m.id,'staging');assert.equal(game.player.x,208);
+  assert.equal(lab.save(),true);
+  env.restore();env=environment(storage);
+  game=host();game.input={dir:null};connected=await createAeonConnectedField({readMaps:maps});
+  lab=mountRpgLab({game,connected,v5,ui:{show(){},toast(){}},sfx:{}});
+  assert.equal(game.m.id,'staging');assert.equal(game.player.x,208);
+  for(let i=0;i<3;i++){game.m.update(game,.016);await settled();}
+  assert.equal(game.m.id,'staging','Idle saved doorway must not retrigger a portal');
+  game.input.dir='left';game.m.update(game,.016);await settled();
+  assert.equal(game.m.id,'staging','Inward input must retain the arrived room');
+  // At this east portal the wall permits less than 10px of extra travel. The
+  // outward intent must work from the saved feet position without a rearm detour.
+  game.input.dir='right';game.m.update(game,.016);await settled();
+  assert.equal(game.m.id,'annex');assert.equal(game.player.x,48);
+  assert.equal(lab.inspect().session.exploration.location.mapId,'annex');
+ }finally{env.restore();}
+});

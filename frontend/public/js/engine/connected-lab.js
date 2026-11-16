@@ -88,6 +88,8 @@ export async function mountConnectedLab({game,ui,touchMode}){
       onInteract:(e,g)=>commitEvent(e.id,e,g),
       onPortal:portalId=>{
         if(!portalId){armed=true;return;}
+        const direction=game.input?.dir||(game.player.moving?game.player.dir:null);
+        if(direction===graph.destination(game.m.id,portalId).facing)armed=true;
         if(!armed||traveler?.busy)return;
         armed=false;
         traveler.transition(portalId).then(ok=>{
