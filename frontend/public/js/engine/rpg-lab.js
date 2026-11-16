@@ -62,7 +62,6 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
     return state;};
   const policy=()=>connected?connected.policyFor(game.m?.id||'staging'):LAB_POLICY_SPEC;
   let maps={},traveler=null,portalArmed=false;
-  if(newGame)db.clear();
   let session=createHybridSession(fresh(),policy()),cooldown=0,menuTab='status';
   let checkpointRpg=clone(session.exploration);
   const originalCheckpoint=game.checkpoint.bind(game);
@@ -98,7 +97,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
   if(v5)bindV5WorldSheet(game,v5.field);
   battle.panel.style.cssText='padding:calc(var(--u) * 6);gap:calc(var(--u) * 3)';
   const status=()=>session;
-  const location=()=>({...px(game.player.x,game.player.y,game.player.dir),mapId:game.m?.id||'rpg-lab'});
+  const location=()=>({...px(game.player.hidden?game.player.hx:game.player.x,game.player.hidden?game.player.hy:game.player.y,game.player.dir),mapId:game.m?.id||'rpg-lab'});
   const apply=(fn)=>{
     const next=clone(session.exploration);fn(next);
     session=createHybridSession(next,policy());
@@ -181,13 +180,24 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
         maps=clone(journal.maps);session=createHybridSession(world,policy());return true;
       }});
   }else mission=createLabMission(callbacks);
-  const saved=db.load();
+  const saved=newGame?null:db.load();
   let valid=!!saved&&saved.version===1&&saved.phase==='exploration'&&
     (connected?!!connected.graph.get(saved.world?.location?.mapId)&&saved.field?.mission===saved.world.location.mapId:
       saved.world?.location?.mapId==='rpg-lab'&&saved.field?.mission==='rpg-lab');
+  let rejectedSave=false;
   if(valid){
-    try{session=createHybridSession(connected?saved.world:migrateLabWorld(saved.world),connected?connected.policyFor(saved.world.location.mapId):policy());if(connected)maps=clone(saved.maps||{});}
-    catch(_){valid=false;maps={};session=createHybridSession(fresh(),connected?connected.policyFor('staging'):policy());}
+    try{
+      if(connected){
+        const world=saved.world,starter=world.party?.find(p=>p.id==='sleeper');
+        const object=value=>value&&typeof value==='object'&&!Array.isArray(value);
+        if(!object(world.flags)||!object(world.events)||!object(saved.maps)||
+          !starter||starter.artId!==v5.starterId||starter.skinId!==v5.starterId.slice(-1)||
+          !Number.isFinite(saved.field?.player?.x)||!Number.isFinite(saved.field?.player?.y)||
+          saved.field.player.x!==world.location.x||saved.field.player.y!==world.location.y)
+          throw new Error('Saved identity or field state mismatch');
+      }
+      session=createHybridSession(connected?saved.world:migrateLabWorld(saved.world),connected?connected.policyFor(saved.world.location.mapId):policy());if(connected)maps=clone(saved.maps||{});}
+    catch(_){rejectedSave=true;valid=false;maps={};session=createHybridSession(fresh(),connected?connected.policyFor('staging'):policy());}
   }
   if(connected)mission=connected.missionForSync(valid?saved.world.location.mapId:'staging');
   ui.show('title',false);ui.show('ending',false);
@@ -216,6 +226,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
   checkpointRpg=clone(session.exploration);
   ui.show('title',false);
   updateLocation();
+  if(rejectedSave)ui.toast('INVALID RPG RECORD — RECOVERED A FRESH FIELD',4);
   const openMenu=()=>{
     if(game.mode!=='play'&&game.mode!=='pause')return;
     game.mode='rpgmenu';ui.show('pause',false);menu.shell.classList.remove('hidden');
@@ -446,7 +457,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
     options.appendChild(softButton('BACK',showBattle));battle.panel.appendChild(options);options.querySelector('button')?.focus();
   }
   function chooseAllyTarget(command){
-    if(session.phase!=='battle')return;
+    if(session.phase!=='battle'||presentationBusy)return;
     const candidates=session.battle.party.filter(unit=>unit.hp>0);
     battle.panel.replaceChildren();
     battle.panel.appendChild(el('h2','',command.type==='repair'?'REPAIR // SELECT ALLY':'REPAIR KIT // SELECT ALLY'));
@@ -455,7 +466,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
     choices.style.flexWrap='wrap';
     for(const unit of candidates){
       choices.appendChild(softButton(unit.name+' · HP '+unit.hp+'/'+unit.maxHp,
-        ()=>takeAction({...command,target:'party:'+unit.id})));
+        ()=>{showBattle();takeAction({...command,target:'party:'+unit.id});}));
     }
     choices.appendChild(softButton('BACK',showBattle));
     battle.panel.appendChild(choices);
@@ -529,8 +540,8 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
   // In this explicitly opted-in test only, the original pause SAVE action must write the RPG journal.
   $('btn-save').onclick=()=>{$('pause-note').textContent=save()?'RPG test record saved to this device.':'RPG record could not be saved.';};
   $('btn-quit').onclick=()=>{if(save())window.location.assign(new URL(connected?'aeon.html':'engine-lab.html',window.location.href).href);else $('pause-note').textContent='Save failed. Remain in sector until record is safe.';};
-  addEventListener('ghost-signal-host-pause',()=>{if(session.phase==='exploration')save();});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden&&session.phase==='exploration')save();});
+  addEventListener('ghost-signal-host-pause',()=>{if(session.phase==='exploration'&&db.inspect().hasSave)save();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&session.phase==='exploration'&&db.inspect().hasSave)save();});
   const previousResume=game.onResume;
   game.onResume=()=>{
     if(game.mode==='pause')previousResume();

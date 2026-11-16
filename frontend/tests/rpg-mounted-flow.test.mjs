@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {createRpgSaveStore} from '../public/js/engine/rpg-save.js';
 import {Game} from '../public/js/game.js';
 import {mountRpgLab} from '../public/js/engine/rpg-lab.js';
 import {createAeonConnectedField} from '../public/js/engine/aeon-connected-field.js';
@@ -96,5 +97,76 @@ test('mounted unified field wires real mission callbacks, atomic portals and rel
   assert.equal(resumed.m.id,'staging');assert.equal(resumed.player.x,208);
   assert.equal(resumed.ents.find(e=>e.id==='power-switch').gone,true);
   assert.equal(values.get('bearframe_ghost_signal_save_v1'),'legacy-sentinel');
+ }finally{env.restore();}
+});
+
+
+test('mounted continuation rejects a valid-checksum record with another starter identity',async()=>{
+ const values=new Map();
+ const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};
+ let env=environment(storage);
+ try{
+  let game=host(),connected=await createAeonConnectedField({readMaps:maps});
+  let lab=mountRpgLab({game,connected,v5,ui:{show(){},toast(){}},sfx:{}});
+  assert.equal(lab.save(),true);
+  const db=createRpgSaveStore(storage,'bearframe_aeon_unified_sleeper_C_v1');
+  const mismatched=db.load();
+  mismatched.world.party[0].artId='sleeper_A';mismatched.world.party[0].skinId='A';
+  mismatched.world.location={mapId:'annex',x:90,y:112,facing:'right'};
+  mismatched.field.mission='annex';mismatched.field.player.x=90;
+  assert.equal(db.save(mismatched),true,'Fixture remains a valid journal record');
+  env.restore();env=environment(storage);
+  game=host();connected=await createAeonConnectedField({readMaps:maps});
+  lab=mountRpgLab({game,connected,v5,ui:{show(){},toast(){}},sfx:{}});
+  assert.equal(lab.inspect().session.exploration.party[0].artId,'sleeper_C');
+  assert.equal(game.m.id,'staging','Mismatched identity starts a coherent fresh field');
+ }finally{env.restore();}
+});
+
+for(const missing of ['flags','events'])test('mounted continuation recovers from missing world '+missing,async()=>{
+ const values=new Map();
+ const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};
+ let env=environment(storage);
+ try{
+  const db=createRpgSaveStore(storage,'bearframe_aeon_unified_sleeper_C_v1');
+  let game=host(),connected=await createAeonConnectedField({readMaps:maps});
+  let lab=mountRpgLab({game,connected,v5,ui:{show(){},toast(){}},sfx:{}});lab.save();
+  const damaged=db.load();delete damaged.world[missing];db.save(damaged);
+  env.restore();env=environment(storage);
+  game=host();connected=await createAeonConnectedField({readMaps:maps});
+  lab=mountRpgLab({game,connected,v5,ui:{show(){},toast(){}},sfx:{}});
+  assert.equal(typeof lab.inspect().session.exploration[missing],'object');
+  assert.doesNotThrow(()=>game.m.update(game,.016));
+  assert.doesNotThrow(()=>game.m.interact(game.ents[0],game));
+ }finally{env.restore();}
+});
+
+test('new game bypasses old progress and atomically replaces it without deleting recovery records',async()=>{
+ const values=new Map();let refuseWrites=false,deletes=0;
+ const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>{if(refuseWrites)throw Error('storage full');values.set(k,v);},removeItem(){deletes++;throw Error('deletion denied');}};
+ let env=environment(storage);
+ try{
+  const db=createRpgSaveStore(storage,'bearframe_aeon_unified_sleeper_C_v1');
+  let game=host(),connected=await createAeonConnectedField({readMaps:maps});
+  let lab=mountRpgLab({game,connected,v5,ui:{show(){},toast(){}},sfx:{}});
+  game.m.interact(game.ents[0],game);
+  assert.equal(db.load().world.flags['power-switch'],true);
+  const oldRevision=db.inspect().revision;
+  env.restore();env=environment(storage);
+  game=host();connected=await createAeonConnectedField({readMaps:maps});
+  lab=mountRpgLab({game,connected,v5,ui:{show(){},toast(){}},sfx:{},newGame:true});
+  assert.equal(game.m.id,'staging');
+  assert.equal(lab.inspect().session.exploration.flags['power-switch'],undefined);
+  assert.equal(game.ents[0].gone,undefined);
+  assert.equal(deletes,0,'Starting fresh must not erase the recoverable old journal');
+  refuseWrites=true;
+  assert.equal(lab.save(),false);
+  assert.equal(db.load().world.flags['power-switch'],true,'Failed first write preserves previous durable progress');
+  assert.equal(db.inspect().revision,oldRevision);
+  refuseWrites=false;
+  assert.equal(lab.save(),true);
+  assert.equal(db.load().world.flags['power-switch'],undefined);
+  assert.equal(db.inspect().revision,oldRevision+1);
+  assert.equal(db.inspect().redundant,true,'Old record remains available for corruption fallback');
  }finally{env.restore();}
 });
