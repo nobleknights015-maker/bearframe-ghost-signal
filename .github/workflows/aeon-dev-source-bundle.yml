@@ -4,6 +4,8 @@ on:
     branches: [ghost-signal-engine]
     paths:
       - '.github/workflows/aeon-dev-source-bundle.yml'
+      - 'frontend/public/js/engine/campaign-*.js'
+      - 'frontend/public/campaign.html'
   workflow_dispatch:
 jobs:
   source-archive:
