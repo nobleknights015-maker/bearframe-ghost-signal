@@ -30,7 +30,7 @@ export function sideViewSlots(battle) {
   return Object.freeze([...map(battle.party,'party',ALLY_SLOTS),...map(battle.enemies,'enemy',ENEMY_SLOTS)]);
 }
 const assetPath=value=>typeof value==='string'&&
-  /^assets\/battlers\/[a-zA-Z0-9/_-]+\.png$/.test(value)&&!value.includes('..');
+  /^assets\/(?:battlers|aeon\/assets\/battlers)\/[a-zA-Z0-9/_-]+\.png$/.test(value)&&!value.includes('..');
 export function validateBattleArtManifest(manifest) {
   if(!manifest||typeof manifest!=='object'||Array.isArray(manifest))throw new TypeError('Invalid battler manifest');
   const validated={};
