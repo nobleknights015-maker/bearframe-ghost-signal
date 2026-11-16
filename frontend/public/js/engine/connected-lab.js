@@ -35,6 +35,7 @@ export async function mountConnectedLab({game,ui,touchMode}){
   // Dedicated RPG journal only. The original Ghost Signal save API is never written.
   game.store={...game.store,save:()=>true,clear:()=>{},saveProgress:()=>true};
   let armed=false;
+  let lastAttemptedPortal=null;
   let traveler;
   const inspect=()=>({
     mapId:game.m?.id||null,mode:game.mode,field:game.snapshot(),
@@ -98,11 +99,16 @@ export async function mountConnectedLab({game,ui,touchMode}){
       getWorld:()=>journal.world,
       onInteract:(e,g)=>commitEvent(e.id,e,g),
       onPortal:portalId=>{
-        if(!portalId){armed=true;return;}
+        // Edge-trigger each doorway entry. A held input at a sealed hatch must
+        // not flood notifications, retries or journal writes on every frame.
+        if(!portalId){armed=true;lastAttemptedPortal=null;return;}
+        const key=game.m.id+':'+portalId;
+        if(lastAttemptedPortal===key)return;
         const direction=game.input?.dir||(game.player.moving?game.player.dir:null);
         if(direction===graph.destination(game.m.id,portalId).facing)armed=true;
         if(!armed||traveler?.busy)return;
         armed=false;
+        lastAttemptedPortal=key;
         traveler.transition(portalId).then(ok=>{
           if(ok)ui.toast('AREA CONNECTED: '+game.m.id.toUpperCase(),2);
           else {
