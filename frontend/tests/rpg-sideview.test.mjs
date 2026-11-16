@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BATTLE_VIEW,sideViewSlots,validateBattleArtManifest,battleAnimationFrame,ANIMATION_NAMES}
+import {BATTLE_VIEW,sideViewSlots,validateBattleArtManifest,battleAnimationFrame,ANIMATION_NAMES,sideViewPose}
   from '../public/js/engine/rpg-sideview-layout.js';
 
 const party=[0,1,2,3].map(i=>({id:'ally-'+i}));
@@ -62,4 +62,17 @@ test('terminal down and victory animations hold last cel while idle and attack l
   assert.equal(battleAnimationFrame(art,'down',0).x,0);
   assert.equal(battleAnimationFrame(art,'attack',.6).x,0);
   assert.equal(battleAnimationFrame(art,'idle',1).x,0);
+});
+
+test('terminal side-view outcomes override old cues without changing combat state',()=>{
+  const ally=Object.freeze({id:'ally',hp:12,guard:false,chargeTarget:null});
+  const foe=Object.freeze({id:'foe',hp:9,guard:false,chargeTarget:null});
+  const hit={actor:'enemy:foe',target:'party:ally',kind:'attack'};
+  assert.equal(sideViewPose(ally,'party','active',hit,.1),'hit');
+  assert.equal(sideViewPose(ally,'party','victory',hit,.1),'victory');
+  assert.equal(sideViewPose(foe,'enemy','defeat',hit,.1),'victory');
+  assert.equal(sideViewPose({...ally,hp:0},'party','victory',hit,.1),'down');
+  assert.equal(sideViewPose(foe,'enemy','victory',hit,.1),'attack');
+  assert.equal(sideViewPose(ally,'party','active',null),'idle');
+  assert.equal(ally.hp,12);
 });
