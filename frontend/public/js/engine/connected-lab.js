@@ -94,6 +94,16 @@ export async function mountConnectedLab({game,ui,touchMode}){
         armed=false;
         traveler.transition(portalId).then(ok=>{
           if(ok)ui.toast('AREA CONNECTED: '+game.m.id.toUpperCase(),2);
+          else {
+            // A locked conditional passage must be legible in actual gameplay.
+            // No quest flags, map position or saves are changed by this notice.
+            const gate=graph.destination(game.m.id,portalId);
+            const flags=journal.world.flags;
+            if(gate.requiresFlag&&flags[gate.requiresFlag]!==true)
+              ui.toast('PASSAGE SEALED — WORLD CONDITION NOT MET',2);
+            else if(gate.requiresNotFlag&&flags[gate.requiresNotFlag]===true)
+              ui.toast('PASSAGE CLOSED — ROUTE NO LONGER ACCESSIBLE',2);
+          }
         }).catch(error=>{
           console.error('Connected travel rolled back safely',error);
           ui.toast('DOORWAY BLOCKED — PREVIOUS AREA RESTORED',4);
