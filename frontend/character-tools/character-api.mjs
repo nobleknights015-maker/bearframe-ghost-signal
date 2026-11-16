@@ -93,6 +93,7 @@ function newState(spec,kind,root) {
     if(spec.colors)rig.colors={...rig.colors,...clone(spec.colors)};
     if(!rig.views||!rig.anims)throw Error('Machine rig needs authored views and motion definitions');
     project=SS.machineProject(spec.id,rig);
+    warnings.push('Machine contact/support pose requires rig-specific visual review; bounding-box alpha is not a valid sole/ground test for walkers and floaters');
   }
   return {id:spec.id,spec:clone(spec),kind,root,project,warnings,meta:null};
 }
@@ -319,7 +320,10 @@ export async function validateCharacter(characterId,{outputRoot=OUTPUT_ROOT}={})
         else offset+=a.count;
       }
       const walk=meta.animations.walk;
-      if(walk&&walk.count>0){
+      // Alpha bounds are a reliable grounded-foot proxy only for humanoids. Multi-leg rigs and
+      // floaters require explicit support-joint/ground projection QA, not last opaque pixel.
+      const request=JSON.parse(await readFile(path.join(base,'request.json'),'utf8'));
+      if(walk&&walk.count>0&&request.kind==='humanoid'){
         for(let row=0;row<4;row++){
           const bounds=[];
           for(let col=walk.start;col<walk.start+walk.count;col++){
