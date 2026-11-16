@@ -25,7 +25,9 @@ export function mapV5Art(manifest,bindings) {
          !Array.isArray(clip.durationsMs)||clip.durationsMs.length!==clip.frames)
         throw new Error('Invalid authored action timing '+name+' for '+artId);
       animations[name]={row:clip.row,frames:clip.frames,fps:clip.fps||clip.frames*1000/clip.totalMs,
-        durationsMs:[...clip.durationsMs],loop:!!clip.loop,holdLast:!!clip.holdLast};
+        durationsMs:[...clip.durationsMs],loop:!!clip.loop,holdLast:!!clip.holdLast,
+        ...(clip.events?.find(e=>e.kind==='release')?
+          {releaseMs:clip.events.find(e=>e.kind==='release').atMs}:{})};
     }
     result[actorKey]={src:'assets/aeon/'+b.src,frameWidth:b.frameWidth,
       frameHeight:b.frameHeight,scale:1,animations};
