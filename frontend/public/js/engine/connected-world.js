@@ -3,6 +3,7 @@
 const DIRECTIONS=new Set(['up','down','left','right']);
 const isId=x=>typeof x==='string'&&/^[a-z][a-z0-9-]*$/.test(x);
 const fail=m=>{throw new Error('Connected map: '+m);};
+const validFlag=x=>typeof x==='string'&&/^[a-z][a-z0-9-]*$/.test(x);
 const props=p=>Array.isArray(p)?Object.fromEntries(p.map(v=>[v.name,v.value])):p;
 export function compileConnectedWorld(maps){
   if(!Array.isArray(maps)||maps.length<2)fail('at least two maps required');
@@ -25,6 +26,8 @@ export function compileConnectedWorld(maps){
         fail('portal must be tile-aligned');
       if(!p.properties||!isId(props(p.properties).toMap)||!isId(props(p.properties).toPortal)||
          !DIRECTIONS.has(props(p.properties).facing))fail('invalid destination '+p.name);
+      const gate=props(p.properties).requiresFlag;
+      if(gate!==undefined&&!validFlag(gate))fail('invalid portal flag '+p.name);
     }
     byId.set(map.id,map);
   }
@@ -54,7 +57,7 @@ export function compileConnectedWorld(maps){
       if(!p)fail('unknown portal '+mapId+'/'+portalId);
       const to=byId.get(props(p.properties).toMap);
       const arrival=to.layers.find(l=>l.name==='portals').objects.find(x=>x.name===props(p.properties).toPortal);
-      return Object.freeze({mapId:to.id,portalId:arrival.name,x:arrival.x+16,y:arrival.y+16,facing:props(p.properties).facing});
+      return Object.freeze({mapId:to.id,portalId:arrival.name,x:arrival.x+16,y:arrival.y+16,facing:props(p.properties).facing,...(props(p.properties).requiresFlag?{requiresFlag:props(p.properties).requiresFlag}:{})});
     }
   });
 }
