@@ -48,6 +48,15 @@ jobs:
           node --check frontend/public/js/engine/rpg-lab.js
       - name: Generator unit tests (real native Canvas and Studio modules)
         run: node --test frontend/character-tools/tests/character-generator.test.mjs
+      - name: Clean engine checkout — native baseline generator without advanced branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -u BF_STUDIO_LIB BF_CHARACTER_OUTPUT="$RUNNER_TEMP/aeon-clean-checkout" \
+            node frontend/character-tools/cli.mjs generate frontend/character-tools/requests/test_relay_01.json > "$RUNNER_TEMP/aeon-clean-generate.json"
+          env -u BF_STUDIO_LIB BF_CHARACTER_OUTPUT="$RUNNER_TEMP/aeon-clean-checkout" \
+            node frontend/character-tools/cli.mjs validate test_relay_01 > "$RUNNER_TEMP/aeon-clean-validate.json"
+          grep -q '"ok": true' "$RUNNER_TEMP/aeon-clean-validate.json"
       - name: Generate selected public request
         env:
           REQUEST_FILE: ${{ inputs.request_file || 'frontend/character-tools/requests/test_relay_01.json' }}
