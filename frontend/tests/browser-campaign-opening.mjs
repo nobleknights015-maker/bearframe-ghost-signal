@@ -93,6 +93,54 @@ try{
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play');
   assert.equal((await inspect()).story,null,'Completed intro should not replay on resume');
   assert.equal((await inspect()).mapId,'A00');
+
+  // Exercise the actual public campaign entry: walk up to an authored terminal,
+  // acknowledge its source dialogue, unlock the gated area, cross the portal
+  // with player input, then load that destination from the durable journal.
+  let held=null;
+  try{
+    for(let i=0;i<150;i++){
+      const p=await page.evaluate(()=>({x:window.__gs?.player?.x,mode:window.__gs?.mode}));
+      assert.equal(p.mode,'play','Walking to the terminal must not change field mode');
+      if(Math.abs(p.x-113)<3)break;
+      const direction=p.x>113?'ArrowLeft':'ArrowRight';
+      if(held!==direction){
+        if(held)await page.keyboard.up(held);
+        held=direction;await page.keyboard.down(held);
+      }
+      await page.waitForTimeout(35);
+      if(i===149)throw new Error('Unable to reach authored console using normal walking');
+    }
+  }finally{if(held)await page.keyboard.up(held);}
+  assert.equal(await page.evaluate(()=>window.__gs.target()?.id),'door_console');
+  await page.keyboard.press('KeyE');
+  await page.waitForFunction(()=>window.__campaign?.inspect().story==='door',null,{timeout:12000});
+  assert.equal(await page.locator('#dialog-speaker').innerText(),'SYSTEM');
+  await acknowledge();
+  await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
+  assert.equal((await inspect()).story,null,'Terminal dialogue must resolve before the route unlocks');
+
+  await page.keyboard.down('ArrowRight');
+  try{
+    await page.waitForFunction(()=>window.__campaign?.inspect().mapId==='A01',null,{timeout:15000});
+  }finally{await page.keyboard.up('ArrowRight');}
+  await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
+  assert.equal((await inspect()).areaCount,2);
+  const arrival=await page.evaluate(()=>({x:window.__gs.player.x,dir:window.__gs.player.dir}));
+  assert.equal(arrival.x,48,'Arrival must use the reciprocal portal feet coordinate');
+  assert.equal(arrival.dir,'right');
+  await page.locator('#btn-pause').click();
+  await page.locator('#btn-save').click();
+  await page.locator('#btn-resume').click();
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>document.querySelector('#btn-continue')?.disabled===false);
+  await page.locator('#btn-continue').click();
+  await page.locator('#aeon-v5-choose button[data-starter="sleeper_D"]').click();
+  await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
+  assert.equal((await inspect()).mapId,'A01','Continue must preserve cross-area travel');
+  assert.equal((await inspect()).story,null,'Continue must not replay resolved narrative scenes');
+  assert.equal(await page.evaluate(()=>window.__gs.player.x),48,
+    'Continue must restore the saved destination position, not its area spawn');
   assert.equal(errors.length,0,errors.join('\n'));
   await mkdir(artifacts,{recursive:true});
   await page.screenshot({path:join(artifacts,'campaign-opening-synthetic.png'),fullPage:true});
