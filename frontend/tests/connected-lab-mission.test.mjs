@@ -22,7 +22,7 @@ test('real authored Tiled rooms convert to Ghost Signal collision, entities and 
    assert.equal(region.grid[3*8+3],2,'Interior remains walkable');
    assert.equal(mission.drones.length,0,'Noncanonical staging should not invent patrol fights');
    assert.ok(mission.objectives({}).length>=3);
-   assert.equal(mission.entities().length,1);
+   assert.equal(mission.entities().length,map.id==='annex'?2:1,'Annex includes cache and repeatable archive');
  }
 });
 test('portal trigger uses actual player feet position; label and restoration reflect persistent world state',async()=>{
