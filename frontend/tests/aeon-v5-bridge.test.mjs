@@ -40,3 +40,12 @@ test('v5 field frame binding uses all eight distinct walk frames with independen
  game.player.scanT=.4;assert.equal(game.frame(),12);
  assert.throws(()=>bindV5WorldSheet(game,{canvas:{width:384,height:224},id:'sleeper_C'}),/Bad V5 field sheet/);
 });
+import {sideViewPose} from '../public/js/engine/rpg-sideview-layout.js';
+test('authored v5 release and full pose duration do not end a strike at the old .34s hard limit',()=>{
+ const attacker={id:'sleeper',hp:38,guard:false,chargeTarget:null};
+ const victim={id:'sentry',hp:42,guard:false,chargeTarget:null};
+ const cue={actor:'party:sleeper',target:'enemy:sentry',kind:'attack'};
+ assert.equal(sideViewPose(attacker,'party','active',cue,.5,.56,.42,.22),'attack');
+ assert.equal(sideViewPose(victim,'enemy','active',cue,.15,.56,.42,.22),'idle');
+ assert.equal(sideViewPose(victim,'enemy','active',cue,.3,.56,.42,.22),'hit');
+});
