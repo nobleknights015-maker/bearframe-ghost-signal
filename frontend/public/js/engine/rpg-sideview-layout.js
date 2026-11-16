@@ -54,13 +54,16 @@ export function validateBattleArtManifest(manifest) {
          durations.length!==anim.frames||
          durations.some(ms=>!Number.isInteger(ms)||ms<1||ms>10000)))
         throw new TypeError('Invalid per-frame timing '+name);
+      if(anim.releaseMs!==undefined&&(!Number.isInteger(anim.releaseMs)||anim.releaseMs<0||anim.releaseMs>10000))
+        throw new TypeError('Invalid release timing');
       if(anim.loop!==undefined&&typeof anim.loop!=='boolean')throw new TypeError('Invalid clip loop flag');
       if(anim.holdLast!==undefined&&typeof anim.holdLast!=='boolean')throw new TypeError('Invalid clip hold flag');
       rows[name]=Object.freeze({
         row:anim.row,frames:anim.frames,fps:anim.fps,
         ...(durations?{durationsMs:Object.freeze([...durations])}:{}),
         ...(anim.loop!==undefined?{loop:anim.loop}:{}),
-        ...(anim.holdLast!==undefined?{holdLast:anim.holdLast}:{})
+        ...(anim.holdLast!==undefined?{holdLast:anim.holdLast}:{}),
+        ...(anim.releaseMs!==undefined?{releaseMs:anim.releaseMs}:{})
       });
     }
     if(!rows.idle)throw new TypeError('Battler needs idle animation');
@@ -99,15 +102,15 @@ export function battleAnimationFrame(spec,name,elapsedSeconds) {
 
 // Resolve presentation poses from the immutable combat snapshot; never alter battle rules.
 // Terminal results override stale action cues, so defeated units cannot appear to attack.
-export function sideViewPose(unit,side,status,cue=null,age=Infinity) {
+export function sideViewPose(unit,side,status,cue=null,age=Infinity,actorDuration=.34,reactionDuration=.42,releaseAt=0) {
   if(!unit||!Number.isFinite(unit.hp))throw new TypeError('Invalid visual combatant');
   if(unit.hp<=0)return 'down';
   if(status==='victory'&&side==='party')return 'victory';
   if(status==='defeat'&&side==='enemy')return 'victory';
-  if(cue&&age>=0&&age<.34&&cue.actor===side+':'+unit.id)
+  if(cue&&age>=0&&age<actorDuration&&cue.actor===side+':'+unit.id)
     return ['pulse','repair','item'].includes(cue.kind)?'cast':
       cue.kind==='overload'?'attack':ANIMATION_NAMES.includes(cue.kind)?cue.kind:'idle';
-  if(cue&&age>=0&&age<.42&&cue.target===side+':'+unit.id)
+  if(cue&&age>=releaseAt&&age<releaseAt+reactionDuration&&cue.target===side+':'+unit.id)
     return ['attack','pulse','overload'].includes(cue.kind)?'hit':'idle';
   return unit.guard?'guard':unit.chargeTarget?'charge':'idle';
 }
