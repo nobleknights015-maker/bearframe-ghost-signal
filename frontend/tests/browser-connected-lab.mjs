@@ -34,6 +34,23 @@ async function walkToX(target){
     throw Error('Movement stalled before X '+target);
   }finally{if(previous)await page.keyboard.up(previous);}
 }
+async function walkToY(target){
+  let previous=null;
+  try{
+    for(let n=0;n<180;n++){
+      const pos=await page.evaluate(()=>({y:window.__gs.player.y,mode:window.__gs.mode}));
+      assert.equal(pos.mode,'play');
+      if(Math.abs(pos.y-target)<5)return;
+      const key=target<pos.y?'ArrowUp':'ArrowDown';
+      if(key!==previous){
+        if(previous)await page.keyboard.up(previous);
+        await page.keyboard.down(key);previous=key;
+      }
+      await page.waitForTimeout(32);
+    }
+    throw Error('Movement stalled before Y '+target);
+  }finally{if(previous)await page.keyboard.up(previous);}
+}
 try{
   await page.goto(root+'/index.html?connected-lab=1',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.__connectedLab?.inspect().mapId==='staging',{timeout:15000});
@@ -44,7 +61,19 @@ try{
   assert.equal(await page.evaluate(()=>!!window.__rpgLab),false);
   const legacy=await page.evaluate(()=>localStorage.getItem('bearframe_ghost_signal_save_v1'));
 
-  await travel('ArrowRight','annex'); // walk through actual east exit
+  // Approach the authored service hatch BEFORE powering the relay.
+  // A locked gate must not switch maps, save progress or consume anything.
+  await walkToX(144);
+  await walkToY(80);
+  await page.waitForTimeout(100);
+  const sealed=await state();
+  assert.equal(sealed.mapId,'staging','Sealed service hatch wrongly allowed passage');
+  assert.deepEqual(sealed.world,baseline.world,'A locked hatch modified durable world state');
+  assert.equal(sealed.world.inventory['repair-kit'],1);
+  await walkToY(112);
+  await walkToX(80);
+
+  await travel('ArrowRight','annex'); // walk through existing unrestricted east exit
   let moved=await state();
   assert.equal(moved.mode,'play');
   assert.equal(moved.world.flags['visited-annex'],true);
@@ -111,6 +140,21 @@ try{
   assert.equal(final.world.inventory['repair-kit'],2);
   assert.equal(final.world.quests.expedition,'power-restored');
   assert.equal(await page.evaluate(()=>window.__gs.ent('power-switch').gone),true);
+
+  // The SAME physical service hatch must open after the relay event is
+  // committed, survive reload, and return via the reciprocal upper doorway.
+  await walkToX(144);
+  await travel('ArrowUp','annex');
+  const unlocked=await state();
+  assert.equal(unlocked.mapId,'annex');
+  assert.ok(Math.abs(unlocked.field.player.x-144)<5);
+  assert.ok(Math.abs(unlocked.field.player.y-80)<5);
+  assert.equal(unlocked.world.flags['power-switch'],true);
+  assert.equal(unlocked.world.inventory['repair-kit'],2);
+  await travel('ArrowDown','staging');
+  assert.equal((await state()).mapId,'staging');
+  assert.equal((await state()).world.inventory['repair-kit'],2,
+    'Hatch round trip duplicated or consumed the supply reward');
   assert.equal(await page.evaluate(()=>localStorage.getItem('bearframe_ghost_signal_save_v1')),legacy,
     'Original Ghost Signal save was overwritten by expedition');
   assert.equal(errors.length,0,errors.join('\n'));
@@ -139,7 +183,7 @@ try{
   await page.waitForFunction(()=>window.__connectedLab?.inspect().mapId==='staging');
   assert.equal((await state()).world.inventory['repair-kit'],2,
     'Switching test modes must retain connected expedition save');
-  console.log('PASS connected expedition: real A→B→A, durable events, touchscreen QA launcher, separate RPG modes');
+  console.log('PASS connected expedition: sealed/unlocked authored service hatch, real A→B→A, durable events, touchscreen QA launcher, separate RPG modes');
 }catch(error){
   await mkdir(artifacts,{recursive:true});
   try{await page.screenshot({path:join(artifacts,'connected-expedition-failure.png'),fullPage:true});}catch(_){}
