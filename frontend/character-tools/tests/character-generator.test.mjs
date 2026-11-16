@@ -57,6 +57,7 @@ test('approved sleeper identities cannot be procedurally replaced or imported wi
   await assert.rejects(generateCharacter({...spec,id:'sleeper_A'},{outputRoot:root}),/must use importApprovedSpriteSheet/);
   await assert.rejects(importApprovedSpriteSheet('not-a-file.png',{characterId:'sleeper_A',role:'portrait'},{outputRoot:root}),/reviewer approval/);
   await assert.rejects(generateCharacter({...spec,id:'test_bad_path',appearanceReference:'private-character.png'},{outputRoot:root}),/reference cannot be auto-traced/);
+  await assert.rejects(generateCharacter({...spec,id:'test_bad_bypass',appearanceReference:'canonical.png',approvedSourceSheet:true},{outputRoot:root}),/reference cannot be auto-traced/);
  }finally{await rm(root,{recursive:true,force:true});}
 });
 test('edited Studio frame stays unchanged through separate-process regeneration',async()=>{
