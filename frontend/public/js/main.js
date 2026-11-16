@@ -144,6 +144,11 @@ if (new URLSearchParams(location.search).get('connected-lab') === '1') {
   import('./engine/rpg-lab.js').then(({mountRpgLab}) => {
     mountRpgLab({game, ui, sfx, touchMode});
     refreshTouch();
+    const requested=new URLSearchParams(location.search).get('character-demo');
+    if(requested)import('./engine/rpg-field-art.js')
+      .then(({bindGeneratedFieldSprite})=>bindGeneratedFieldSprite(game,requested))
+      .then(result=>{window.__characterDemoReady=result;})
+      .catch(error=>{window.__characterDemoError=String(error);console.error('Character preview failed',error);});
   }).catch(error => {
     console.error('Noncanonical RPG integration lab failed to mount', error);
     ui.toast('RPG LAB INIT FAILED — SEE CONSOLE', 5);
