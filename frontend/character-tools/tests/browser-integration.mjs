@@ -31,8 +31,8 @@ try{
    document.body.appendChild(scene.canvas);
    const state={
      status:'active',
-     party:[{id:'test_relay_01',name:'Test Relay',hp:30,maxHp:30,guard:false,chargeTarget:null}],
-     enemies:[{id:'sentry',name:'Sentry',hp:42,maxHp:42,guard:false,chargeTarget:null}]
+     party:[{side:'party',id:'test_relay_01',name:'Test Relay',hp:30,maxHp:30,guard:false,chargeTarget:null}],
+     enemies:[{side:'enemy',id:'sentry',name:'Sentry',hp:42,maxHp:42,guard:false,chargeTarget:null}]
    };
    scene.setBattle(state,'party:test_relay_01');
    scene.playActions([{actor:'party:test_relay_01',target:'enemy:sentry',type:'attack'}]);
@@ -52,8 +52,8 @@ try{
  await page.evaluate(()=>{
    window.__testScene.setBattle({
      status:'victory',
-     party:[{id:'test_relay_01',name:'Test Relay',hp:30,maxHp:30,guard:false}],
-     enemies:[{id:'sentry',name:'Sentry',hp:0,maxHp:42,guard:false}]
+     party:[{side:'party',id:'test_relay_01',name:'Test Relay',hp:30,maxHp:30,guard:false}],
+     enemies:[{side:'enemy',id:'sentry',name:'Sentry',hp:0,maxHp:42,guard:false}]
    },'party:test_relay_01');
  });
  await page.waitForTimeout(80);
