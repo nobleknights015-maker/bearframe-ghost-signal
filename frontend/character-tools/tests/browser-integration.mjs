@@ -23,6 +23,25 @@ try{
  assert.equal(field.width,384);assert.equal(field.height,224);
  assert(field.player&&Number.isFinite(field.player.x),'Game has real field player');
  await page.screenshot({path:path.join(artifact,'field.png')});
+ let walked=false,walkResult=null;
+ for(const key of ['ArrowRight','ArrowLeft','ArrowUp','ArrowDown']){
+   await page.keyboard.down(key);
+   await page.waitForTimeout(320);
+   const live=await page.evaluate(()=>({
+     x:window.__gs.player.x,y:window.__gs.player.y,
+     moving:window.__gs.player.moving,
+     dir:window.__gs.player.dir
+   }));
+   if(Math.hypot(live.x-field.player.x,live.y-field.player.y)>2){
+     walked=true;walkResult={key,...live};
+     await page.screenshot({path:path.join(artifact,'field-walking.png')});
+     await page.keyboard.up(key);
+     break;
+   }
+   await page.keyboard.up(key);
+ }
+ assert(walked,'Generated field actor did not move under any cardinal input');
+ assert(walkResult.moving,'Movement occurred but walking pose was not active');
  const mode=await page.evaluate(async()=>{
    const {createSideViewBattleScene}=await import('./js/engine/rpg-sideview-scene.js');
    const {RPG_BATTLER_ART}=await import('./js/engine/rpg-battle-art.js');
@@ -74,8 +93,8 @@ try{
  await studio.close();
  assert.deepEqual(errors,[],'Uncaught browser errors');
  writeFileSync(path.join(artifact,'result.json'),JSON.stringify({
-   status:'passed',character:'test_relay_01',field,battle:mode,
-   assertions:['actual Game field sprite sheet','original Ghost Signal unaffected',
+   status:'passed',character:'test_relay_01',field,walk:walkResult,battle:mode,
+   assertions:['actual Game field sprite sheet','walked under real cardinal inputs','original Ghost Signal unaffected',
     'real side-view battle scene','battle actions/victory','original Sprite Studio loads']
  },null,2));
  console.log('PASS: Generated noncanonical character loaded in original Game field, RPG side-view renderer, and Studio regression.');
