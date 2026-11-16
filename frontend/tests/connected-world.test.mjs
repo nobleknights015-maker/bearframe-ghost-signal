@@ -52,3 +52,13 @@ test('conditional portal metadata is validated and preserved without changing or
  maps[0].layers[1].objects[0].properties.requiresFlag='../../unsafe';
  assert.throws(()=>compileConnectedWorld(maps),/invalid portal flag/);
 });
+
+test('inverse portal gate supports mutually exclusive shortcuts and rejects contradictions',()=>{
+ const maps=pair();const p=maps[0].layers[1].objects[0];
+ p.properties.requiresNotFlag='bridge-collapsed';
+ assert.equal(compileConnectedWorld(maps).destination('staging','east-gate').requiresNotFlag,'bridge-collapsed');
+ p.properties.requiresFlag='bridge-collapsed';
+ assert.throws(()=>compileConnectedWorld(maps),/inverse portal flag/);
+ p.properties.requiresNotFlag='bad/flag';
+ assert.throws(()=>compileConnectedWorld(maps),/inverse portal flag/);
+});
