@@ -66,3 +66,17 @@ export function battleAnimationFrame(spec,name,elapsedSeconds) {
   return Object.freeze({x:frame*spec.frameWidth,
     y:anim.row*spec.frameHeight,width:spec.frameWidth,height:spec.frameHeight});
 }
+
+// Resolve presentation poses from the immutable combat snapshot; never alter battle rules.
+// Terminal results override stale action cues, so defeated units cannot appear to attack.
+export function sideViewPose(unit,side,status,cue=null,age=Infinity) {
+  if(!unit||!Number.isFinite(unit.hp))throw new TypeError('Invalid visual combatant');
+  if(unit.hp<=0)return 'down';
+  if(status==='victory'&&side==='party')return 'victory';
+  if(status==='defeat'&&side==='enemy')return 'victory';
+  if(cue&&age>=0&&age<.34&&cue.actor===side+':'+unit.id)
+    return ['pulse','repair','item'].includes(cue.kind)?'cast':cue.kind;
+  if(cue&&age>=0&&age<.42&&cue.target===side+':'+unit.id)
+    return ['attack','pulse','overload'].includes(cue.kind)?'hit':'idle';
+  return unit.guard?'guard':unit.chargeTarget?'charge':'idle';
+}
