@@ -89,6 +89,7 @@ try{
   assert.equal(fight.session.phase,'battle');
   assert.equal(fight.mode,'battle');
   await page.getByRole('button',{name:'WITHDRAW'}).click();
+  await page.waitForFunction(()=>window.__rpgLab?.inspect().mode==='play',{timeout:12000});
   const fled=await state();
   assert.equal(fled.session.phase,'exploration');
   assert.equal(fled.mode,'play');

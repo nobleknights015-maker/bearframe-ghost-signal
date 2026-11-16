@@ -115,6 +115,7 @@ try{
   await attack.click();
   await attack.click();
 
+  await page.waitForFunction(()=>window.__rpgLab?.inspect().mode==='play',{timeout:12000});
   const outcome=await labState();
   assert.equal(outcome.session.phase,'exploration','Winning encounter must resume field gameplay');
   assert.equal(outcome.mode,'play');

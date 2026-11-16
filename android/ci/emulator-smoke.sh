@@ -68,8 +68,8 @@ adb shell dumpsys activity activities > /tmp/ghost-signal-activities.txt
 # A live process is insufficient: verify that our Activity is actually resumed.
 assert_foreground "Initial launch"
 # Game is landscape-only; confirm emulator rotation at the window manager level.
-DISPLAY="$(adb shell wm size | tr -d '\\r')"
-echo "Emulator display: $DISPLAY"
+EMULATOR_DISPLAY="$(adb shell wm size | tr -d '\\r')"
+echo "Emulator display: $EMULATOR_DISPLAY"
 grep -F "$PACKAGE" /tmp/ghost-signal-activities.txt
 # OS touch-dispatch smoke only; this does not prove RPG touch controls.
 adb shell input tap 24 24
@@ -79,6 +79,20 @@ if ! adb shell pidof "$PACKAGE" >/dev/null 2>&1; then
 fi
 adb exec-out screencap -p > ghost-signal-emulator-launch.png
 test -s ghost-signal-emulator-launch.png
+# Exercise actual background/resume without force-stop first. This is a native
+# lifecycle gate only: browser integration separately verifies journal contents.
+BACKGROUND_PID="$(adb shell pidof "$PACKAGE" | tr -d '\r')"
+adb shell input keyevent KEYCODE_HOME
+sleep 2
+adb shell am start -W -n "$PACKAGE/$LAUNCH_ACTIVITY"
+assert_foreground "Background resume"
+RESUMED_PID="$(adb shell pidof "$PACKAGE" | tr -d '\r')"
+if [[ "$RESUMED_PID" != "$BACKGROUND_PID" ]]; then
+  echo "Background resume unexpectedly recreated process ($BACKGROUND_PID -> $RESUMED_PID)" >&2
+  exit 1
+fi
+adb exec-out screencap -p > ghost-signal-emulator-resume.png
+test -s ghost-signal-emulator-resume.png
 # Verify a fresh Activity launch after a process kill. This checks Android lifecycle
 # restart wiring, not RPG journal persistence or a physical-device resume.
 adb shell am force-stop "$PACKAGE"
@@ -100,7 +114,7 @@ test -s ghost-signal-emulator-restart.png
 # This catches a portrait Android host despite a landscape-only manifest.
 python3 - <<'PY'
 import struct
-for filename in ("ghost-signal-emulator-launch.png", "ghost-signal-emulator-restart.png"):
+for filename in ("ghost-signal-emulator-launch.png", "ghost-signal-emulator-resume.png", "ghost-signal-emulator-restart.png"):
     with open(filename, "rb") as image:
         header = image.read(24)
     if header[:8] != bytes((137, 80, 78, 71, 13, 10, 26, 10)) or header[12:16] != b"IHDR":
@@ -117,4 +131,4 @@ if ! adb shell pidof "$PACKAGE" >/dev/null 2>&1; then
   echo "Restarted app died after injected touch" >&2; exit 1
 fi
 assert_foreground "Post-restart touch"
-echo "Emulator install, launch, touch-dispatch and process-restart smoke passed: $PACKAGE (pid $RESTART_PID)"
+echo "Emulator install, launch, touch-dispatch, background-resume and process-restart smoke passed: $PACKAGE (pid $RESTART_PID)"

@@ -85,20 +85,20 @@ export async function loadAeonV5(){
   for(const id of STARTERS)worldSheetSpec(manifest,id);
   return manifest;
 }
-export async function chooseStarter(manifest){
+export async function chooseStarter(manifest,options={}){
   return new Promise(resolve=>{
     const stage=document.getElementById('stage');
     const shell=document.createElement('div');
     shell.id='aeon-v5-choose';shell.className='overlay';shell.style.zIndex='60';
     const panel=document.createElement('section');panel.className='panel case';
     panel.style.cssText='display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*5);padding:calc(var(--u)*8)';
-    const title=document.createElement('h2');title.textContent='CHOOSE ANCIENT SLEEPER // V5 ART QA';panel.append(title);
-    const info=document.createElement('p');info.textContent='Select one of the four approved character identities. This is a noncanonical development test.';
+    const title=document.createElement('h2');title.textContent=options.title||'CHOOSE ANCIENT SLEEPER // V5 ART QA';panel.append(title);
+    const info=document.createElement('p');info.textContent=options.description||'Select one of the four approved character identities. This is a noncanonical development test.';
     info.style.cssText='font-size:calc(var(--u)*7);text-align:center';panel.append(info);
     const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:calc(var(--u)*5);width:100%';
     for(const id of STARTERS){
       const button=document.createElement('button');button.className='menu-btn sm';
-      button.type='button';button.dataset.starter=id;
+      button.type='button';button.dataset.starter=id;button.disabled=options.enabled?!options.enabled(id):false;
       button.style.cssText='display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*2);min-width:0;padding:calc(var(--u)*2)';
       const picture=document.createElement('img');picture.alt=id+' approved character selection';
       picture.src=new URL('portraits/'+id+'.png',ROOT).href;
@@ -109,7 +109,7 @@ export async function chooseStarter(manifest){
       button.addEventListener('click',()=>{shell.remove();resolve(id);});grid.append(button);
     }
     panel.append(grid);shell.append(panel);stage.append(shell);
-    grid.querySelector('button')?.focus();
+    grid.querySelector('button:not(:disabled)')?.focus();
   });
 }
 export async function prepareAeonV5(){

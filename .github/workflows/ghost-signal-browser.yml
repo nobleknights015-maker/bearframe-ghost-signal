@@ -5,6 +5,8 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/ghost-signal-browser.yml'
+  pull_request:
+    branches: [ghost-signal-engine]
   workflow_dispatch:
 jobs:
   browser-smoke:
@@ -78,6 +80,9 @@ jobs:
       - name: Connected expedition — real Tiled map crossing, interactions, saves
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-connected-lab.mjs
 
+      - name: Unified Aeon engine — picker, connected field, battle, save and continue
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-aeon-unified.mjs
+
       - name: Upload browser failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
@@ -88,7 +93,7 @@ jobs:
           retention-days: 14
 
       - name: Record CI result in persistent GitHub issue
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

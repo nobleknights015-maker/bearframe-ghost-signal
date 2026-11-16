@@ -1,7 +1,7 @@
 // Playable noncanonical RPG integration lab, activated ONLY by ?rpg-lab=1.
 // Reuses the existing Ghost Signal Game field, stealth, tiles, fonts, overlays and controls.
 import {createHybridSession,moveHybrid,detectHybrid,actHybrid} from './hybrid-session.js';
-import {currentCombatant,enemyDecision,enemyForecast} from './rpg-combat.js';
+import {currentCombatant,enemyDecision,enemyForecast,combatAction} from './rpg-combat.js';
 import {rpgMenuModel,RPG_TABS} from './rpg-menu-model.js';
 import {createRpgSaveStore} from './rpg-save.js';
 import {useFieldConsumable} from './rpg-field-actions.js';
@@ -12,6 +12,8 @@ import {createLabMission,LAB_POLICY_SPEC} from './rpg-lab-mission.js';
 import {createSideViewBattleScene} from './rpg-sideview-scene.js';
 import {RPG_BATTLER_ART} from './rpg-battle-art.js';
 import {GENERATED_CHARACTERS} from './rpg-generated-registrations.js';
+import {createConnectedFieldTravel} from './connected-field-travel.js';
+import {resolveWorldEvent,CONNECTED_LAB_EVENTS} from './world-events.js';
 import {bindV5WorldSheet} from './aeon-v5-bridge.js';
 const demoRequest=typeof location==='undefined'?null:new URLSearchParams(location.search).get('character-demo');
 const DEV_CHARACTER=demoRequest&&GENERATED_CHARACTERS[demoRequest]?.status==='development-only'?demoRequest:null;
@@ -47,15 +49,21 @@ function overlay(id,title){
   shell.appendChild(panel);$('stage').appendChild(shell);return {shell,panel};
 }
 
-export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
+export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGame=false}) {
   // Never write a Ghost Signal mission save/progress key from the lab.
   game.store={save:()=>true,clear:()=>{},loadProgress:()=>({unlocked:{},done:{},case:null}),saveProgress:()=>true};
   // Separate per-starter QA save namespaces; no original save migration or mutations.
-  const db=createRpgSaveStore(localStorage,v5?
+  const db=createRpgSaveStore(localStorage,connected?
+    'bearframe_aeon_unified_'+v5.starterId+'_v1':v5?
     'bearframe_ghost_signal_rpg_v5_'+v5.starterId+'_v1':
     'bearframe_ghost_signal_rpg_lab_v1');
-  const fresh=()=>initial(v5?.starterId||null);
-  let session=createHybridSession(fresh(),LAB_POLICY_SPEC),cooldown=0,menuTab='status';
+  const fresh=()=>{const state=initial(v5?.starterId||null);
+    if(connected){state.location=clone(connected.startLocation);state.events={};state.quests={expedition:'unstarted',sentry:'unresolved'};}
+    return state;};
+  const policy=()=>connected?connected.policyFor(game.m?.id||'staging'):LAB_POLICY_SPEC;
+  let maps={},traveler=null,portalArmed=false;
+  if(newGame)db.clear();
+  let session=createHybridSession(fresh(),policy()),cooldown=0,menuTab='status';
   let checkpointRpg=clone(session.exploration);
   const originalCheckpoint=game.checkpoint.bind(game);
   game.checkpoint=(silent)=>{
@@ -72,7 +80,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
       rollbackPending=false;
       // Game.restore applies the field snapshot asynchronously (fade transition).
       // Rewind RPG data at the exact same boundary, then persist the restored field.
-      session=createHybridSession(clone(checkpointRpg),LAB_POLICY_SPEC);
+      session=createHybridSession(clone(checkpointRpg),policy());
       queueMicrotask(()=>{
         if(!save()){
           // Never leave an obsolete post-checkpoint journal that could resurrect loot.
@@ -90,10 +98,10 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
   if(v5)bindV5WorldSheet(game,v5.field);
   battle.panel.style.cssText='padding:calc(var(--u) * 6);gap:calc(var(--u) * 3)';
   const status=()=>session;
-  const location=()=>px(game.player.x,game.player.y,game.player.dir);
+  const location=()=>({...px(game.player.x,game.player.y,game.player.dir),mapId:game.m?.id||'rpg-lab'});
   const apply=(fn)=>{
     const next=clone(session.exploration);fn(next);
-    session=createHybridSession(next,LAB_POLICY_SPEC);
+    session=createHybridSession(next,policy());
   };
   const save=()=>{
     if(session.phase!=='exploration')return false;
@@ -102,7 +110,8 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
     const security=game.drones.map(d=>({x:d.x,y:d.y,dir:d.dir,state:d.state,wp:d.wp,
       alert:d.alert,blind:d.blind,invCd:d.invCd,t:d.t,lost:d.lost,last:d.last,target:d.target,
       seen:d.seen,searchN:d.searchN,hitCd:d.hitCd,returning:d.returning}));
-    return db.save({version:1,phase:'exploration',world,field:g,security});
+    if(connected)maps={...maps,[g.mission]:g};
+    return db.save({version:1,phase:'exploration',world,field:g,security,...(connected?{mapId:g.mission,maps}: {})});
   };
   const updateLocation=()=>{
     if(session.phase!=='exploration')return;
@@ -111,7 +120,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
       session=moveHybrid(session,now);
     const inStealth=session.security.mode==='stealth';
     $('hud-stealth').classList.toggle('hidden',!inStealth);
-    if(inStealth&&!game.flags.labEntered) {
+    if(!connected&&inStealth&&!game.flags.labEntered) {
       game.flags.labEntered=true;
       apply(e=>e.quests.perimeter='entered');
       ui.toast('SECURITY PERIMETER — MOVEMENT / LIGHT / SCAN MATTER',3);
@@ -120,14 +129,22 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
   const disableSentry=()=>{
     for(const d of game.drones){d.state='disabled';d.t=1e9;d.alert=0;d.vis=false;}
   };
-  const mission=createLabMission({
+  const callbacks={
     onUpdate(g){
       updateLocation();
-      if(g.flags.labResolved){disableSentry();return;}
+      if(g.flags.labResolved||session.exploration.flags.labResolved){disableSentry();return;}
       if(g.time<cooldown || session.phase!=='exploration' || session.security.mode!=='stealth')return;
       if(g.drones.some(d=>d.state==='chase'))startEncounter();
     },
     onInteract(e,g){
+      if(connected){
+        const spec=CONNECTED_LAB_EVENTS[e.id];if(!spec)return;
+        const result=resolveWorldEvent(session.exploration,spec);if(!result.applied)return;
+        const previous=session,before=g.snapshot();
+        session=createHybridSession(result.world,policy());e.gone=true;g.flags[e.id]=true;
+        if(!save()){session=previous;g.applySnap(before);ui.toast('INTERACTION NOT RECORDED — TRY AGAIN',3);return;}
+        g.sfx.pickup();ui.toast('FIELD RECORD UPDATED',3);return;
+      }
       if(e.id==='archive'){
         g.flags.labArchive=true;apply(s=>s.quests.archive='read');
         g.terminal('FIELD ARCHIVE / TEST RECORD',
@@ -146,21 +163,42 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
         save();
       }
     }
-  });
+  };
+  let mission;
+  if(connected){
+    connected.bind({getWorld:()=>session.exploration,...callbacks,onPortal:portalId=>{
+      if(!portalId){portalArmed=true;return;}
+      if(!portalArmed||traveler?.busy||game.mode!=='play'||session.phase!=='exploration')return;
+      portalArmed=false;
+      traveler.transition(portalId).then(ok=>{if(ok){checkpointRpg=clone(session.exploration);updateLocation();}})
+        .catch(error=>{console.warn('Area travel rolled back',error);ui.toast('DOORWAY UNAVAILABLE — AREA RESTORED',3);});
+    }});
+    traveler=createConnectedFieldTravel({game,graph:connected.graph,missionFor:connected.missionFor,
+      readJournal:()=>({mapId:game.m.id,maps,world:session.exploration}),
+      writeJournal:journal=>{
+        const world=clone(journal.world);world.location=location();
+        if(!db.save({version:1,phase:'exploration',...journal,world,field:game.snapshot()}))return false;
+        maps=clone(journal.maps);session=createHybridSession(world,policy());return true;
+      }});
+  }else mission=createLabMission(callbacks);
   const saved=db.load();
-  const valid=!!saved&&saved.version===1&&saved.phase==='exploration'&&
-    saved.world?.location?.mapId==='rpg-lab'&&saved.field?.mission==='rpg-lab';
+  let valid=!!saved&&saved.version===1&&saved.phase==='exploration'&&
+    (connected?!!connected.graph.get(saved.world?.location?.mapId)&&saved.field?.mission===saved.world.location.mapId:
+      saved.world?.location?.mapId==='rpg-lab'&&saved.field?.mission==='rpg-lab');
   if(valid){
-    try{session=createHybridSession(migrateLabWorld(saved.world),LAB_POLICY_SPEC);}
-    catch(_){session=createHybridSession(fresh(),LAB_POLICY_SPEC);}
+    try{session=createHybridSession(connected?saved.world:migrateLabWorld(saved.world),connected?connected.policyFor(saved.world.location.mapId):policy());if(connected)maps=clone(saved.maps||{});}
+    catch(_){valid=false;maps={};session=createHybridSession(fresh(),connected?connected.policyFor('staging'):policy());}
   }
+  if(connected)mission=connected.missionForSync(valid?saved.world.location.mapId:'staging');
   ui.show('title',false);ui.show('ending',false);
   let restored=false;
   try { game.start(mission,valid?saved.field:null); restored=valid; }
   catch (error) {
     // Corrupt or future-incompatible snapshots never destroy the original game or brick the lab.
     console.warn('RPG lab restore invalid, starting fresh',error);
-    session=createHybridSession(fresh(),LAB_POLICY_SPEC);
+    maps={};
+    if(connected)mission=connected.missionForSync('staging');
+    session=createHybridSession(fresh(),connected?connected.policyFor('staging'):policy());
     game.start(mission,null);
     ui.toast('INVALID RPG TEST SAVE — STARTED A FRESH SECTOR',4);
   }
@@ -197,7 +235,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
 
   function renderMenu(){
     menu.panel.replaceChildren();
-    const header=el('div','case-head'),heading=el('h2','', 'RPG FIELD RECORD // TEST');
+    const header=el('div','case-head'),heading=el('h2','', connected?'AEON CIRCUIT // FIELD RECORD':'RPG FIELD RECORD // TEST');
     header.append(heading,softButton('CLOSE',closeMenu));menu.panel.appendChild(header);
     const tabs=el('div','btn-row');
     tabs.style.flexWrap='wrap';
@@ -266,7 +304,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
           const world=clone(session.exploration);
           world.inventory=clone(next.inventory);
           world.equipment=clone(next.equipment);
-          session=createHybridSession(world,LAB_POLICY_SPEC);
+          session=createHybridSession(world,policy());
           if(!save()){
             session=prior;
             ui.toast('EQUIPMENT NOT CHANGED — SAVE UNAVAILABLE',3);
@@ -295,7 +333,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
         const old=session;
         try{
           const result=useFieldConsumable(session.exploration,itemId,unit.id);
-          session=createHybridSession(result.exploration,LAB_POLICY_SPEC);
+          session=createHybridSession(result.exploration,policy());
           // A field transaction only completes when its updated journal is durable.
           if(!save()){
             session=old;
@@ -369,31 +407,60 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
     battle.panel.appendChild(choices);
     choices.querySelector('button')?.focus();
   }
-  function takeAction(action){
+  let presentationBusy=false;
+  async function takeAction(action){
+    if(presentationBusy||session.phase!=='battle')return;
+    presentationBusy=true;
     try{
       const actionSequence=[action];
+      let visualBattle=combatAction(session.battle,action);
       session=actHybrid(session,action);
       while(session.phase==='battle'&&currentCombatant(session.battle)?.startsWith('enemy:')){
         const response=enemyDecision(session.battle);
         actionSequence.push(response);
+        visualBattle=combatAction(session.battle,response);
         session=actHybrid(session,response);
       }
       sideView.playActions(actionSequence);
-      if(session.phase==='battle'){showBattle();return;}
-      battle.shell.classList.add('hidden');game.mode='play';
-      ui.show('touch',!!touchMode?.());
-      const result=session.event.outcome;
+      sideView.setBattle(visualBattle,currentCombatant(visualBattle));
+      const outcome=session.phase==='exploration'?session.event.outcome:null;
+      if(outcome){
+      const result=outcome;
       apply(s=>{s.quests.sentry=result==='victory'?'neutralized':result;});
       if(result==='victory'){
-        game.flags.labResolved=true;disableSentry();ui.toast('SENTRY NEUTRALIZED // XP AND SALVAGE RECORDED',4);
+        game.flags.labResolved=true;disableSentry();
+        apply(s=>{s.flags.labResolved=true;});
+        ui.toast('SENTRY NEUTRALIZED // XP AND SALVAGE RECORDED',4);
       }else{
         cooldown=game.time+6;
         if(result==='defeat') apply(s=>s.party.forEach(p=>{p.hp=Math.max(1,Math.ceil(p.maxHp/2));}));
         game.drones.forEach(d=>{d.state='investigate';d.t=3;d.alert=0;d.target={x:d.x,y:d.y};d.repath=0;});
         ui.toast(result==='fled'?'WITHDRAWN — SEARCH CONTINUES':'PARTY DISABLED — FIELD RECOVERY REQUIRED',4);
       }
-      save();
-    }catch(err){ui.toast('COMMAND INVALID: '+err.message,2);}
+        save(); // outcome flags and rewards become durable as one record
+      }
+      // The deterministic result is ready, but complete authored strike/recoil and
+      // target recovery clips before accepting another command or leaving the stage.
+      for(const button of battle.panel.querySelectorAll('button'))button.disabled=true;
+      await new Promise(resolve=>{
+        const wait=()=>sideView.isPresenting?requestAnimationFrame(wait):resolve();
+        requestAnimationFrame(wait);
+      });
+      presentationBusy=false;
+      if(session.phase==='battle'){showBattle();return;}
+      const result=outcome;
+      const saved=save();
+      if(!connected&&saved){battle.shell.classList.add('hidden');game.mode='play';ui.show('touch',!!touchMode?.());return;}
+      battle.panel.replaceChildren();
+      battle.panel.appendChild(el('h2','', 'ENCOUNTER // '+result.toUpperCase()));
+      battle.panel.appendChild(el('pre','',result==='victory'?'SALVAGE AND EXPERIENCE RECORDED':'PARTY RETURNING TO THE FIELD'));
+      const finish=()=>{
+        if(!save()){ui.toast('SAVE UNAVAILABLE — RETRY TO KEEP THE RESULT',3);return;}
+        battle.shell.classList.add('hidden');game.mode='play';ui.show('touch',!!touchMode?.());
+      };
+      const button=softButton(saved?'RETURN TO FIELD':'RETRY SAVE / RETURN',finish);
+      battle.panel.appendChild(button);button.focus();
+    }catch(err){presentationBusy=false;ui.toast('COMMAND INVALID: '+err.message,2);if(session.phase==='battle')showBattle();}
   }
   function startEncounter(){
     if(session.phase!=='exploration'||game.flags.labResolved)return;
@@ -406,7 +473,9 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
   }
   // In this explicitly opted-in test only, the original pause SAVE action must write the RPG journal.
   $('btn-save').onclick=()=>{$('pause-note').textContent=save()?'RPG test record saved to this device.':'RPG record could not be saved.';};
-  $('btn-quit').onclick=()=>{if(save())window.location.assign(new URL('engine-lab.html',window.location.href).href);else $('pause-note').textContent='Save failed. Remain in sector until record is safe.';};
+  $('btn-quit').onclick=()=>{if(save())window.location.assign(new URL(connected?'aeon.html':'engine-lab.html',window.location.href).href);else $('pause-note').textContent='Save failed. Remain in sector until record is safe.';};
+  addEventListener('ghost-signal-host-pause',()=>{if(session.phase==='exploration')save();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&session.phase==='exploration')save();});
   const previousResume=game.onResume;
   game.onResume=()=>{
     if(game.mode==='pause')previousResume();
@@ -430,7 +499,9 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null}) {
   // Lab-specific convenience API: safe for browser automation and reproducible QA.
   window.__rpgLab=Object.freeze({
     inspect:()=>({mode:game.mode,session:status(),save:db.inspect(),field:game.snapshot(),
-      battleView:session.phase==='battle'?'side-view':null,
+      battleView:session.phase==='battle'||presentationBusy?'side-view':null,
+      connected:connected?{mapId:game.m.id,maps:Object.keys(maps),busy:!!traveler?.busy}:null,
+      presenting:presentationBusy,
       v5:v5?{starterId:v5.starterId,catalogCount:v5.catalogCount,worldFrameColumns:14}:null}),
     save,menu:openMenu
   });

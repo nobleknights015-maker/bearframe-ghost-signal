@@ -2,6 +2,11 @@ package labs.bearframe.ghostsignal;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Build;
+import android.graphics.Insets;
+import android.view.WindowInsets;
+import android.view.DisplayCutout;
+import android.widget.FrameLayout;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebChromeClient;
@@ -24,13 +29,34 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        getWindow().getDecorView().setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-        );
+        hideSystemBars();
         webView = new WebView(this);
         webView.setBackgroundColor(0xff050607);
-        setContentView(webView);
+        // Android 15 enforces edge-to-edge for target 35. Inset the host surface,
+        // keeping the existing 480x270 viewport clear of camera cutouts/system bars.
+        FrameLayout surface = new FrameLayout(this);
+        surface.setBackgroundColor(0xff050607);
+        surface.addView(webView, new FrameLayout.LayoutParams(-1, -1));
+        surface.setOnApplyWindowInsetsListener((view, windowInsets) -> {
+            int left, top, right, bottom;
+            if (Build.VERSION.SDK_INT >= 30) {
+                Insets safe = windowInsets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                left = safe.left; top = safe.top; right = safe.right; bottom = safe.bottom;
+            } else {
+                left = windowInsets.getSystemWindowInsetLeft(); top = windowInsets.getSystemWindowInsetTop();
+                right = windowInsets.getSystemWindowInsetRight(); bottom = windowInsets.getSystemWindowInsetBottom();
+                if (Build.VERSION.SDK_INT >= 28) {
+                    DisplayCutout cutout = windowInsets.getDisplayCutout();
+                    if (cutout != null) {
+                        left = Math.max(left, cutout.getSafeInsetLeft()); top = Math.max(top, cutout.getSafeInsetTop());
+                        right = Math.max(right, cutout.getSafeInsetRight()); bottom = Math.max(bottom, cutout.getSafeInsetBottom());
+                    }
+                }
+            }
+            view.setPadding(left, top, right, bottom);
+            return windowInsets;
+        });
+        setContentView(surface);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -55,21 +81,43 @@ public final class MainActivity extends Activity {
         webView.loadUrl(BuildConfig.DEBUG ? "https://appassets.androidplatform.net/engine-lab.html" : APP_URL);
     }
 
+    private void hideSystemBars() {
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        );
+    }
+
+    @Override public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) hideSystemBars();
+        else if (webView != null) webView.evaluateJavascript("window.dispatchEvent(new Event('blur'));", null);
+    }
+
     @Override public void onBackPressed() {
         // Same ESC handling as desktop Ghost Signal; do not introduce a second menu design.
         if (webView != null) webView.evaluateJavascript(
-            "window.dispatchEvent(new KeyboardEvent('keydown',{code:'Escape',key:'Escape',bubbles:true}));", null);
+            "window.dispatchEvent(new KeyboardEvent('keydown',{code:'Escape',key:'Escape',bubbles:true}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'Escape',key:'Escape',bubbles:true}));", null);
         else super.onBackPressed();
     }
 
     @Override protected void onPause() {
-        if (webView != null) webView.onPause();
+        if (webView != null) {
+            // WebView.onPause does not reliably deliver document visibilitychange.
+            // Notify the game to release held inputs, pause and save its own journal.
+            webView.evaluateJavascript("window.dispatchEvent(new Event('ghost-signal-host-pause'));window.dispatchEvent(new Event('blur'));", null);
+            webView.onPause();
+        }
         super.onPause();
     }
 
     @Override protected void onResume() {
         super.onResume();
-        if (webView != null) webView.onResume();
+        if (webView != null) {
+            webView.onResume();
+            hideSystemBars();
+            webView.requestApplyInsets();
+        }
     }
 
     @Override protected void onDestroy() {

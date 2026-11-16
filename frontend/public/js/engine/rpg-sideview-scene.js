@@ -2,7 +2,7 @@
 // The existing Ghost Signal renderer owns EXPLORATION; this canvas is battle-only.
 // No third-party art or combat math. Until production sheets arrive, draw clearly marked
 // schematic diagnostic units rather than pretending they are final character sprites.
-import {BATTLE_VIEW,sideViewSlots,validateBattleArtManifest,battleAnimationFrame,sideViewPose} from './rpg-sideview-layout.js';
+import {BATTLE_VIEW,sideViewSlots,validateBattleArtManifest,battleAnimationFrame,sideViewPose,battleActionTimeline,battleClipDuration,battleSpriteBounds} from './rpg-sideview-layout.js';
 
 const COL={bg:'#0b0d12',floor:'#20252b',wall:'#171c22',steel:'#46505a',red:'#ff3b30',
   text:'#dcd6d8',ally:'#a6c9d0',echo:'#91a8ae',foe:'#b26e6b',glow:'#f2bd75'};
@@ -28,7 +28,7 @@ export function createSideViewBattleScene(manifest={}) {
     img.onerror=()=>{images[key].loaded=false;};
     img.src=new URL('../../'+spec.src,import.meta.url).href;
   }
-  let state=null,activeKey=null,cue=null,queue=[],started=performance.now(),isRunning=false,frameToken=null;
+  let state=null,activeKey=null,cue=null,queue=[],started=performance.now(),isRunning=false,frameToken=null,terminalUntil=0;
   // Keep animation exposure clocks per actor and pose. Terminal victory/down must
   // begin at their transition, not at the global battle clock's arbitrary phase.
   const poseClocks=new Map();
@@ -66,7 +66,6 @@ export function createSideViewBattleScene(manifest={}) {
     c.textAlign='center';
     c.font='6px monospace';c.fillStyle='#77808a';
     c.fillText('ALLY LINE',104,14);c.fillText('HOSTILE LINE',328,14);
-    c.fillStyle='#8d7572';c.fillText('FIELD / QA VIEW',208,108);
   }
   function schematic(slot,unit,t,pose,selected){
     const {x,y,side,index}=slot;
@@ -103,29 +102,30 @@ export function createSideViewBattleScene(manifest={}) {
     if(unit.hp<=0){c.fillStyle='#0c0d10';c.globalAlpha=.6;c.fillRect(-14,-47,30,48);}
     c.restore();
     c.textAlign='center';c.font='6px monospace';c.fillStyle=selected?COL.red:COL.text;
-    c.fillText((unit.name||unit.id).toUpperCase().slice(0,15),x,y+8);
+    c.fillText((unit.name||unit.id).toUpperCase().slice(0,15),x,Math.min(115,y+8));
   }
   function sheet(slot,spec,unit,t,pose,selected){
     const record=images[slot.key];
     if(!record?.loaded)return false;
     // Action rows start at frame zero when the cue begins; idle keeps its own clock.
     // This remains presentation-only and never changes combat resolution.
-    const actionTime=cue&&(cue.actor===slot.key||cue.target===slot.key)&&pose!=='idle'?
-      Math.max(0,t-cue.when):t;
+    const cueStart=cue&&!['idle','down','victory'].includes(pose)&&(cue.actor===slot.key||cue.target===slot.key)?
+      cue.when+(pose==='hit'?cue.releaseAt:0):null;
+    const actionTime=poseElapsed(slot.key,pose,t,cueStart);
     const frame=battleAnimationFrame(spec,pose,actionTime);
-    const height=Math.min(86,spec.frameHeight*spec.scale),scale=height/spec.frameHeight;
-    const width=spec.frameWidth*scale;
+    const {width,height}=battleSpriteBounds(slot,spec);
     let nudge=0;
-    if(['attack','ranged','overload'].includes(pose))nudge=slot.side==='party'?12:-12;
-    if(pose==='hit')nudge=(Math.floor(t*24)%2?2:-2);
+    const clearance=Math.max(0,Math.floor((slot.cellWidth-width)/2));
+    if(['attack','ranged','overload'].includes(pose))nudge=(slot.side==='party'?1:-1)*Math.min(12,clearance);
+    if(pose==='hit')nudge=(Math.floor(t*24)%2?1:-1)*Math.min(2,clearance);
     c.save();
     c.translate(Math.round(slot.x+nudge),Math.round(slot.y));
     if(slot.side==='enemy')c.scale(-1,1);
     c.drawImage(record.image,frame.x,frame.y,frame.width,frame.height,
-      -Math.round(width/2),-Math.round(height),Math.round(width),Math.round(height));
+      -Math.floor(width/2),-height,width,height);
     c.restore();
     c.textAlign='center';c.font='6px monospace';c.fillStyle=selected?COL.red:COL.text;
-    c.fillText((unit.name||unit.id).toUpperCase().slice(0,15),slot.x,slot.y+8);
+    c.fillText((unit.name||unit.id).toUpperCase().slice(0,15),slot.x,Math.min(115,slot.y+8));
     return true;
   }
   function cues(slots,t){
@@ -158,12 +158,21 @@ export function createSideViewBattleScene(manifest={}) {
     if(!cue&&queue.length&&t>queue[queue.length-1].when+queue[queue.length-1].duration)queue=[];
     const slots=sideViewSlots(state);
     for(const slot of slots){
-      const unit=get(state,slot.key);
+      const resolvedUnit=get(state,slot.key);
+      // Combat resolves deterministically before visuals. Keep a defeated target
+      // standing until its last queued impact, and defer victory until all recoil
+      // completes. This changes only the visual snapshot, never HP or rewards.
+      const pending=queue.length>0&&t<queue.at(-1).when+queue.at(-1).duration;
+      const fatalCue=resolvedUnit.hp<=0?queue.findLast(entry=>
+        entry.target===slot.key&&['attack','pulse','overload','ranged'].includes(entry.kind)):null;
+      const awaitingImpact=fatalCue&&t<fatalCue.when+fatalCue.releaseAt;
+      const unit=awaitingImpact?{...resolvedUnit,hp:1}:resolvedUnit;
+      const visualStatus=pending?'active':state.status;
       const active=activeKey===slot.key;
-      if(active&&unit.hp>0){rect(c,slot.x-18,slot.y+11,36,1,COL.red);}
+      if(active&&unit.hp>0){rect(c,slot.x-18,slot.y+2,36,1,COL.red);}
       const delta=cue?t-cue.when:1e5;
-      const pose=sideViewPose(unit,slot.side,state.status,cue,delta,
-        cue?.duration??.34,.42,cue?.releaseAt??0);
+      const pose=sideViewPose(unit,slot.side,visualStatus,cue,delta,
+        cue?.actorDuration??.34,cue?.reactionDuration??.42,cue?.releaseAt??0);
       if(!(art[slot.key]&&sheet(slot,art[slot.key],unit,t,pose,active)))
         schematic(slot,unit,t,pose,active);
       const fill=Math.round(30*Math.max(0,unit.hp)/unit.maxHp);
@@ -174,7 +183,8 @@ export function createSideViewBattleScene(manifest={}) {
     c.fillStyle='#dcd6d8';c.font='7px monospace';c.textAlign='center';
     c.fillText('VS',210,44);
     c.fillStyle='#97949c';c.font='6px monospace';
-    c.fillText('SIDE-VIEW QA — PRODUCTION ART PENDING',208,21);
+    const bound=slots.every(slot=>images[slot.key]?.loaded);
+    c.fillText(bound?'SIDE-VIEW // TACTICAL LINK':'SIDE-VIEW QA — ART UNBOUND',208,21);
   }
   function tick(now) {
     if(!isRunning)return;
@@ -190,6 +200,22 @@ export function createSideViewBattleScene(manifest={}) {
     canvas,
     setBattle(battle,actor){
       if(!state)poseClocks.clear();
+      if(battle.status==='active')terminalUntil=0;
+      else if(state?.status!==battle.status){
+        const end=Math.max(elapsed(),...queue.map(entry=>entry.when+entry.duration));
+        terminalUntil=end;
+        for(const slot of sideViewSlots(battle)){
+          const unit=get(battle,slot.key);
+          const name=unit.hp<=0?'down':
+            (battle.status==='victory'&&slot.side==='party')||
+            (battle.status==='defeat'&&slot.side==='enemy')?'victory':null;
+          if(!name)continue;
+          const impact=queue.findLast(entry=>entry.target===slot.key&&
+            ['attack','pulse','overload','ranged'].includes(entry.kind));
+          const begins=name==='down'&&impact?impact.when+impact.releaseAt:end;
+          terminalUntil=Math.max(terminalUntil,begins+battleClipDuration(art[slot.key]?.animations[name],.42));
+        }
+      }
       state=battle;activeKey=actor;
       canvas.setAttribute('aria-label','Side-view battle: '+battle.party.length+
         ' allied frames left, '+battle.enemies.length+' enemies right');
@@ -197,21 +223,17 @@ export function createSideViewBattleScene(manifest={}) {
     },
     playActions(actions){
       if(!Array.isArray(actions))throw new TypeError('Expected ordered combat actions');
-      const begin=elapsed();
-      let offset=0;
-      queue=actions.map(action=>{
-        const pose=['pulse','repair','item'].includes(action.type)?'cast':
-          action.type==='overload'?'attack':action.type;
-        const clip=art[action.actor]?.animations[pose];
-        const authored=clip?.durationsMs?.reduce((n,ms)=>n+ms,0)/1000;
-        const duration=Math.max(.36,Number.isFinite(authored)?authored:.55);
-        const event={actor:action.actor,target:action.target||null,
-          kind:action.type,when:begin+offset,duration,
-          releaseAt:clip?.releaseMs?clip.releaseMs/1000:0};
-        offset+=duration+.04;return event;
-      });
-      cue=null;
+      const now=elapsed();
+      queue=queue.filter(entry=>entry.when+entry.duration>now);
+      const last=queue.at(-1);
+      const begin=Math.max(now,last?last.when+last.duration+.04:now);
+      queue.push(...battleActionTimeline(actions,art,begin));
     },
+    get presentationRemainingSeconds(){
+      const last=queue.at(-1);
+      return Math.max(0,terminalUntil-elapsed(),last?last.when+last.duration-elapsed():0);
+    },
+    get isPresenting(){return this.presentationRemainingSeconds>0;},
     get layout(){return state?sideViewSlots(state):[];},
     stop
   });

@@ -83,12 +83,13 @@ $('set-touch').onclick = () => { settings.touch = { auto: 'on', on: 'off', off: 
 
 input.bindPad($('dpad'));
 input.bindButton($('t-act'), 'interact'); input.bindButton($('t-light'), 'light'); input.bindButton($('t-scan'), 'scan');
+addEventListener('ghost-signal-host-pause',()=>{if(game.mode==='play')game.onPause();});
 document.addEventListener('visibilitychange', () => { if (document.hidden && game.mode === 'play') game.onPause(); });
 
 // Controller focus follows the existing Ghost Signal overlay buttons and styling.
 let lastPadMenuDir = null;
 function navigateControllerOverlay(pad) {
-  const roots = ['rpg-lab-battle', 'rpg-lab-menu', 'settings', 'casefile', 'pause', 'terminal', 'ending', 'title', 'dialog'];
+  const roots = ['aeon-v5-choose', 'aeon-confirm', 'rpg-lab-battle', 'rpg-lab-menu', 'settings', 'casefile', 'pause', 'terminal', 'ending', 'title', 'dialog'];
   const root = roots.map($).find(node => node && !node.classList.contains('hidden'));
   if (!root) { lastPadMenuDir = null; return; }
   const buttons = [...root.querySelectorAll('button')].filter(b => !b.disabled && b.getClientRects().length);
@@ -133,7 +134,10 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 showTitle();
-if (new URLSearchParams(location.search).get('connected-lab') === '1') {
+if (location.pathname.endsWith('/aeon.html')) {
+  import('./engine/aeon-game.js').then(({mountAeonGame})=>mountAeonGame({game,ui,sfx,touchMode,refreshTouch}))
+    .catch(error=>{console.error('Aeon initialization failed',error);ui.toast('AEON INITIALIZATION FAILED',5);});
+} else if (new URLSearchParams(location.search).get('connected-lab') === '1') {
   import('./engine/connected-lab.js').then(({mountConnectedLab}) =>
     mountConnectedLab({game,ui,sfx,touchMode}).then(refreshTouch)
   ).catch(error=>{

@@ -60,6 +60,7 @@ try{
   await page.getByRole('button',{name:'GUARD',exact:true}).click(); // Sleeper
   assert.equal((await inspect()).session.battle.party[0].hp,29,'The visual layer must not alter guard damage rules');
   await page.getByRole('button',{name:'WITHDRAW',exact:true}).click();
+  await page.waitForFunction(()=>window.__rpgLab?.inspect().mode==='play',{timeout:12000});
   assert.equal((await inspect()).mode,'play');
   assert.equal((await inspect()).session.exploration.party[0].hp,29);
   assert.equal(errors.length,0,errors.join('\n'));
