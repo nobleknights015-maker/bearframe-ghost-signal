@@ -81,6 +81,7 @@ jobs:
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-connected-lab.mjs
 
       - name: Unified Aeon engine — picker, connected field, battle, save and continue
+        if: ${{ !cancelled() }}
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-aeon-unified.mjs
 
       - name: Upload unified engine acceptance previews
