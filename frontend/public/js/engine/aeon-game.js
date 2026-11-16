@@ -2,6 +2,7 @@
 // the private authored campaign areas have their own reviewed runtime bindings.
 import {loadAeonV5,chooseStarter,buildV5WorldSheet,mapV5Art} from './aeon-v5-bridge.js';
 import {createAeonConnectedField} from './aeon-connected-field.js';
+import {loadV5WorldActor,createV5SecurityRenderer} from './aeon-world-actors.js';
 import {mountRpgLab} from './rpg-lab.js';
 import {createRpgSaveStore} from './rpg-save.js';
 const $=id=>document.getElementById(id);
@@ -36,9 +37,10 @@ export async function mountAeonGame({game,ui,sfx,touchMode,refreshTouch}){
         const confirmed=await confirmReplacement(starterId);
         if(!confirmed){game.mode='title';return;}
       }
-      const field=await buildV5WorldSheet(manifest,starterId);
+      const [field,securityArt]=await Promise.all([buildV5WorldSheet(manifest,starterId),loadV5WorldActor(manifest,'old_sentry')]);
       const battleArt=mapV5Art(manifest,{'party:sleeper':starterId,'party:echo':'echo_industrial_maintenance','enemy:sentry':'old_sentry'});
       const connected=await createAeonConnectedField();
+      game.drawSecurityUnit=createV5SecurityRenderer(securityArt);
       mountRpgLab({game,ui,sfx,touchMode,connected,newGame:!continuing,
         v5:{starterId,field,battleArt,manifestVersion:manifest.schema,catalogCount:manifest.characters.length}});
       refreshTouch();

@@ -18,7 +18,7 @@ The two connected rooms are explicitly **noncanonical integration fixtures**. Th
 
 ## Presentation and input
 
-The route reuses the original Ghost Signal UI components and palette. The original locked HTML/CSS/UI files are unchanged. World art retains the four-direction/eight-exposure adapter and the selected A/B/C/D identity. Authored release timing, strike recoil, target reactions, shutdown and victory clips finish before the next command or field return. Formations fit 64/96/128 source sheets inside the locked 416×116 stage; dense two-row cells fit proportionally to 37 logical pixels to keep labels visible. This containment is not owner visual approval.
+The route reuses the original Ghost Signal UI components and palette. The original locked HTML/CSS/UI files are unchanged. World art retains the four-direction/eight-exposure adapter and the selected A/B/C/D identity. The unified patrol uses the same v5 Old Sentry identity in the field and battle; its 96×96 world sheet draws at native size through an optional renderer hook, preserving the original drone drawing everywhere else. Authored release timing, strike recoil, target reactions, shutdown and victory clips finish before the next command or field return. Formations fit 64/96/128 source sheets inside the locked 416×116 stage; dense two-row cells fit proportionally to 37 logical pixels to keep labels visible. This containment is not owner visual approval.
 
 Keyboard, touch and controller use the same menus. Picker cancellation and controller Back are supported. The D-pad retains its initiating pointer; blur/native pause clear held input. Native Android adds cutout/system-bar insets, immersive restoration and a pause event for RPG saves. Native compilation and physical-device acceptance are separate checks.
 
@@ -28,7 +28,7 @@ Keyboard, touch and controller use the same menus. Picker cancellation and contr
 
 ## Verification and remaining gates
 
-- Local Node suite: 112 passing tests, including a mounted-runtime connected travel/interaction/save/reload test using actual Game snapshot methods and a minimal host. This is not browser or device proof.
+- Local Node suite: 115 passing tests, including a mounted-runtime connected travel/interaction/save/reload test using actual Game snapshot methods and a minimal host. This is not browser or device proof.
 - All 88 installed world/battle PNG files match the supplied art archive byte-for-byte; private art/story are excluded from public git.
 - Chromium acceptance includes the original game/labs plus a new four-starter unified route suite with keyboard traversal, patrol battle, results, area map, formation, rewards and Continue. The first CI run caught stale intent text during presentation; the readout now updates immediately while input stays locked. Current CI results are recorded on PR #4.
 - Local Chromium execution is blocked by a socket restriction. Local Android compilation/emulation is unavailable because Gradle/SDK/adb are absent. Neither is represented as passing.

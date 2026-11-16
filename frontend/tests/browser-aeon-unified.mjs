@@ -87,6 +87,8 @@ try{
   await page.keyboard.press('KeyE');
   await page.waitForFunction(()=>window.__rpgLab.inspect().session.exploration.events['power-switch']===true);
   await travel('ArrowRight','annex');
+  assert.equal(await page.evaluate(()=>window.__gs.drones[0].c.artId),'old_sentry');
+  assert.equal(await page.evaluate(()=>typeof window.__gs.drawSecurityUnit),'function');
   // Enter the real visible patrol's sightline using movement; its ordinary chase
   // callback starts the existing deterministic side-view battle.
   await page.keyboard.down('ArrowRight');

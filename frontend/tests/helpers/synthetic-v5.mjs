@@ -5,7 +5,8 @@ const actionFrames=[4,6,6,6,3,3,6,4,4];
 const characters=['sleeper_A','sleeper_B','sleeper_C','sleeper_D',
   'echo_industrial_maintenance','old_sentry',...Array.from({length:36},(_,i)=>'test_filler_'+i)];
 const art=(id)=>({
- id,world:{src:'assets/world/'+id+'.png',frameWidth:32,frameHeight:56,columns:9,rows:4,
+ id,world:{src:'assets/world/'+id+'.png',frameWidth:id==='old_sentry'?96:32,frameHeight:id==='old_sentry'?96:56,columns:9,rows:4,
+   idleColumn:0,fps:8,anchor:id==='old_sentry'?[48,96]:[16,56],
    directions:['down','left','right','up'],walkColumns:[1,2,3,4,5,6,7,8]},
  battle:{src:'assets/battlers/'+id+'.png',frameWidth:id==='old_sentry'||id.startsWith('echo_')?96:64,
    frameHeight:id==='old_sentry'||id.startsWith('echo_')?96:64,columns:6,rows:9,
@@ -36,8 +37,9 @@ export async function installSyntheticV5(page){
   const url=new URL(route.request().url());const path=url.pathname;
   if(path.endsWith('/asset-manifest.json'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(manifest)});
   if(/\/portraits\/sleeper_[ABCD]\.png$/.test(path))return route.fulfill({status:200,contentType:'image/png',body:png(96,96,96,96)});
-  const world=/\/assets\/world\/(sleeper_[ABCD])\.png$/.exec(path);
-  if(world)return route.fulfill({status:200,contentType:'image/png',body:png(288,224,32,56)});
+  const world=/\/assets\/world\/(sleeper_[ABCD]|old_sentry)\.png$/.exec(path);
+  if(world){const width=world[1]==='old_sentry'?96:32,height=world[1]==='old_sentry'?96:56;
+    return route.fulfill({status:200,contentType:'image/png',body:png(9*width,4*height,width,height)});}
   const battle=/\/assets\/battlers\/(sleeper_[ABCD]|echo_industrial_maintenance|old_sentry)\.png$/.exec(path);
   if(battle){const size=battle[1].startsWith('sleeper_')?64:96;
     return route.fulfill({status:200,contentType:'image/png',body:png(6*size,9*size,size,size)});

@@ -67,6 +67,8 @@ export async function buildV5WorldSheet(manifest,id){
 export function bindV5WorldSheet(game,{canvas,id}){
   if(!STARTERS.includes(id)||canvas.width!==448||canvas.height!==224)throw new Error('Bad V5 field sheet');
   game.sheet=canvas;
+  // Ghost Signal trace echoes belong to the selected player identity as well.
+  game.ghostSheet=canvas;game.echoSheet=canvas;game.fieldSpriteAnchorY=56;
   // Existing Game player movement, collision, camera, stealth, save and HUD remain authoritative.
   // This changes only frame selection in this opted-in RPG Game instance.
   game.frame=()=>{

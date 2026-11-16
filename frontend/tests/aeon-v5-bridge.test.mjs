@@ -36,6 +36,8 @@ test('v5 field frame binding uses all eight distinct walk frames with independen
  assert.equal(bindV5WorldSheet(game,{canvas:{width:448,height:224},id:'sleeper_C'}),true);
  const frames=new Set();for(let tick=0;tick<=10;tick++){game.player.anim=tick;frames.add(game.frame());}
  assert.deepEqual([...frames].sort((a,b)=>a-b),[0,1,2,3,4,5,6,7]);
+ assert.equal(game.ghostSheet,game.sheet,'Player history must not render as another character');
+ assert.equal(game.echoSheet,game.sheet);assert.equal(game.fieldSpriteAnchorY,56);
  game.player.moving=false;assert.equal(game.frame(),8);
  game.player.scanT=.4;assert.equal(game.frame(),12);
  assert.throws(()=>bindV5WorldSheet(game,{canvas:{width:384,height:224},id:'sleeper_C'}),/Bad V5 field sheet/);

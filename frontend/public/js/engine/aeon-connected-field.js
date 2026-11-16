@@ -39,7 +39,7 @@ export async function createAeonConnectedField({
     // Only the additive unified fixture owns this patrol. Standalone connected
     // rooms and the original Ghost Signal missions retain their exact contents.
     if(mapId==='annex')mission.drones=[{
-      start:[5,2],zone:[2,1,6,4],
+      artId:'old_sentry',start:[5,2],zone:[2,1,6,4],
       waypoints:[[5,2],[5,4],[3,4],[3,1],[5,1]]
     }];
     const baseUpdate=mission.update,baseMigrate=mission.migrate;
