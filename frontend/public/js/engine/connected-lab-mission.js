@@ -30,14 +30,19 @@ export function createConnectedLabMission(map,{onPortal,onInteract,getWorld}={})
       return [
         {t:'Activate the staging power relay',done:!!f['power-switch']},
         {t:'Recover the annex repair supply',done:!!f['supply-cache']},
-        {t:'Use both area portals',done:!!f['visited-annex']&&!!f['returned-staging']}
+        {t:'Use both area portals',done:!!f['visited-annex']&&!!f['returned-staging']},
+        {t:'Restore power to unlock the service hatch',done:!!f['power-switch']}
       ];
     },
     objective(g){
       const f=getWorld?.()?.flags||{};
-      if(map.id==='staging'&&!f['power-switch'])return 'Inspect the power switch, then cross the eastern doorway.';
-      if(map.id==='staging')return f['returned-staging']?'Expedition routes recorded.':'Cross the eastern doorway to the annex.';
-      return f['supply-cache']?'Return through the western doorway.':'Inspect the old supply cache in the annex.';
+      if(map.id==='staging'&&!f['power-switch'])
+        return 'Restore the relay. The upper service hatch is sealed until powered.';
+      if(map.id==='staging')
+        return f['returned-staging']?'Expedition routes recorded. Service hatch online.':
+          'Upper service hatch online. Explore the annex or eastern doorway.';
+      return f['supply-cache']?'Return through the western door or service hatch.':
+        'Inspect the old supply cache. The upper service hatch also returns to staging.';
     },
     onStart(g){g.flags.lights=true;g.toast('CONNECTED WORLD TEST // '+map.id.toUpperCase(),3);},
     update(g,dt){
