@@ -27,7 +27,7 @@ export async function mountAeonGame({game,ui,sfx,touchMode,refreshTouch}){
     try{
       sfx.init();
       const manifest=await loadAeonV5();
-      game.mode='choice';
+      game.mode='rpgmenu';
       const starterId=await chooseStarter(manifest,{cancel:true,title:continuing?'CONTINUE // SELECT SLEEPER':'NEW GAME // SELECT SLEEPER',
         description:continuing?'Choose a character with a saved field record.':'Choose the matching portrait, field sprite and battler.',
         enabled:id=>!continuing||saveFor(id).inspect().hasSave});
@@ -55,14 +55,22 @@ export async function mountAeonGame({game,ui,sfx,touchMode,refreshTouch}){
 
 function confirmReplacement(id){
   return new Promise(resolve=>{
+    const finish=value=>{document.removeEventListener('keydown',navigate);shell.remove();resolve(value);};
+    const navigate=event=>{
+      if(event.code==='Escape'){event.preventDefault();finish(false);}
+      else if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code)){
+        event.preventDefault();const buttons=[...panel.querySelectorAll('button')];
+        const index=buttons.indexOf(document.activeElement);buttons[index===0?1:0].focus();
+      }
+    };
     const shell=document.createElement('div');shell.id='aeon-confirm';shell.className='overlay';shell.style.zIndex='60';
     const panel=document.createElement('section');panel.className='panel';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
     const heading=document.createElement('h2');heading.textContent='REPLACE '+id.replace('_',' ').toUpperCase()+' RECORD?';
     panel.append(heading);
     for(const [label,value] of [['KEEP RECORD',false],['START NEW RECORD',true]]){
       const button=document.createElement('button');button.className='menu-btn';button.textContent=label;
-      button.onclick=()=>{shell.remove();resolve(value);};panel.append(button);
+      button.onclick=()=>finish(value);panel.append(button);
     }
-    shell.append(panel);$('stage').append(shell);panel.querySelector('button').focus();
+    shell.append(panel);$('stage').append(shell);document.addEventListener('keydown',navigate);panel.querySelector('button').focus();
   });
 }

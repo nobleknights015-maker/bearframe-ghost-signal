@@ -97,7 +97,7 @@ public final class MainActivity extends Activity {
     @Override public void onBackPressed() {
         // Same ESC handling as desktop Ghost Signal; do not introduce a second menu design.
         if (webView != null) webView.evaluateJavascript(
-            "window.dispatchEvent(new KeyboardEvent('keydown',{code:'Escape',key:'Escape',bubbles:true}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'Escape',key:'Escape',bubbles:true}));", null);
+            "document.dispatchEvent(new KeyboardEvent('keydown',{code:'Escape',key:'Escape',bubbles:true}));document.dispatchEvent(new KeyboardEvent('keyup',{code:'Escape',key:'Escape',bubbles:true}));", null);
         else super.onBackPressed();
     }
 

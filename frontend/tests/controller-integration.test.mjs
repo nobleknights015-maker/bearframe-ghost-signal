@@ -71,3 +71,16 @@ test('host pause releases held controls, queued actions and the visual D-pad',()
  emit('pointerdown',2,50,90); assert.equal(input.dir,'down');
  windowListeners.get('blur')(); assert.equal(input.dir,null);
 }));
+
+
+test('handled modal keys do not enqueue field movement or reopen pause after closing a menu',()=>{
+ const old=globalThis.addEventListener,listeners=new Map();
+ globalThis.addEventListener=(type,fn)=>{const all=listeners.get(type)||[];all.push(fn);listeners.set(type,all);};
+ try{
+  const input=new Input();
+  for(const code of ['Escape','ArrowRight','Enter'])for(const listener of listeners.get('keydown'))
+   listener({code,target:{tagName:'BUTTON'},defaultPrevented:true,preventDefault(){}});
+  assert.equal(input.dir,null);
+  assert.deepEqual(input.take(),[]);
+ }finally{globalThis.addEventListener=old;}
+});

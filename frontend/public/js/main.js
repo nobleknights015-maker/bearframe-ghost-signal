@@ -131,7 +131,7 @@ function loop(now) {
     }
   } catch (_) { /* Gamepad API may be unavailable in restricted browsers. */ }
   if (game.mode === 'play' && !game.lowFx) { frames++; if (raw > 26) slow++; if (frames >= 180) { if (slow > 90) game.lowFx = true; frames = slow = 0; } }
-  game.update(dt); if (game.mode === 'title') titleSprite(now); else game.render();
+  game.update(dt); if (game.mode === 'title' || !game.m) titleSprite(now); else game.render();
   $('t-light').classList.toggle('on', !!(game.player && game.player.light));
   requestAnimationFrame(loop);
 }

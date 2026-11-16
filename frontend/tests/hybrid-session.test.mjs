@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHybridSession,moveHybrid,detectHybrid,actHybrid,setHybridActiveParty} from '../public/js/engine/hybrid-session.js';
+import {createHybridSession,moveHybrid,detectHybrid,actHybrid,setHybridActiveParty,beginHybridEncounter} from '../public/js/engine/hybrid-session.js';
 import {enemyDecision,currentCombatant} from '../public/js/engine/rpg-combat.js';
 const starter=()=>({ location:{mapId:'ruin',x:4,y:4,facing:'right'},
  party:[{id:'sleeper',hp:30,maxHp:30,ep:10,maxEp:10,attack:12,defense:4,speed:10}],
@@ -121,4 +121,43 @@ test('campaign defeat patches active damage while reserve remains outside the en
  assert.deepEqual(s.exploration.party[3],reserve);
  assert.equal(s.exploration.progression.xp,1);
  assert.equal(s.exploration.inventory.scrap,undefined);
+});
+
+test('authored normal-area encounters use the real handoff while stealth detection stays gated',()=>{
+ const original=createHybridSession(starter());
+ assert.equal(original.security.mode,'normal');
+ assert.throws(()=>detectHybrid(original,encounter()),/active stealth/);
+ let s=beginHybridEncounter(original,encounter());
+ assert.equal(s.phase,'battle');
+ assert.equal(s.event.encounterId,'guard');
+ assert.throws(()=>beginHybridEncounter(s,encounter()),/requires exploration/);
+ assert.equal(original.phase,'exploration','Entry leaves its previous checkpoint immutable');
+ s=actHybrid(s,{actor:'party:sleeper',type:'attack',target:'enemy:drone'});
+ assert.equal(s.event.outcome,'victory');
+ assert.equal(s.security.mode,'normal');
+ assert.deepEqual(s.exploration.location,original.exploration.location);
+ assert.deepEqual(s.exploration.flags,original.exploration.flags);
+ assert.equal(s.exploration.progression.xp,6);
+ assert.equal(s.exploration.inventory.scrap,1);
+ assert.throws(()=>actHybrid(s,{actor:'party:sleeper',type:'attack',target:'enemy:drone'}),TypeError);
+ for(const bad of [null,{}, {id:'empty',enemies:[]}])
+  assert.throws(()=>beginHybridEncounter(original,bad),TypeError);
+});
+test('normal authored entry retains campaign lineup and reserve through victory and flee',()=>{
+ const world=campaign();world.location={mapId:'ruin',x:4,y:4,facing:'right'};
+ const original=createHybridSession(world,area);
+ assert.equal(original.security.mode,'normal');
+ let battle=beginHybridEncounter(original,encounter());
+ assert.deepEqual(battle.battle.party.map(member=>member.id),world.activeParty);
+ const won=actHybrid(battle,{actor:'party:unit2',type:'attack',target:'enemy:drone'});
+ assert.deepEqual(won.exploration.party[3],world.party[3]);
+ assert.deepEqual(won.exploration.activeParty,world.activeParty);
+ assert.equal(won.security.mode,'normal');
+ battle=beginHybridEncounter(original,encounter());
+ const fled=actHybrid(battle,{actor:'party:unit2',type:'flee'});
+ assert.equal(fled.event.outcome,'fled');
+ assert.deepEqual(fled.exploration.party,world.party);
+ assert.deepEqual(fled.exploration.activeParty,world.activeParty);
+ assert.equal(fled.exploration.inventory.scrap,undefined);
+ assert.equal(fled.exploration.progression.xp,1);
 });

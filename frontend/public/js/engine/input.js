@@ -7,7 +7,8 @@ export class Input {
   constructor() {
     this.stack = []; this.touchDir = null; this.padDir = null; this.padReader = createGamepadReader(); this.q = [];
     addEventListener('keydown', e => {
-      if (e.target.tagName === 'INPUT') return;
+      // Modal navigation owns keys it has already handled at document level.
+      if (e.defaultPrevented || e.target.tagName === 'INPUT') return;
       const d = MOVE[e.code];
       if (d) { if (!this.stack.includes(d)) this.stack.push(d); e.preventDefault(); }
       else if (ACT[e.code]) { if (!e.repeat) this.q.push(ACT[e.code]); if (e.code === 'Space') e.preventDefault(); }

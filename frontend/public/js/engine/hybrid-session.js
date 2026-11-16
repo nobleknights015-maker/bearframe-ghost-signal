@@ -51,6 +51,14 @@ export function detectHybrid(session, encounter = null) {
     throw new TypeError('Detection requires active stealth');
   const response=session.security.onDetection || 'alarm';
   if (response !== 'encounter') return seal({...session,event:{type:'security.'+response,zoneId:session.security.zoneId}});
+  return beginHybridEncounter(session,encounter);
+}
+
+// Authored visible enemies and scene triggers can enter combat in normal areas.
+// Stealth detection keeps its policy guard above; both paths share one handoff,
+// equipment derivation, deterministic combat state and result transaction.
+export function beginHybridEncounter(session,encounter){
+  if(!object(session)||session.phase!=='exploration')throw new TypeError('Encounter requires exploration');
   if (!object(encounter) || !Array.isArray(encounter.enemies)) throw new TypeError('Missing authored encounter');
   const handoff=beginEncounter(session.exploration,{id:encounter.id,enemies:encounter.enemies.map(e=>e.id)});
   // Derive combat stats from the same persisted equipment inventory shown by the menu.
