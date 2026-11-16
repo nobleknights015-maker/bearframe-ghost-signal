@@ -48,6 +48,7 @@ function checkSpec(spec) {
   const kind=spec.kind||'humanoid';
   if(!['humanoid','machine'].includes(kind))throw Error('Kind must be humanoid or machine');
   if(typeof spec.faction!=='string'||!spec.faction||spec.faction.length>64)throw Error('Faction required');
+  if(spec.battleSide!==undefined&&!['party','enemy'].includes(spec.battleSide))throw Error('battleSide must be party or enemy');
   if(spec.appearanceReference&&!spec.approvedSourceSheet)throw Error('A reference cannot be auto-traced. Import its approved native sprite sheet explicitly.');
   if(spec.seed!==undefined&&(!Number.isSafeInteger(spec.seed)||spec.seed<0))throw Error('Seed must be nonnegative safe integer');
   return kind;
@@ -403,25 +404,27 @@ export async function registerCharacter(characterId,{outputRoot=OUTPUT_ROOT,deve
   const paths={battle:path.join(destBase,'battlers',characterId+'.png'),
     world:path.join(destBase,'characters',characterId+'.png'),
     portrait:path.join(destBase,'portraits',characterId+'.png')};
+  const registryPath=path.join(frontend,'public/js/engine/rpg-generated-registrations.js');
+  const registryJson=path.join(destBase,'character-registry.json');
+  const registry=existsSync(registryJson)?JSON.parse(await readFile(registryJson,'utf8')):{};
+  if(registry[characterId])throw Error('Character registry identity already exists');
   for(const name of Object.keys(paths)){
     if(existsSync(paths[name]))throw Error('Registered sprite exists: '+name+'; never overwrite without explicit migration');
     await mkdir(path.dirname(paths[name]),{recursive:true});
   }
   for(const name of Object.keys(paths))await copyFile(path.join(base,name+'.png'),paths[name]);
-  const registryPath=path.join(frontend,'public/js/engine/rpg-generated-registrations.js');
-  const registryJson=path.join(destBase,'character-registry.json');
-  const registry=existsSync(registryJson)?JSON.parse(await readFile(registryJson,'utf8')):{};
-  if(registry[characterId])throw Error('Character registry identity already exists');
+  const sourceRequest=JSON.parse(await readFile(path.join(base,'request.json'),'utf8'));
+  const battleSide=development?'party':sourceRequest.battleSide||'enemy';
   registry[characterId]={id:characterId,portrait:'assets/portraits/'+characterId+'.png',
     world:'assets/characters/'+characterId+'.png',
     battle:'assets/battlers/'+characterId+'.png',
     worldMetadata:JSON.parse(await readFile(path.join(base,'world.json'),'utf8')),
     battleMetadata:JSON.parse(await readFile(path.join(base,'battle.json'),'utf8')),
-    status:development?'development-only':'approved'};
+    status:development?'development-only':'approved',battleSide};
   await mkdir(path.dirname(registryPath),{recursive:true});
   await writeFile(registryJson,JSON.stringify(registry,null,2)+'\n');
   const battlers=Object.fromEntries(Object.entries(registry).map(([id,row])=>
-    [(development?'party:':'enemy:')+id,row.battleMetadata&&{
+    [(row.battleSide==='party'?'party:':'enemy:')+id,row.battleMetadata&&{
       src:row.battle,frameWidth:row.battleMetadata.frameWidth,
       frameHeight:row.battleMetadata.frameHeight,scale:1,
       animations:row.battleMetadata.animations
