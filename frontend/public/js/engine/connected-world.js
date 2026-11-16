@@ -19,11 +19,15 @@ export function compileConnectedWorld(maps){
     const portals=map.layers?.find(l=>l.name==='portals'&&l.type==='objectgroup')?.objects;
     if(!Array.isArray(portals)||!portals.length)fail('missing portals '+map.id);
     const ids=new Set();
+    const occupiedTiles=new Set();
     for(const p of portals){
       if(!isId(p.name)||ids.has(p.name))fail('invalid/duplicate portal '+map.id);
       ids.add(p.name);
       if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||p.x%32||p.y%32)
         fail('portal must be tile-aligned');
+      const tileKey=p.x+','+p.y;
+      if(occupiedTiles.has(tileKey))fail('overlapping portal tiles '+map.id+'/'+p.name);
+      occupiedTiles.add(tileKey);
       if(!p.properties||!isId(props(p.properties).toMap)||!isId(props(p.properties).toPortal)||
          !DIRECTIONS.has(props(p.properties).facing))fail('invalid destination '+p.name);
       const gate=props(p.properties).requiresFlag;
