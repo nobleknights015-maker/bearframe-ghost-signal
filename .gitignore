@@ -12,3 +12,6 @@ credentials.json
 # Native CLI scratch projects and previews; publish only separately reviewed art.
 /frontend/character-output/
 /frontend/test-artifacts/generated-character/
+
+# Owner-only Aeon v5 artwork. Install locally; do not push to the public repository.
+/frontend/public/assets/aeon/
