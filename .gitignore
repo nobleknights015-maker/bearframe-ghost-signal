@@ -8,3 +8,7 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Native CLI scratch projects and previews; publish only separately reviewed art.
+/frontend/character-output/
+/frontend/test-artifacts/generated-character/
