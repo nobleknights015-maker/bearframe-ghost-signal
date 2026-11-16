@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BATTLE_VIEW,sideViewSlots,validateBattleArtManifest,battleAnimationFrame,ANIMATION_NAMES,sideViewPose}
+import {BATTLE_VIEW,sideViewSlots,validateBattleArtManifest,battleAnimationFrame,ANIMATION_NAMES,sideViewPose,battleSpriteBounds}
   from '../public/js/engine/rpg-sideview-layout.js';
 
 const party=[0,1,2,3].map(i=>({id:'ally-'+i}));
@@ -126,4 +126,21 @@ test('v5 per-frame exposure metadata is validated rather than accepted blindly',
   ])assert.throws(()=>validateBattleArtManifest({'party:sleeper_A':{
     ...base,animations:{idle:bad}
   }}),TypeError);
+});
+
+test('all supported formations contain 64/96/128 battlers without clipping or intersecting slots',()=>{
+  const overlaps=(a,b)=>a.x<b.x+b.width&&a.x+a.width>b.x&&
+    a.y<b.y+b.height&&a.y+a.height>b.y;
+  for(let allies=1;allies<=4;allies++)for(let foes=1;foes<=6;foes++){
+    const slots=sideViewSlots({party:party.slice(0,allies),enemies:enemies.slice(0,foes)});
+    for(const size of [64,96,128]){
+      const bounds=slots.map(slot=>battleSpriteBounds(slot,{frameWidth:size,frameHeight:size,scale:1}));
+      for(const box of bounds){
+        assert.ok(box.x>=0&&box.x+box.width<=BATTLE_VIEW.width);
+        assert.ok(box.y>=23&&box.y+box.height<=109,'Header and name baseline stay clear');
+      }
+      for(let i=0;i<bounds.length;i++)for(let j=i+1;j<bounds.length;j++)
+        assert.ok(!overlaps(bounds[i],bounds[j]),`Overlapping ${allies}/${foes} formation at ${size}px`);
+    }
+  }
 });

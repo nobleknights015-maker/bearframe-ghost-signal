@@ -41,6 +41,7 @@ try{
     'Battle log must reveal guarded heavy-strike damage');
   assert.equal(next.session.battle.enemies[0].chargeTarget,null);
   await page.getByRole('button',{name:'WITHDRAW',exact:true}).click(); // Echo withdraws
+  await page.waitForFunction(()=>window.__rpgLab?.inspect().mode==='play',{timeout:12000});
   const fled=await inspect();
   assert.equal(fled.session.phase,'exploration');
   assert.equal(fled.session.exploration.party[0].hp,29,'Remaining HP must cross back into the field');

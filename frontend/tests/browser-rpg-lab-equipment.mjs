@@ -67,6 +67,7 @@ try{
   assert.deepEqual(battle.session.battle.party[0].skills,['pulse','guard']);
   assert.deepEqual(battle.session.battle.party[1].skills,['repair','guard']);
   await page.getByRole('button',{name:'WITHDRAW'}).click();
+  await page.waitForFunction(()=>window.__rpgLab?.inspect().mode==='play',{timeout:12000});
   assert.equal((await state()).session.phase,'exploration');
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.__rpgLab?.inspect().field.mission==='rpg-lab');

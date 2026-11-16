@@ -120,7 +120,8 @@ try{
   await page.locator('#btn-quit').click();
   await page.waitForURL(/engine-lab\.html/);
   const launcher=page.getByRole('navigation',{name:'Engine test modes'});
-  assert.equal(await launcher.getByRole('link').count(),4);
+  assert.equal(await launcher.getByRole('link').count(),5);
+  assert.equal(await launcher.getByRole('link',{name:'AEON UNIFIED ENGINE',exact:true}).getAttribute('href'),'aeon.html');
   assert.equal(await launcher.getByRole('link',{name:'ORIGINAL GHOST SIGNAL'}).getAttribute('href'),'index.html');
   const link=launcher.getByRole('link',{name:'JRPG COMBAT'});
   const bounds=await link.boundingBox();

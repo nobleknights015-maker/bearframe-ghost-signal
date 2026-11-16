@@ -5,20 +5,20 @@ export const BATTLE_VIEW=Object.freeze({width:416,height:116});
 export const ANIMATION_NAMES=Object.freeze([
   'idle','attack','ranged','cast','guard','hit','down','victory','charge'
 ]);
-const ALLY_SLOTS=Object.freeze([
-  Object.freeze({x:68,y:106}),
-  Object.freeze({x:119,y:110}),
-  Object.freeze({x:68,y:65}),
-  Object.freeze({x:119,y:76})
-]);
-const ENEMY_SLOTS=Object.freeze([
-  Object.freeze({x:308,y:106}),
-  Object.freeze({x:363,y:110}),
-  Object.freeze({x:308,y:65}),
-  Object.freeze({x:363,y:76}),
-  Object.freeze({x:336,y:90}),
-  Object.freeze({x:392,y:92})
-]);
+// Formation cells reserve the header (0..22) and name baseline (115).
+// Dense groups use separate depth rows rather than overlapping full-size sheets.
+function formationSlots(count,side){
+  const left=side==='party';
+  const columns=count<=2?count:count<=4?2:3;
+  const rows=Math.ceil(count/columns);
+  const xPositions=columns===1?[left?96:326]:columns===2?
+    (left?[52,144]:[276,372]):[248,312,376];
+  const cellHeight=rows===1?86:37;
+  return Array.from({length:count},(_,index)=>({
+    x:xPositions[index%columns],y:rows===1?109:index<columns?60:109,
+    cellWidth:columns===3?60:88,cellHeight
+  }));
+}
 export function sideViewSlots(battle) {
   if(!battle||!Array.isArray(battle.party)||!Array.isArray(battle.enemies)||
     battle.party.length>4||battle.enemies.length>6)
@@ -27,7 +27,7 @@ export function sideViewSlots(battle) {
     if(!unit||typeof unit.id!=='string')throw new TypeError('Invalid side-view combatant');
     return Object.freeze({key:side+':'+unit.id,side,index,...slots[index],facing:side==='party'?'right':'left'});
   });
-  return Object.freeze([...map(battle.party,'party',ALLY_SLOTS),...map(battle.enemies,'enemy',ENEMY_SLOTS)]);
+  return Object.freeze([...map(battle.party,'party',formationSlots(battle.party.length,'party')),...map(battle.enemies,'enemy',formationSlots(battle.enemies.length,'enemy'))]);
 }
 const assetPath=value=>typeof value==='string'&&
   /^assets\/(?:battlers|aeon\/assets\/battlers)\/[a-zA-Z0-9/_-]+\.png$/.test(value)&&!value.includes('..');
@@ -111,6 +111,42 @@ export function sideViewPose(unit,side,status,cue=null,age=Infinity,actorDuratio
     return ['pulse','repair','item'].includes(cue.kind)?'cast':
       cue.kind==='overload'?'attack':ANIMATION_NAMES.includes(cue.kind)?cue.kind:'idle';
   if(cue&&age>=releaseAt&&age<releaseAt+reactionDuration&&cue.target===side+':'+unit.id)
-    return ['attack','pulse','overload'].includes(cue.kind)?'hit':'idle';
+    return ['attack','pulse','overload','ranged'].includes(cue.kind)?'hit':'idle';
   return unit.guard?'guard':unit.chargeTarget?'charge':'idle';
+}
+
+// Build a presentation-only queue. Preserve actor recoil AND the full target
+// reaction; repeated commands append after the current queue rather than erase it.
+export function battleClipDuration(clip,fallback=.55){
+  return clip?.durationsMs?clip.durationsMs.reduce((n,ms)=>n+ms,0)/1000:
+    clip?clip.frames/clip.fps:fallback;
+}
+export function battleActionTimeline(actions,art,begin=0){
+  if(!Array.isArray(actions))throw new TypeError('Expected ordered combat actions');
+  let when=begin;
+  return Object.freeze(actions.map(action=>{
+    const pose=['pulse','repair','item'].includes(action.type)?'cast':
+      action.type==='overload'?'attack':action.type;
+    const clip=art[action.actor]?.animations[pose];
+    const actorDuration=battleClipDuration(clip);
+    const releaseAt=(clip?.releaseMs??0)/1000;
+    const damaging=['attack','pulse','overload','ranged'].includes(action.type);
+    const reactionDuration=damaging&&action.target?
+      battleClipDuration(art[action.target]?.animations.hit,.42):0;
+    const duration=Math.max(.36,actorDuration,releaseAt+reactionDuration);
+    const entry=Object.freeze({actor:action.actor,target:action.target||null,
+      kind:action.type,when,duration,actorDuration,reactionDuration,releaseAt});
+    when+=duration+.04;
+    return entry;
+  }));
+}
+
+// Proportional per-slot bounds for real sheets. Geometry belongs to the stage,
+// never to atlas crop bounds, so different cels cannot jitter or float.
+export function battleSpriteBounds(slot,spec){
+  const scale=Math.min(spec.scale,slot.cellHeight/spec.frameHeight,
+    slot.cellWidth/spec.frameWidth);
+  const height=Math.max(1,Math.floor(spec.frameHeight*scale));
+  const width=Math.max(1,Math.floor(spec.frameWidth*scale));
+  return Object.freeze({x:slot.x-Math.floor(width/2),y:slot.y-height,width,height});
 }

@@ -84,6 +84,7 @@ jobs:
           path: |
             ghost-signal-emulator-launch.png
             ghost-signal-emulator-restart.png
+            ghost-signal-emulator-resume.png
           if-no-files-found: ignore
           retention-days: 7
 

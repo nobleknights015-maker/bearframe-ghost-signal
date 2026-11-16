@@ -349,6 +349,9 @@ export class Game {
   }
 
   // ---------- render ----------
+  renderSecurityUnit(ctx,drone,time) {
+    if(this.drawSecurityUnit?.(ctx,drone,time)!==true)drawDrone(ctx,drone,time);
+  }
   render() {
     if (!this.m) return;
     const c = this.ctx, p = this.player, f = this.flags, t = this.time, flick = this.settings.flicker;
@@ -370,20 +373,20 @@ export class Game {
     const g = this.ghost, ec = this.echo;
     if (g) {
       const gl = flick && Math.sin(t * 31) > .93 ? 3 : 0; c.globalAlpha = flick ? .5 + .2 * Math.sin(t * 13) : .6;
-      c.drawImage(this.ghostSheet, g.f * FW, ROW[g.dir] * FH, FW, FH, Math.round(g.x) - 16 + gl, Math.round(g.y) - 52, FW, FH); c.globalAlpha = 1;
+      c.drawImage(this.ghostSheet, g.f * FW, ROW[g.dir] * FH, FW, FH, Math.round(g.x) - 16 + gl, Math.round(g.y) - (this.fieldSpriteAnchorY??52), FW, FH); c.globalAlpha = 1;
     }
     if (ec) {
       const gl = flick && Math.sin(t * 27) > .85 ? -2 : 0, fr = ec.pts[ec.i + 1] ? Math.floor(ec.anim * 1.4) % WALK : IDLE0; c.globalAlpha = flick ? .55 + .25 * Math.sin(t * 9) : .65;
-      c.drawImage(this.echoSheet, fr * FW, ROW[ec.dir] * FH, FW, FH, Math.round(ec.x) - 16 + gl, Math.round(ec.y) - 52, FW, FH); c.globalAlpha = 1;
+      c.drawImage(this.echoSheet, fr * FW, ROW[ec.dir] * FH, FW, FH, Math.round(ec.x) - 16 + gl, Math.round(ec.y) - (this.fieldSpriteAnchorY??52), FW, FH); c.globalAlpha = 1;
     }
     const drawP = () => {
       if (p.hidden) return;
       const X = Math.round(p.x), Y = Math.round(p.y); c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(X - 10, Y, 20, 4); c.fillStyle = 'rgba(0,0,0,.34)'; c.fillRect(X - 8, Y - 1, 16, 6); c.fillRect(X - 5, Y - 2, 10, 8);
-      if (!(p.hurt > 0 && (t * 14 | 0) % 2)) c.drawImage(this.sheet, this.frame() * FW, ROW[p.dir] * FH, FW, FH, X - 16, Y - 52, FW, FH);
+      if (!(p.hurt > 0 && (t * 14 | 0) % 2)) c.drawImage(this.sheet, this.frame() * FW, ROW[p.dir] * FH, FW, FH, X - 16, Y - (this.fieldSpriteAnchorY??52), FW, FH);
     };
-    for (const d of this.drones) if (d.y < p.y) drawDrone(c, d, t);
+    for (const d of this.drones) if (d.y < p.y) this.renderSecurityUnit(c, d, t);
     drawP();
-    for (const d of this.drones) if (d.y >= p.y) drawDrone(c, d, t);
+    for (const d of this.drones) if (d.y >= p.y) this.renderSecurityUnit(c, d, t);
     c.restore();
     c.drawImage(this.over, cx, cy, VW, VH, 0, 0, VW, VH);
 

@@ -8,22 +8,35 @@ const SLOTS = Object.freeze(['weapon','armor','accessory']);
 const valid = s => plain(s) && Array.isArray(s.members) && Array.isArray(s.active) && plain(s.inventory) && plain(s.equipment);
 const entry = (s, memberId) => s.members.find(m=>m.id===memberId);
 
-export function createParty({members,active,inventory={},equipment={}}) {
+export function createParty({members,active,inventory={},equipment={},mode}={}) {
+  const campaign=mode==='campaign';
+  if(mode!==undefined&&mode!=='campaign')throw new TypeError('Invalid party mode');
   if (!Array.isArray(members) || !members.length || members.length>12 ||
       members.some(m=>!plain(m) || !id(m.id) || !count(m.level || 1) || !count(m.xp || 0)) ||
       new Set(members.map(m=>m.id)).size!==members.length ||
-      !Array.isArray(active) || !active.length || active.length>4 ||
+      !Array.isArray(active) || !active.length || active.length>(campaign?3:4) ||
+      (campaign&&(members.length>4||members.length-active.length>1)) ||
       new Set(active).size!==active.length || active.some(x=>!members.some(m=>m.id===x)) ||
       !plain(inventory) || Object.entries(inventory).some(([k,v])=>!id(k) || !count(v)) || !plain(equipment))
     throw new TypeError('Invalid party');
-  const s={members:clone(members),active:[...active],inventory:clone(inventory),equipment:clone(equipment)};
+  const s={...(campaign?{mode:'campaign'}:{}),members:clone(members),active:[...active],inventory:clone(inventory),equipment:clone(equipment)};
   for(const m of s.members) s.equipment[m.id] ??= {};
   return seal(s);
 }
 
 export function setActiveParty(s, ids) {
-  if (!valid(s) || !Array.isArray(ids) || !ids.length || ids.length>4 || new Set(ids).size!==ids.length || ids.some(x=>!entry(s,x))) throw new TypeError('Invalid active party');
+  if (!valid(s) || !Array.isArray(ids) || !ids.length || ids.length>(s.mode==='campaign'?3:4) ||
+      (s.mode==='campaign'&&s.members.length-ids.length>1) || new Set(ids).size!==ids.length || ids.some(x=>!entry(s,x))) throw new TypeError('Invalid active party');
   return seal({...s,active:[...ids]});
+}
+
+// The production campaign has three active units and one reserve. Legacy
+// four-slot tools retain their original default contract.
+export const createCampaignParty=options=>createParty({...options,mode:'campaign'});
+export function swapPartyReserve(s,activeId,reserveId){
+  if(!valid(s)||!s.active.includes(activeId)||s.active.includes(reserveId)||!entry(s,reserveId))
+    throw new TypeError('Invalid reserve swap');
+  return setActiveParty(s,s.active.map(value=>value===activeId?reserveId:value));
 }
 
 export function addItem(s,itemId,delta) {
