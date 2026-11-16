@@ -131,7 +131,7 @@ export function createSideViewBattleScene(manifest={}) {
   function cues(slots,t){
     if(!cue)return;
     const age=t-cue.when;
-    if(age<0||age>.55)return;
+    if(age<0||age>cue.duration||age<cue.releaseAt)return;
     const target=slots.find(x=>x.key===cue.target);
     const from=slots.find(x=>x.key===cue.actor);
     const spread=Math.round(age*10);
@@ -154,15 +154,16 @@ export function createSideViewBattleScene(manifest={}) {
     const t=(now-started)/1000;
     background(t);
     if(!state)return;
-    cue=queue.find(entry=>t>=entry.when&&t-entry.when<.55)||null;
-    if(!cue&&queue.length&&t>queue[queue.length-1].when+.55)queue=[];
+    cue=queue.find(entry=>t>=entry.when&&t-entry.when<entry.duration)||null;
+    if(!cue&&queue.length&&t>queue[queue.length-1].when+queue[queue.length-1].duration)queue=[];
     const slots=sideViewSlots(state);
     for(const slot of slots){
       const unit=get(state,slot.key);
       const active=activeKey===slot.key;
       if(active&&unit.hp>0){rect(c,slot.x-18,slot.y+11,36,1,COL.red);}
       const delta=cue?t-cue.when:1e5;
-      const pose=sideViewPose(unit,slot.side,state.status,cue,delta);
+      const pose=sideViewPose(unit,slot.side,state.status,cue,delta,
+        cue?.duration??.34,.42,cue?.releaseAt??0);
       if(!(art[slot.key]&&sheet(slot,art[slot.key],unit,t,pose,active)))
         schematic(slot,unit,t,pose,active);
       const fill=Math.round(30*Math.max(0,unit.hp)/unit.maxHp);
@@ -197,8 +198,18 @@ export function createSideViewBattleScene(manifest={}) {
     playActions(actions){
       if(!Array.isArray(actions))throw new TypeError('Expected ordered combat actions');
       const begin=elapsed();
-      queue=actions.map((action,index)=>({actor:action.actor,target:action.target||null,
-        kind:action.type,when:begin+index*.55}));
+      let offset=0;
+      queue=actions.map(action=>{
+        const pose=['pulse','repair','item'].includes(action.type)?'cast':
+          action.type==='overload'?'attack':action.type;
+        const clip=art[action.actor]?.animations[pose];
+        const authored=clip?.durationsMs?.reduce((n,ms)=>n+ms,0)/1000;
+        const duration=Math.max(.36,Number.isFinite(authored)?authored:.55);
+        const event={actor:action.actor,target:action.target||null,
+          kind:action.type,when:begin+offset,duration,
+          releaseAt:clip?.releaseMs?clip.releaseMs/1000:0};
+        offset+=duration+.04;return event;
+      });
       cue=null;
     },
     get layout(){return state?sideViewSlots(state):[];},
