@@ -11,15 +11,18 @@ import {migrateLabWorld} from './rpg-lab-migration.js';
 import {createLabMission,LAB_POLICY_SPEC} from './rpg-lab-mission.js';
 import {createSideViewBattleScene} from './rpg-sideview-scene.js';
 import {RPG_BATTLER_ART} from './rpg-battle-art.js';
+import {GENERATED_CHARACTERS} from './rpg-generated-registrations.js';
+const demoRequest=typeof location==='undefined'?null:new URLSearchParams(location.search).get('character-demo');
+const DEV_CHARACTER=demoRequest&&GENERATED_CHARACTERS[demoRequest]?.status==='development-only'?demoRequest:null;
 
 const $=id=>document.getElementById(id);
 const clone=x=>JSON.parse(JSON.stringify(x));
 const px=(x,y,facing='right')=>({mapId:'rpg-lab',x,y,facing});
 const initial=()=>({
   location:px(5.5*32,9*32),party:[
-    {id:'sleeper',lineage:'sleeper',name:'Sleeper Test',hp:38,maxHp:38,ep:10,maxEp:10,attack:11,defense:4,speed:10,level:1,skills:['pulse','guard']},
+    {id:DEV_CHARACTER||'sleeper',lineage:'sleeper',name:DEV_CHARACTER?'Noncanonical Test Frame':'Sleeper Test',hp:38,maxHp:38,ep:10,maxEp:10,attack:11,defense:4,speed:10,level:1,skills:['pulse','guard']},
     {id:'echo',lineage:'echo',name:'Echo Test',hp:29,maxHp:29,ep:10,maxEp:10,attack:7,defense:2,speed:7,level:1,skills:['repair','guard']}
-  ],inventory:{'repair-kit':1,'legacy-blade':1,'echo-link':1,'foundry-module':1},equipment:{sleeper:{weapon:'legacy-tool'},echo:{}},
+  ],inventory:{'repair-kit':1,'legacy-blade':1,'echo-link':1,'foundry-module':1},equipment:{[DEV_CHARACTER||'sleeper']:{weapon:'legacy-tool'},echo:{}},
   quests:{archive:'unknown',perimeter:'unexplored',sentry:'unresolved'},progression:{xp:0},
   stealth:{alert:0},flags:{}
 });
@@ -326,7 +329,7 @@ export function mountRpgLab({game,ui,sfx,touchMode}) {
     const foe=activeEnemy(b);
     const options=[
       ['ATTACK',{type:'attack',target:'enemy:'+foe.id},true],
-      ['PULSE (5 EP)',{type:'pulse',target:'enemy:'+foe.id},unit.ep>=5&&unit.id==='sleeper'],
+      ['PULSE (5 EP)',{type:'pulse',target:'enemy:'+foe.id},unit.ep>=5&&(unit.id==='sleeper'||unit.id===DEV_CHARACTER)],
       ['GUARD',{type:'guard'},true],
       ['REPAIR (5 EP)',{type:'repair'},unit.ep>=5&&unit.id==='echo'],
       ['KIT',{type:'item',item:'repair-kit'},!!b.inventory['repair-kit']],
