@@ -1,0 +1,115 @@
+name: Aeon character generator (development only)
+on:
+  workflow_dispatch:
+    inputs:
+      request_file:
+        description: 'Repository JSON request under frontend/character-tools/requests/ (NO private art)'
+        required: true
+        default: 'frontend/character-tools/requests/test_relay_01.json'
+        type: string
+  pull_request:
+    branches: [ghost-signal-engine]
+    paths:
+      - 'frontend/character-tools/**'
+      - 'frontend/public/js/engine/rpg-*'
+      - '.github/workflows/aeon-character-generator.yml'
+  push:
+    branches: [feature/aeon-character-generator-api-20261115, ghost-signal-engine]
+    paths:
+      - 'frontend/character-tools/requests/**'
+      - '.github/workflows/aeon-character-generator.yml'
+jobs:
+  generate-and-prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      BF_CHARACTER_OUTPUT: ${{ github.workspace }}/frontend/character-output
+      BF_STUDIO_LIB: ${{ github.workspace }}/advanced-studio/frontend/public/studio/lib
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: sprite-studio-sleek-copy
+          path: advanced-studio
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated native sprite renderer and browser test dependencies
+        run: |
+          npm install --prefix frontend/character-tools --no-audit --no-fund
+          npm install --prefix frontend --no-save --no-audit --no-fund playwright@1.56.1
+          cd frontend
+          npx playwright install --with-deps chromium
+      - name: Verify source and engine module syntax
+        run: |
+          set -euo pipefail
+          find frontend/character-tools -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -n1 node --check
+          node --check frontend/public/js/engine/rpg-field-art.js
+          node --check frontend/public/js/engine/rpg-generated-registrations.js
+          node --check frontend/public/js/engine/rpg-lab.js
+      - name: Generator unit tests (real native Canvas and Studio modules)
+        run: node --test frontend/character-tools/tests/character-generator.test.mjs
+      - name: Clean engine checkout — native baseline generator without advanced branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -u BF_STUDIO_LIB BF_CHARACTER_OUTPUT="$RUNNER_TEMP/aeon-clean-checkout" \
+            node frontend/character-tools/cli.mjs generate frontend/character-tools/requests/test_relay_01.json > "$RUNNER_TEMP/aeon-clean-generate.json"
+          env -u BF_STUDIO_LIB BF_CHARACTER_OUTPUT="$RUNNER_TEMP/aeon-clean-checkout" \
+            node frontend/character-tools/cli.mjs validate test_relay_01 > "$RUNNER_TEMP/aeon-clean-validate.json"
+          grep -q '"ok": true' "$RUNNER_TEMP/aeon-clean-validate.json"
+      - name: Generate selected public request
+        env:
+          REQUEST_FILE: ${{ inputs.request_file || '' }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Request-only commits on ghost-signal-engine invoke generation by ID.
+          if [[ -z "$REQUEST_FILE" && "$EVENT_NAME" == "push" ]]; then
+            REQUEST_FILE="$(git show --pretty=format: --name-only "$GITHUB_SHA" | grep -E '^frontend/character-tools/requests/[A-Za-z0-9_-]+[.]json' | head -n 1 || true)"
+          fi
+          REQUEST_FILE="${REQUEST_FILE:-frontend/character-tools/requests/test_relay_01.json}"
+          case "$REQUEST_FILE" in
+            frontend/character-tools/requests/*.json) ;;
+            *) echo "::error::Request must be a checked-in public JSON specification"; exit 2 ;;
+          esac
+          if [[ "$REQUEST_FILE" == *".."* || ! -f "$REQUEST_FILE" ]]; then
+            echo "::error::Invalid or absent request"; exit 2
+          fi
+          node frontend/character-tools/cli.mjs generate "$REQUEST_FILE"
+      - name: Generate and register the opt-in noncanonical test battler
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f frontend/character-output/test_relay_01/manifest.json ]]; then
+            node frontend/character-tools/cli.mjs generate frontend/character-tools/requests/test_relay_01.json
+          fi
+          node frontend/character-tools/cli.mjs validate test_relay_01
+          node frontend/character-tools/cli.mjs register test_relay_01 --development
+      - name: Existing Ghost Signal and RPG regression tests
+        run: node --test frontend/tests/*.test.mjs
+      - name: Boot the actual Ghost Signal / RPG test game
+        run: |
+          PORT=3000 HOST=127.0.0.1 node frontend/serve.js > /tmp/gs-character-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/index.html > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/gs-character-server.log
+          exit 1
+      - name: Verify rendered field and side-view battle with real generated pixels
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/character-tools/tests/browser-integration.mjs
+      - name: Export development artifacts for independent visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aeon-character-draft-and-renderer-evidence
+          path: |
+            frontend/character-output/
+            frontend/test-artifacts/generated-character/
+            frontend/public/assets/character-registry.json
+          if-no-files-found: warn
+          retention-days: 14
