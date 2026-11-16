@@ -172,7 +172,16 @@ async function saveProject(state) {
   await writeFile(path.join(filepath(state.id,state.root),'source.bfsprite.json'),SS.serialize(state.project));
 }
 const writePng=async(name,cv)=>writeFile(name,cv.toBuffer('image/png'));
+// Imported, reviewed pixel art is immutable. Regeneration must never silently
+// replace the exact artwork from a previous import, including non-starter IDs.
+async function ensureGeneratedRoleWritable(id,root,role) {
+  const file=path.join(filepath(id,root),'imports.json');
+  if(!existsSync(file))return;
+  const imported=JSON.parse(await readFile(file,'utf8'));
+  if(imported[role])throw Error('Approved imported '+role+' art is immutable; create an explicitly reviewed new version instead of regenerating');
+}
 export async function generateOverworldAnimations(characterId,{outputRoot=OUTPUT_ROOT}={}) {
+  await ensureGeneratedRoleWritable(characterId,path.resolve(outputRoot),'world');
   const state=await resolveCharacter(characterId,path.resolve(outputRoot));
   const [fw,fh]=sizeFor(state,'world'),clips=clone(WORLD_ACTIONS),dirs=[...WORLD_DIRECTIONS];
   const set=safeSet(state,'exploration',fw,fh,dirs,clips);
@@ -205,6 +214,7 @@ function matchSource(s,key,sourceName,index) {
   return s.cells.get(id)||null;
 }
 export async function generateBattleAnimations(characterId,{outputRoot=OUTPUT_ROOT}={}) {
+  await ensureGeneratedRoleWritable(characterId,path.resolve(outputRoot),'battle');
   const state=await resolveCharacter(characterId,path.resolve(outputRoot));
   const [fw,fh]=sizeFor(state,'battle');
   const atlas=createCanvas(fw*6,fh*BATTLE_ROWS.length),ctx=atlas.getContext('2d');
