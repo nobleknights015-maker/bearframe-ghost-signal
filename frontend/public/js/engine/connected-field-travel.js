@@ -19,6 +19,9 @@ export function createConnectedFieldTravel({game,graph,missionFor,readJournal,wr
     if(!graph.get(source))throw new Error('Connected travel: unknown current map');
     const destination=graph.destination(source,portalId);
     const oldJournal=copy(readJournal());
+    // An authored conditional portal never mutates the field or saves when locked.
+    // Only an explicitly true durable world flag opens the route.
+    if(destination.requiresFlag&&oldJournal?.world?.flags?.[destination.requiresFlag]!==true)return false;
     const before=game.snapshot();
     const priorCheckpoint=game.snap ? copy(game.snap) : null;
     const previousMission=game.m;
