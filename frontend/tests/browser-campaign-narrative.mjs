@@ -22,10 +22,10 @@ async function install(){
   const read=()=>JSON.parse(localStorage.getItem('synthetic_campaign_adapter')||'{"flags":{"legacy":true}}');
   const controller=mountCampaignNarrative({game,ui,content,
    readWorld:read,commitWorld:world=>{
-    if(window.__adapter.fail)return false;
+    if(window.__adapter.fail||(window.__adapter.failCompletion&&world.narrative?.completed.opening))return false;
     localStorage.setItem('synthetic_campaign_adapter',JSON.stringify(world));return true;
    },choiceGates:{route:{afterLine:'intro'}}});
-  window.__adapter={controller,ui,game,read,fail:false};
+  window.__adapter={controller,ui,game,read,fail:false,failCompletion:false};
  });
 }
 const saved=()=>page.evaluate(()=>window.__adapter.read());
@@ -51,10 +51,10 @@ try{
  await page.reload({waitUntil:'networkidle'});await install();
  assert.equal(await page.evaluate(()=>window.__adapter.controller.resume()),true);
  assert.equal(await page.locator('#dialog-speaker').textContent(),'SYSTEM');
- await page.evaluate(()=>window.__adapter.fail=true);
+ await page.evaluate(()=>window.__adapter.failCompletion=true);
  await advance();assert.equal((await saved()).narrative.completed.opening,undefined);
  assert.equal(await page.locator('#dialog-choices button').textContent(),'1. RETRY');
- await page.evaluate(()=>window.__adapter.fail=false);
+ await page.evaluate(()=>window.__adapter.failCompletion=false);
  await page.locator('#dialog-choices button').click();
  assert.equal((await saved()).narrative.completed.opening,true);
  assert.equal((await saved()).flags.legacy,true);
