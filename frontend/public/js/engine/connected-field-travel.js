@@ -22,6 +22,8 @@ export function createConnectedFieldTravel({game,graph,missionFor,readJournal,wr
     // An authored conditional portal never mutates the field or saves when locked.
     // Only an explicitly true durable world flag opens the route.
     if(destination.requiresFlag&&oldJournal?.world?.flags?.[destination.requiresFlag]!==true)return false;
+    // Inverse gates permit mutually exclusive shortcuts without consuming flags.
+    if(destination.requiresNotFlag&&oldJournal?.world?.flags?.[destination.requiresNotFlag]===true)return false;
     const before=game.snapshot();
     const priorCheckpoint=game.snap ? copy(game.snap) : null;
     const previousMission=game.m;
