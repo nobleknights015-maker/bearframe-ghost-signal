@@ -49,7 +49,7 @@ function checkSpec(spec) {
   if(!['humanoid','machine'].includes(kind))throw Error('Kind must be humanoid or machine');
   if(typeof spec.faction!=='string'||!spec.faction||spec.faction.length>64)throw Error('Faction required');
   if(spec.battleSide!==undefined&&!['party','enemy'].includes(spec.battleSide))throw Error('battleSide must be party or enemy');
-  if(spec.appearanceReference&&!spec.approvedSourceSheet)throw Error('A reference cannot be auto-traced. Import its approved native sprite sheet explicitly.');
+  if(spec.appearanceReference||spec.approvedSourceSheet)throw Error('A reference cannot be auto-traced. Import its approved native sprite sheet explicitly; never substitute a generated preset for an established character.');
   if(spec.seed!==undefined&&(!Number.isSafeInteger(spec.seed)||spec.seed<0))throw Error('Seed must be nonnegative safe integer');
   return kind;
 }
@@ -397,8 +397,9 @@ export async function registerCharacter(characterId,{outputRoot=OUTPUT_ROOT,deve
     if(!reviewFile)throw Error('Production registration requires human reviewFile');
     const approval=JSON.parse(await readFile(path.resolve(reviewFile),'utf8'));
     if(approval.characterId!==characterId||approval.approved!==true||
-      !approval.reviewer||approval.sha256!==check.assets.battle.sha256)
-      throw Error('Review evidence does not match battle atlas digest');
+      !approval.reviewer||!approval.assets||
+      ['world','battle','portrait'].some(role=>approval.assets[role]!==check.assets[role]?.sha256))
+      throw Error('Review evidence must match approved world, battle AND portrait hashes');
   }
   const destBase=path.join(frontend,'public/assets');
   const paths={battle:path.join(destBase,'battlers',characterId+'.png'),
