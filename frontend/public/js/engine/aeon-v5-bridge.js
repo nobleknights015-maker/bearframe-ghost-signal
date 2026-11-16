@@ -88,6 +88,16 @@ export async function loadAeonV5(){
 export async function chooseStarter(manifest,options={}){
   return new Promise(resolve=>{
     const stage=document.getElementById('stage');
+    const finish=id=>{document.removeEventListener('keydown',navigate);shell.remove();resolve(id);};
+    const navigate=event=>{
+      const buttons=[...shell.querySelectorAll('button:not(:disabled)')];
+      if(!buttons.length)return;
+      if(['ArrowUp','ArrowLeft','ArrowDown','ArrowRight'].includes(event.code)){
+        event.preventDefault();const current=buttons.indexOf(document.activeElement);
+        const step=['ArrowUp','ArrowLeft'].includes(event.code)?-1:1;
+        buttons[(Math.max(0,current)+step+buttons.length)%buttons.length].focus();
+      }else if(options.cancel&&event.code==='Escape'){event.preventDefault();finish(null);}
+    };
     const shell=document.createElement('div');
     shell.id='aeon-v5-choose';shell.className='overlay';shell.style.zIndex='60';
     const panel=document.createElement('section');panel.className='panel case';
@@ -106,9 +116,11 @@ export async function chooseStarter(manifest,options={}){
       picture.onerror=()=>{picture.style.display='none';button.textContent=id+' / portrait missing';};
       const label=document.createElement('span');label.textContent=id.replace('_',' ');
       label.style.fontSize='calc(var(--u)*7)';button.append(picture,label);
-      button.addEventListener('click',()=>{shell.remove();resolve(id);});grid.append(button);
+      button.addEventListener('click',()=>finish(id));grid.append(button);
     }
-    panel.append(grid);shell.append(panel);stage.append(shell);
+    panel.append(grid);
+    if(options.cancel){const back=document.createElement('button');back.type='button';back.className='menu-btn sm';back.textContent='BACK';back.onclick=()=>finish(null);panel.append(back);}
+    shell.append(panel);stage.append(shell);document.addEventListener('keydown',navigate);
     grid.querySelector('button:not(:disabled)')?.focus();
   });
 }

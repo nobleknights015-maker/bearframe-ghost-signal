@@ -1,6 +1,6 @@
 // Playable noncanonical RPG integration lab, activated ONLY by ?rpg-lab=1.
 // Reuses the existing Ghost Signal Game field, stealth, tiles, fonts, overlays and controls.
-import {createHybridSession,moveHybrid,detectHybrid,actHybrid} from './hybrid-session.js';
+import {createHybridSession,moveHybrid,detectHybrid,actHybrid,setHybridActiveParty} from './hybrid-session.js';
 import {currentCombatant,enemyDecision,enemyForecast,combatAction} from './rpg-combat.js';
 import {rpgMenuModel,RPG_TABS} from './rpg-menu-model.js';
 import {createRpgSaveStore} from './rpg-save.js';
@@ -58,7 +58,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
     'bearframe_ghost_signal_rpg_v5_'+v5.starterId+'_v1':
     'bearframe_ghost_signal_rpg_lab_v1');
   const fresh=()=>{const state=initial(v5?.starterId||null);
-    if(connected){state.location=clone(connected.startLocation);state.events={};state.quests={expedition:'unstarted',sentry:'unresolved'};}
+    if(connected){state.location=clone(connected.startLocation);state.activeParty=state.party.map(p=>p.id).slice(0,3);state.events={};state.quests={expedition:'unstarted',sentry:'unresolved'};}
     return state;};
   const policy=()=>connected?connected.policyFor(game.m?.id||'staging'):LAB_POLICY_SPEC;
   let maps={},traveler=null,portalArmed=false;
@@ -256,6 +256,8 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
       li.appendChild(btn);list.appendChild(li);
     }
     body.append(list,detail);menu.panel.appendChild(body);
+    if(menuTab==='party'&&connected)menu.panel.appendChild(softButton('FORMATION / RESERVE',renderFormation));
+    if(menuTab==='status'&&connected)menu.panel.appendChild(softButton('AREA MAP',renderAreaMap));
     if(menuTab==='equipment')menu.panel.appendChild(
       softButton('CHANGE EQUIPMENT',chooseEquipmentMember));
     if(menuTab==='items'){
@@ -266,6 +268,42 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
     }
     if(menuTab==='save')menu.panel.appendChild(softButton('SAVE RPG TEST RECORD',
       ()=>{const ok=save();ui.toast(ok?'RPG RECORD SAVED':'RPG SAVE FAILED',2.5);renderMenu();}));
+  }
+  function renderAreaMap(){
+    menu.panel.replaceChildren();
+    menu.panel.appendChild(el('h2','','CONNECTED AREA RECORD'));
+    const record=el('pre','');
+    record.style.cssText='white-space:pre-wrap;overflow:auto;font-size:calc(var(--u) * 10)';
+    record.textContent=connected.graph.ids.map(id=>(id===game.m.id?'[CURRENT] ':'[LINKED] ')+id.toUpperCase()).join('\n')+
+      '\n\nPOSITION '+Math.floor(game.player.x/32)+', '+Math.floor(game.player.y/32)+
+      '\n32 PX FIELD GRID // WALK THROUGH MARKED DOORWAYS';
+    menu.panel.append(record,softButton('BACK',renderMenu));
+    menu.panel.querySelector('button')?.focus();
+  }
+  function renderFormation(){
+    menu.panel.replaceChildren();menu.panel.appendChild(el('h2','','PARTY // FORMATION'));
+    const world=session.exploration,active=world.activeParty||world.party.map(p=>p.id).slice(0,3);
+    const reserve=world.party.filter(p=>!active.includes(p.id));
+    menu.panel.appendChild(el('div','fine','Three active slots and one reserve. Changes are recorded before combat.'));
+    const row=el('div','btn-row');row.style.flexWrap='wrap';
+    function commit(ids){
+      const previous=session;
+      try{session=setHybridActiveParty(session,ids);if(!save()){session=previous;ui.toast('FORMATION NOT CHANGED — SAVE UNAVAILABLE',3);}}
+      catch(error){session=previous;ui.toast('FORMATION BLOCKED: '+error.message,3);}
+      renderFormation();
+    }
+    for(const [index,id] of active.entries()){
+      const unit=world.party.find(p=>p.id===id);
+      if(index>0)row.appendChild(softButton('MOVE '+unit.name.toUpperCase()+' FORWARD',()=>{
+        const next=[...active];[next[index-1],next[index]]=[next[index],next[index-1]];commit(next);
+      }));
+      for(const alternate of reserve)row.appendChild(softButton('SWAP '+unit.name.toUpperCase()+' / '+alternate.name.toUpperCase(),
+        ()=>commit(active.map(value=>value===id?alternate.id:value))));
+    }
+    const listing=el('pre','',active.map((id,i)=>(i+1)+'. '+world.party.find(p=>p.id===id).name).join('\n')+
+      '\nRESERVE: '+(reserve.map(p=>p.name).join(', ')||'NONE RECRUITED'));
+    listing.style.fontSize='calc(var(--u) * 10)';
+    row.appendChild(softButton('BACK',renderMenu));menu.panel.append(listing,row);row.querySelector('button')?.focus();
   }
   function chooseEquipmentMember(){
     if(game.mode!=='rpgmenu')return;
@@ -297,7 +335,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
         try{
           const party=createParty({
             members:session.exploration.party,
-            active:session.exploration.party.map(p=>p.id),
+            active:session.exploration.activeParty||session.exploration.party.map(p=>p.id),
             inventory:session.exploration.inventory,equipment:session.exploration.equipment
           });
           const next=equipItem(party,memberId,'weapon',id,LAB_GEAR);
@@ -382,6 +420,7 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
     for(const [label,command,enabled] of options){
       const button=softButton(label,()=>{
         if(command.type==='repair'||command.type==='item')chooseAllyTarget({actor,...command});
+        else if(['attack','pulse'].includes(command.type)&&b.enemies.filter(e=>e.hp>0).length>1)chooseEnemyTarget({actor,...command});
         else takeAction({actor,...command});
       });
       button.disabled=!enabled;
@@ -390,6 +429,21 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
     }
     battle.panel.appendChild(commands);
     commands.querySelector('button:not(:disabled)')?.focus();
+  }
+  function chooseEnemyTarget(command){
+    if(session.phase!=='battle'||presentationBusy)return;
+    battle.panel.replaceChildren();battle.panel.appendChild(el('h2','','SELECT HOSTILE TARGET'));
+    battle.panel.appendChild(sideView.canvas);
+    const options=el('div','btn-row');options.style.flexWrap='wrap';
+    for(const enemy of session.battle.enemies.filter(e=>e.hp>0)){
+      const button=softButton(enemy.name+' · HP '+enemy.hp+'/'+enemy.maxHp,()=>{
+        // Rebuild the stage/report before the locked action queue begins.
+        showBattle();takeAction({...command,target:'enemy:'+enemy.id});
+      });
+      button.addEventListener('focus',()=>sideView.setBattle(session.battle,'enemy:'+enemy.id));
+      options.appendChild(button);
+    }
+    options.appendChild(softButton('BACK',showBattle));battle.panel.appendChild(options);options.querySelector('button')?.focus();
   }
   function chooseAllyTarget(command){
     if(session.phase!=='battle')return;
@@ -433,12 +487,13 @@ export function mountRpgLab({game,ui,sfx,touchMode,v5=null,connected=null,newGam
         ui.toast('SENTRY NEUTRALIZED // XP AND SALVAGE RECORDED',4);
       }else{
         cooldown=game.time+6;
-        if(result==='defeat') apply(s=>s.party.forEach(p=>{p.hp=Math.max(1,Math.ceil(p.maxHp/2));}));
+        if(result==='defeat') apply(s=>s.party.filter(p=>!s.activeParty||s.activeParty.includes(p.id)).forEach(p=>{p.hp=Math.max(1,Math.ceil(p.maxHp/2));}));
         game.drones.forEach(d=>{d.state='investigate';d.t=3;d.alert=0;d.target={x:d.x,y:d.y};d.repath=0;});
         ui.toast(result==='fled'?'WITHDRAWN — SEARCH CONTINUES':'PARTY DISABLED — FIELD RECOVERY REQUIRED',4);
       }
         save(); // outcome flags and rewards become durable as one record
       }
+      if(session.phase==='battle')showBattle();
       // The deterministic result is ready, but complete authored strike/recoil and
       // target recovery clips before accepting another command or leaving the stage.
       for(const button of battle.panel.querySelectorAll('button'))button.disabled=true;

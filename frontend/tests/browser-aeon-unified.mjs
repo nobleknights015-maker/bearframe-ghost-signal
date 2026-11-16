@@ -16,13 +16,17 @@ async function title(){
   await page.goto(base+'/aeon.html',{waitUntil:'domcontentloaded'});
   await page.getByRole('button',{name:'NEW GAME',exact:true}).waitFor();
 }
-async function choose(id,continuing=false){
+async function choose(id,continuing=false,keyboard=false){
   await page.locator(continuing?'#btn-continue':'#btn-new').click();
   await page.locator('#aeon-v5-choose').waitFor();
   assert.equal(await page.locator('#aeon-v5-choose [data-starter]').count(),4);
   const choice=page.locator('#aeon-v5-choose [data-starter="'+id+'"]');
   assert.equal(await choice.isEnabled(),true);
-  await choice.click();
+  if(keyboard){
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await page.evaluate(()=>document.activeElement?.dataset.starter),id);
+    await page.keyboard.press('Enter');
+  }else await choice.click();
   await page.waitForFunction(()=>window.__rpgLab?.inspect().mode==='play',null,{timeout:15000});
   const live=await state();
   assert.equal(live.v5.starterId,id);
@@ -59,7 +63,19 @@ try{
   for(const id of ['sleeper_B','sleeper_C','sleeper_D','sleeper_A']){
     const context=await browser.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true});
     page=await context.newPage();page.on('pageerror',e=>errors.push(String(e)));
-    await installSyntheticV5(page);await title();await choose(id);
+    await installSyntheticV5(page);await title();
+    if(id==='sleeper_B'){
+      await page.locator('#btn-new').click();
+      await page.locator('#aeon-v5-choose').waitFor();
+      await page.keyboard.press('ArrowLeft');
+      assert.equal(await page.evaluate(()=>document.activeElement?.textContent),'BACK');
+      await page.keyboard.press('Enter');
+      await page.locator('#aeon-v5-choose').waitFor({state:'detached'});
+      assert.equal(await page.evaluate(()=>window.__gs.mode),'title');
+      assert.equal(await page.locator('#title').isVisible(),true);
+      assert.equal(await page.evaluate(()=>!!window.__rpgLab),false);
+    }
+    await choose(id,false,id==='sleeper_B');
     const initial=await state();assert.equal(initial.connected.mapId,'staging');
     assert.equal(initial.session.exploration.inventory['repair-kit'],1);
     await page.screenshot({path:join(artifacts,'aeon-unified-'+id+'-field.png'),fullPage:true});
@@ -115,6 +131,17 @@ try{
   assert.equal((await state()).session.exploration.inventory['repair-kit'],kits);
   await travel('ArrowLeft','staging');
   await page.locator('#lab-rpg-menu').click();
+  await page.getByRole('button',{name:'AREA MAP',exact:true}).click();
+  const areaRecord=await page.locator('#rpg-lab-menu pre').innerText();
+  assert.match(areaRecord,/\[CURRENT\] STAGING/);
+  assert.match(areaRecord,/\[LINKED\] ANNEX/);
+  await page.getByRole('button',{name:'BACK',exact:true}).click();
+  await page.getByRole('button',{name:'PARTY',exact:true}).click();
+  await page.getByRole('button',{name:'FORMATION / RESERVE',exact:true}).click();
+  await page.getByRole('button',{name:'MOVE ECHO TEST FORWARD',exact:true}).click();
+  assert.deepEqual((await state()).session.exploration.activeParty,['echo','sleeper']);
+  assert.match(await page.locator('#rpg-lab-menu pre').innerText(),/1\. Echo Test/);
+  await page.getByRole('button',{name:'BACK',exact:true}).click();
   await page.getByRole('button',{name:'SAVE',exact:true}).click();
   await page.getByRole('button',{name:'SAVE RPG TEST RECORD',exact:true}).click();
   assert.equal((await state()).save.hasSave,true);
@@ -126,6 +153,7 @@ try{
   await choose('sleeper_A',true);
   const restored=await state(),world=restored.session.exploration;
   assert.equal(restored.connected.mapId,'staging');
+  assert.deepEqual(world.activeParty,['echo','sleeper'],'Recorded formation must survive Continue');
   assert.equal(restored.field.player.x,beforeReload.field.player.x);
   assert.equal(restored.field.player.y,beforeReload.field.player.y);
   assert.deepEqual(world.party.map(x=>x.hp),hp);

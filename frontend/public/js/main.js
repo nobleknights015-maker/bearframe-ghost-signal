@@ -109,7 +109,9 @@ function navigateControllerOverlay(pad) {
     } else active.click();
   }
   if (pad.actions.includes('back')) {
-    if (root.id === 'settings') $('settings-close').click();
+    if (root.id === 'aeon-v5-choose') [...root.querySelectorAll('button')].find(b=>b.textContent==='BACK')?.click();
+    else if (root.id === 'aeon-confirm') root.querySelector('button')?.click();
+    else if (root.id === 'settings') $('settings-close').click();
     else if (root.id === 'casefile') ui.closeCase();
     else if (root.id === 'terminal') ui.closeTerminal();
     else if (root.id === 'pause') game.onResume();

@@ -28,9 +28,10 @@ export async function mountAeonGame({game,ui,sfx,touchMode,refreshTouch}){
       sfx.init();
       const manifest=await loadAeonV5();
       game.mode='choice';
-      const starterId=await chooseStarter(manifest,{title:continuing?'CONTINUE // SELECT SLEEPER':'NEW GAME // SELECT SLEEPER',
+      const starterId=await chooseStarter(manifest,{cancel:true,title:continuing?'CONTINUE // SELECT SLEEPER':'NEW GAME // SELECT SLEEPER',
         description:continuing?'Choose a character with a saved field record.':'Choose the matching portrait, field sprite and battler.',
         enabled:id=>!continuing||saveFor(id).inspect().hasSave});
+      if(!starterId){game.mode='title';return;}
       if(!continuing&&saveFor(starterId).inspect().hasSave){
         const confirmed=await confirmReplacement(starterId);
         if(!confirmed){game.mode='title';return;}
