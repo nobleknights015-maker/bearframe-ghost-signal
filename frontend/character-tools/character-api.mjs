@@ -312,6 +312,26 @@ export async function validateCharacter(characterId,{outputRoot=OUTPUT_ROOT}={})
       [meta.frameWidth*6,meta.frameHeight*9];
     if(img.width!==expected[0]||img.height!==expected[1])
       problems.push(role+' atlas pixel dimensions differ from metadata');
+    if(img.width===expected[0]&&img.height===expected[1]){
+      // An atlas with valid geometry but an entirely empty direction/action is not an asset.
+      const checkRow=(row,start,count)=>{
+        for(let y=row*meta.frameHeight;y<(row+1)*meta.frameHeight;y++)
+          for(let x=start*meta.frameWidth;x<(start+count)*meta.frameWidth;x++)
+            if(px[(y*img.width+x)*4+3])return true;
+        return false;
+      };
+      if(role==='world'){
+        for(let row=0;row<4;row++){
+          const idle=meta.animations?.idle,walk=meta.animations?.walk;
+          if(!idle||!walk||!checkRow(row,idle.start,idle.count)||!checkRow(row,walk.start,walk.count))
+            problems.push('Missing idle/walk pixels for '+WORLD_DIRECTIONS[row]);
+        }
+      }else for(const [row,name] of BATTLE_ROWS.entries()){
+        const clip=meta.animations?.[name];
+        if(!clip||!checkRow(row,0,clip.frames))
+          problems.push('Missing visible battle action row '+name);
+      }
+    }
     if(role==='world'&&img.width===expected[0]&&img.height===expected[1]){
       const actions=['idle','walk','scan','malfunction'];let offset=0;
       for(const action of actions){
