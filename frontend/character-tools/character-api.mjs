@@ -1,6 +1,6 @@
 // Bearframe character-production API. Calls the EXISTING Sprite Studio renderers.
 // No character redesigns, browser UI automation, save-format migrations, or gameplay mutation.
-import {createCanvas, loadImage, Image} from '@napi-rs/canvas';
+import {createCanvas, loadImage, Image, ImageData} from '@napi-rs/canvas';
 import {readFile, writeFile, mkdir, copyFile, readdir} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import path from 'node:path';
@@ -19,6 +19,7 @@ if(!globalThis.document)globalThis.document={createElement(tag){
   return createCanvas(1,1);
 }};
 if(!globalThis.Image)globalThis.Image=Image;
+if(!globalThis.ImageData)globalThis.ImageData=ImageData;
 export const OUTPUT_ROOT=path.join(frontend,'character-output');
 export const WORLD_DIRECTIONS=Object.freeze(['down','up','right','left']);
 export const BATTLE_ROWS=Object.freeze(['idle','attack','ranged','cast','guard','hit','down','victory','charge']);
