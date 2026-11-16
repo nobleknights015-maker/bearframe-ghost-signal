@@ -33,7 +33,7 @@ const WORLD_ACTIONS=Object.freeze([
   {name:'scan',frames:2,fps:6},
   {name:'malfunction',frames:4,fps:8}
 ]);
-const idOk=id=>typeof id==='string'&&/^[a-z][a-z0-9_-]{2,63}$/.test(id);
+const idOk=id=>typeof id==='string'&&/^[a-z][A-Za-z0-9_-]{2,63}$/.test(id);
 const reserved=id=>/^sleeper_[ABCD]$/.test(id);
 const clone=x=>JSON.parse(JSON.stringify(x));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
