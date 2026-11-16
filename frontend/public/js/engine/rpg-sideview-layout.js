@@ -80,7 +80,8 @@ export function sideViewPose(unit,side,status,cue=null,age=Infinity) {
   if(status==='victory'&&side==='party')return 'victory';
   if(status==='defeat'&&side==='enemy')return 'victory';
   if(cue&&age>=0&&age<.34&&cue.actor===side+':'+unit.id)
-    return ['pulse','repair','item'].includes(cue.kind)?'cast':cue.kind;
+    return ['pulse','repair','item'].includes(cue.kind)?'cast':
+      cue.kind==='overload'?'attack':ANIMATION_NAMES.includes(cue.kind)?cue.kind:'idle';
   if(cue&&age>=0&&age<.42&&cue.target===side+':'+unit.id)
     return ['attack','pulse','overload'].includes(cue.kind)?'hit':'idle';
   return unit.guard?'guard':unit.chargeTarget?'charge':'idle';
