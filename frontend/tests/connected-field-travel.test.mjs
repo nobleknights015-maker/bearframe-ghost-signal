@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createConnectedFieldTravel} from '../public/js/engine/connected-field-travel.js';
 const clone=x=>structuredClone(x);
-function fixture({requiresFlag,flags={}}={}){
+function fixture({requiresFlag,requiresNotFlag,flags={}}={}){
  const graph={get:id=>['staging','annex'].includes(id)?{}:null,destination:(id,p)=>{
   assert.equal(p,id==='staging'?'east-gate':'west-gate');
-  return id==='staging'?{mapId:'annex',x:80,y:80,facing:'left',...(requiresFlag?{requiresFlag}:{})}:{mapId:'staging',x:48,y:48,facing:'right'};
+  return id==='staging'?{mapId:'annex',x:80,y:80,facing:'left',...(requiresFlag?{requiresFlag}:{}),...(requiresNotFlag?{requiresNotFlag}:{})}:{mapId:'staging',x:48,y:48,facing:'right'};
  }};
  const missions={staging:{id:'staging'},annex:{id:'annex'}};
  let journal={mapId:'staging',maps:{},world:{flags}},writes=0,legacyWrites=0,failWrite=false,failLoad=false,blocked=false;
@@ -80,4 +80,12 @@ test('conditional door opens only for explicit true durable flag',async()=>{
  const f=fixture({requiresFlag:'relay-online',flags:{'relay-online':true}});
  assert.equal(await f.travel.transition('east-gate'),true);
  assert.equal(f.game.m.id,'annex');assert.equal(f.writes,1);
+});
+
+test('inverse gate stays open until a durable flag becomes explicitly true',async()=>{
+ const open=fixture({requiresNotFlag:'bridge-collapsed',flags:{'bridge-collapsed':false}});
+ assert.equal(await open.travel.transition('east-gate'),true);
+ const closed=fixture({requiresNotFlag:'bridge-collapsed',flags:{'bridge-collapsed':true}});
+ assert.equal(await closed.travel.transition('east-gate'),false);
+ assert.equal(closed.writes,0);assert.equal(closed.legacyWrites,0);
 });
