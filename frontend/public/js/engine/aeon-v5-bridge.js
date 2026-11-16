@@ -22,12 +22,16 @@ export function mapV5Art(manifest,bindings) {
       const clip=b.animations?.[name];
       if(!clip)throw new Error('Missing action '+name+' for '+artId);
       if(clip.row!==ACTIONS.indexOf(name)||clip.frames<1||clip.frames>6||
-         !Array.isArray(clip.durationsMs)||clip.durationsMs.length!==clip.frames)
+         !Array.isArray(clip.durationsMs)||clip.durationsMs.length!==clip.frames||
+         clip.durationsMs.some(ms=>!Number.isInteger(ms)||ms<1||ms>10000))
         throw new Error('Invalid authored action timing '+name+' for '+artId);
-      animations[name]={row:clip.row,frames:clip.frames,fps:clip.fps||clip.frames*1000/clip.totalMs,
+      const totalMs=clip.durationsMs.reduce((sum,ms)=>sum+ms,0);
+      const release=clip.events?.find(e=>e.kind==='release')?.atMs;
+      if(release!==undefined&&(!Number.isInteger(release)||release<0||release>totalMs))
+        throw new Error('Invalid authored release timing '+name+' for '+artId);
+      animations[name]={row:clip.row,frames:clip.frames,fps:clip.fps||clip.frames*1000/totalMs,
         durationsMs:[...clip.durationsMs],loop:!!clip.loop,holdLast:!!clip.holdLast,
-        ...(clip.events?.find(e=>e.kind==='release')?
-          {releaseMs:clip.events.find(e=>e.kind==='release').atMs}:{})};
+        ...(release!==undefined?{releaseMs:release}:{})};
     }
     result[actorKey]={src:'assets/aeon/'+b.src,frameWidth:b.frameWidth,
       frameHeight:b.frameHeight,scale:1,animations};
