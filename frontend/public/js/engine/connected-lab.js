@@ -59,6 +59,17 @@ export async function mountConnectedLab({game,ui,touchMode}){
   };
   const commitEvent=(eventId,e,g)=>{
     const spec=CONNECTED_LAB_EVENTS[eventId];
+    if(eventId==='field-archive'){
+      // Repeatable read-only response derived from durable expedition state.
+      // The archive never awards items, consumes flags or changes the journal.
+      const flags=journal.world.flags;
+      ui.toast(!flags['power-switch']
+        ? 'ARCHIVE: RELAY SIGNAL ABSENT — RESTORE STAGING POWER'
+        : !flags['supply-cache']
+          ? 'ARCHIVE: RELAY RESTORED — SUPPLY CACHE STILL UNRECOVERED'
+          : 'ARCHIVE: RELAY ONLINE — SUPPLY RECOVERED — RETURN ROUTE OPEN',4);
+      return;
+    }
     if(!spec)return;
     const applied=resolveWorldEvent(journal.world,spec);
     if(!applied.applied)return;
