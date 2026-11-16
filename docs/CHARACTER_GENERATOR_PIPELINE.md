@@ -70,7 +70,7 @@ Kind "humanoid" uses existing drawAndroid/poseFor, including the extra clothing/
 
 The body field influences sensible default battle size only. Humanoids default 64x64; large machines 96x96; body "boss" defaults 128x128. Four-direction overworld frame size is independent of the fixed **32x32 map tile** and of the collisionTiles footprint. An overgrown heavy machine can be larger than one tile.
 
-A preset name must exactly match an existing Studio preset. Do not invent visual traits or assume a portrait can be reconstructed from text. A supplied appearanceReference stops generation unless an approved source sheet is explicitly imported. Seed-based palette variation runs only with variation:true on a noncanonical draft, so supplied canon colors remain unchanged.
+A preset name must exactly match an existing Studio preset. Do not invent visual traits or assume a portrait can be reconstructed from text. A supplied appearanceReference always stops procedural generation. Import the actual approved native pixels with importApprovedSpriteSheet; setting approvedSourceSheet does not authorize a procedural approximation. Seed-based palette variation runs only with variation:true on a noncanonical draft, so supplied canon colors remain unchanged.
 
 The four approved starter IDs sleeper_A, sleeper_B, sleeper_C and sleeper_D are PROTECTED: procedural generation is rejected. Import their approved world, battle and portrait PNGs with the same ID and explicit review metadata. Do not use one starter's portrait for another starter.
 
@@ -100,7 +100,7 @@ To inspect an **unapproved test** without changing the production roster:
 
 The opt-in RPG lab uses the real Ghost Signal Game field/camera and live RPG side-view scene, with the noncanonical test actor substituted by ID. Normal index.html continues using the untouched Wraith art and original mission keys. Other registered large actors can be rendered by drawRegisteredFieldCharacter with their own footprint; they do not get squeezed into Wraith's 32x56 compatibility contract.
 
-The development CLI can register test_* locally for CI browser evidence. Canonical/production registration REQUIRES a human review JSON file with reviewer, characterId, approved:true, and sha256 equal to the validated battle PNG hash; do not make such a file from an automated draft assertion. The original repo is public, so do not check in private character references, plot spoilers or restricted archives.
+The development CLI can register test_* locally for CI browser evidence. Canonical/production registration REQUIRES a human review JSON file with reviewer, characterId, approved:true, and assets containing SHA-256 hashes for portrait, world, and battle PNGs. The registration checks all three against validated files. Do not make that review file from an automated draft assertion. An optional request battleSide (party or enemy) is retained separately for every registered character; it never changes other registered roles. The original repo is public, so do not check in private character references, plot spoilers or restricted archives.
 
 ## GitHub workflow and acceptance
 
