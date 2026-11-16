@@ -97,3 +97,27 @@ test('nonhumanoid hexapod and heavy rigs remain machine-specific with independen
   }finally{await rm(root,{recursive:true,force:true});}
  }
 });
+
+test('reviewed imported world and battle pixels are never replaced by procedural regeneration',async()=>{
+ const root=await mkdtemp(path.join(tmpdir(),'aeon-approved-import-'));
+ try{
+  const id='test_approved_import_01', source={...spec,id:'test_unreviewed_source_01'};
+  await generateCharacter(source,{outputRoot:root});
+  await generateOverworldAnimations(source.id,{outputRoot:root});
+  await generateBattleAnimations(source.id,{outputRoot:root});
+  const from=path.join(root,source.id), metadata={reviewed:true,reviewer:'owner-test'};
+  for(const role of ['world','battle']){
+    await importApprovedSpriteSheet(path.join(from,role+'.png'),{
+      characterId:id,role,approval:metadata,
+      sheetMetadata:JSON.parse(await readFile(path.join(from,role+'.json'),'utf8'))
+        &&{...JSON.parse(await readFile(path.join(from,role+'.json'),'utf8')),characterId:id}
+    },{outputRoot:root});
+  }
+  const target=path.join(root,id);
+  const originals=await Promise.all(['world','battle'].map(role=>digest(path.join(target,role+'.png'))));
+  await assert.rejects(generateOverworldAnimations(id,{outputRoot:root}),/Approved imported world art is immutable/);
+  await assert.rejects(generateBattleAnimations(id,{outputRoot:root}),/Approved imported battle art is immutable/);
+  for(const [index,role] of ['world','battle'].entries())
+    assert.equal(await digest(path.join(target,role+'.png')),originals[index],role+' was modified');
+ }finally{await rm(root,{recursive:true,force:true});}
+});
