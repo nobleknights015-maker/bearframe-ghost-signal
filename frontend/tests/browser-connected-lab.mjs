@@ -122,6 +122,7 @@ try{
   await page.getByRole('button',{name:'SAVE EXPEDITION'}).click();
   assert.equal((await state()).save.hasSave,true);
   assert.match(await page.locator('#rpg-lab-menu').innerText(),/POWER RELAY: ACTIVE/);
+  assert.match(await page.locator('#rpg-lab-menu').innerText(),/SERVICE HATCH: ACCESS GRANTED/);
   await page.keyboard.press('Escape');
   assert.equal((await state()).mode,'play','Escape closes modal without field movement');
   assert.equal(await page.evaluate(()=>document.activeElement?.id),'lab-rpg-menu',
