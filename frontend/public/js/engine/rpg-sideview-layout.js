@@ -48,7 +48,20 @@ export function validateBattleArtManifest(manifest) {
         !Number.isInteger(anim.frames)||anim.frames<1||anim.frames>6||
         !Number.isFinite(anim.fps)||anim.fps<1||anim.fps>30)
         throw new TypeError('Invalid battler animation '+name);
-      rows[name]=Object.freeze({row:anim.row,frames:anim.frames,fps:anim.fps});
+      // v5 authored exposure timing is optional; older fixed-FPS atlases remain valid.
+      const durations=anim.durationsMs;
+      if(durations!==undefined&&(!Array.isArray(durations)||
+         durations.length!==anim.frames||
+         durations.some(ms=>!Number.isInteger(ms)||ms<1||ms>10000)))
+        throw new TypeError('Invalid per-frame timing '+name);
+      if(anim.loop!==undefined&&typeof anim.loop!=='boolean')throw new TypeError('Invalid clip loop flag');
+      if(anim.holdLast!==undefined&&typeof anim.holdLast!=='boolean')throw new TypeError('Invalid clip hold flag');
+      rows[name]=Object.freeze({
+        row:anim.row,frames:anim.frames,fps:anim.fps,
+        ...(durations?{durationsMs:Object.freeze([...durations])}:{}),
+        ...(anim.loop!==undefined?{loop:anim.loop}:{}),
+        ...(anim.holdLast!==undefined?{holdLast:anim.holdLast}:{})
+      });
     }
     if(!rows.idle)throw new TypeError('Battler needs idle animation');
     // The authored 6x9 contract requires each action to occupy its canonical row.
@@ -63,11 +76,23 @@ export function validateBattleArtManifest(manifest) {
 }
 export function battleAnimationFrame(spec,name,elapsedSeconds) {
   const anim=spec.animations[name]||spec.animations.idle;
-  const elapsed=Math.max(0,Number.isFinite(elapsedSeconds)?elapsedSeconds:0);
-  const index=Math.floor(elapsed*anim.fps);
-  // Terminal poses must hold their last frame instead of looping back to standing.
+  const time=Math.max(0,Number.isFinite(elapsedSeconds)?elapsedSeconds:0);
   const terminal=name==='down'||name==='victory';
-  const frame=terminal?Math.min(index,anim.frames-1):index%anim.frames;
+  const hold=terminal||anim.holdLast===true||anim.loop===false;
+  let frame=0;
+  if(anim.durationsMs){
+    // Use the exact v5 exposure boundaries rather than an averaged FPS.
+    const total=anim.durationsMs.reduce((sum,ms)=>sum+ms,0);
+    const position=hold?Math.min(time*1000,total):((time*1000)%total);
+    let end=0;
+    for(let index=0;index<anim.durationsMs.length;index++){
+      end+=anim.durationsMs[index];
+      if(position<end||index===anim.durationsMs.length-1){frame=index;break;}
+    }
+  }else{
+    const index=Math.floor(time*anim.fps);
+    frame=hold?Math.min(index,anim.frames-1):index%anim.frames;
+  }
   return Object.freeze({x:frame*spec.frameWidth,
     y:anim.row*spec.frameHeight,width:spec.frameWidth,height:spec.frameHeight});
 }
