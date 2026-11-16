@@ -86,14 +86,23 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
       if(!record||!next||!graph.get(next.mapId))return false;
       const world=copy(next.world);
       if(world.starterId!==starterId||world.story_schema!==2)return false;
-      world.location={...world.location,mapId:next.mapId};
+      const field=next.maps?.[next.mapId]||next.field||null;
+      world.location={...world.location,mapId:next.mapId,
+        ...(Number.isFinite(field?.player?.x)?{x:field.player.x}:{}),
+        ...(Number.isFinite(field?.player?.y)?{y:field.player.y}:{}),
+        ...(field?.player?.dir?{facing:field.player.dir}:{})};
       return persist({...record,mapId:next.mapId,maps:copy(next.maps||{}),
-        field:next.field||null,world});
+        field:field?copy(field):null,world});
     },
     saveField:(mapId,snapshot)=>{
       if(!record||!graph.get(mapId)||mapId!==record.mapId||!snapshot||snapshot.mission!==mapId)return false;
       const maps={...record.maps,[mapId]:copy(snapshot)};
-      return persist({...record,field:copy(snapshot),maps});
+      const world=readWorld();
+      world.location={...world.location,mapId,
+        ...(Number.isFinite(snapshot.player?.x)?{x:snapshot.player.x}:{}),
+        ...(Number.isFinite(snapshot.player?.y)?{y:snapshot.player.y}:{}),
+        ...(snapshot.player?.dir?{facing:snapshot.player.dir}:{})};
+      return persist({...record,field:copy(snapshot),maps,world});
     },
     setEncounterOutcome,canComplete,
     // The caller should never erase a record merely because a normal load fails.
