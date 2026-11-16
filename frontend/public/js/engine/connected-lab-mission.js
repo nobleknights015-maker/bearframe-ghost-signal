@@ -3,7 +3,8 @@
 const tile=32;
 const entityFor=id=>id==='staging'?
   [{id:'power-switch',type:'terminal',tx:3,ty:2,interact:true}]:
-  [{id:'supply-cache',type:'cell',tx:3,ty:2,interact:true}];
+  [{id:'supply-cache',type:'cell',tx:3,ty:2,interact:true},
+   {id:'field-archive',type:'terminal',tx:5,ty:3,interact:true}];
 export function createConnectedLabMission(map,{onPortal,onInteract,getWorld}={}){
   if(!map||!['staging','annex'].includes(map.id))throw new Error('Unknown expedition test map');
   const w=map.width,h=map.height;
@@ -53,6 +54,7 @@ export function createConnectedLabMission(map,{onPortal,onInteract,getWorld}={})
     label(e,g){
       if(e.id==='power-switch')return getWorld?.()?.flags?.['power-switch']?null:'ACTIVATE TEST RELAY';
       if(e.id==='supply-cache')return getWorld?.()?.flags?.['supply-cache']?null:'RECOVER OLD REPAIR SUPPLY';
+      if(e.id==='field-archive')return 'READ EXPEDITION ARCHIVE';
       return null;
     },
     interact(e,g){onInteract?.(e,g);},
