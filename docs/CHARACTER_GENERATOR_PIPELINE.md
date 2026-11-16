@@ -46,7 +46,7 @@ Import frontend/character-tools/character-api.mjs and call:
 - validateCharacter(id,{outputRoot}) — check file dimensions, alpha, metadata, frame counts, ID and anchor.
 - registerCharacter(id,{outputRoot,development,reviewFile}) — copy exact reviewed pixels into a stable engine registry (test_* drafts only with development:true).
 
-The programmatic API is safe to call from other engine tools. Each operation is explicit; it does not silently publish generated art or replace manually edited images.
+The programmatic API is safe to call from other engine tools. Each operation is explicit; it does not silently publish generated art or replace manually edited images. Imported and reviewer-approved world/battle sheets are immutable under procedural regeneration, even for non-starter IDs; to change an approved asset, version it and request another explicit approval.
 
 ## Example request and supported categories
 
@@ -105,5 +105,7 @@ The development CLI can register test_* locally for CI browser evidence. Canonic
 ## GitHub workflow and acceptance
 
 .github/workflows/aeon-character-generator.yml accepts a checked-in JSON request under frontend/character-tools/requests/. It installs the native renderer, generates PNGs, validates alpha/geometry, and runs generator tests plus existing engine tests. It locally registers test_relay_01, boots Ghost Signal, uses Chromium to verify field draw and battle animation via the actual renderer, tests the original route and Studio, and publishes a downloadable private-to-run build artifact for review. Uploading a draft artifact is **not publication/approval**.
+
+For engine-chat use **after this code is merged into `ghost-signal-engine`**, create a NEW noncanonical request JSON under `frontend/character-tools/requests/<id>.json` and commit it to `ghost-signal-engine`. This branch's request-only push trigger automatically selects the changed JSON and produces a draft ZIP artifact. The engineer retrieves that artifact for visual review; generation NEVER auto-publishes it to the production registry. For requests already checked in, a dispatch can also be run when the workflow is available through GitHub Actions. Each request is public, so do not include private story information or unreleased reference art in it. The normal GitHub workflow must not be described as callable by an Actions dispatcher while it exists only on a non-default branch; the request-commit push path is the supported automatic invocation.
 
 Accept production changes only after the GitHub workflow is green AND someone reviews preview.png + real browser field/battle screenshots. A green pixel/identity test cannot prove compelling art, weapon timing or mobile-device stability. Moto G physical-device performance and a signed Android build are separate release gates.
