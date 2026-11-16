@@ -80,6 +80,9 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: PRIVATE campaign preview — synthetic starter, opening dialogue and durable Continue
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-campaign-opening.mjs
+
       - name: Connected expedition — real Tiled map crossing, interactions, saves
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-connected-lab.mjs
 
