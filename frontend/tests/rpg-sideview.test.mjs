@@ -79,3 +79,16 @@ test('terminal side-view outcomes override old cues without changing combat stat
   assert.equal(sideViewPose(ally,'party','active',null),'idle');
   assert.equal(ally.hp,12);
 });
+
+
+test('side-view maps known combat cues to supported art rows and ignores unknown visual cues',()=>{
+  const ally={id:'ally',hp:12,guard:false,chargeTarget:null};
+  const pose=kind=>sideViewPose(ally,'party','active',{actor:'party:ally',kind},.1);
+  assert.equal(pose('overload'),'attack');
+  assert.equal(pose('pulse'),'cast');
+  assert.equal(pose('repair'),'cast');
+  assert.equal(pose('guard'),'guard');
+  assert.equal(pose('unrecognized-effect'),'idle');
+  for(const kind of ['overload','pulse','repair','guard','unrecognized-effect'])
+    assert.ok(ANIMATION_NAMES.includes(pose(kind)));
+});
