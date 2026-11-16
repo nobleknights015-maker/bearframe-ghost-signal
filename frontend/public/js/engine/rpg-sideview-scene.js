@@ -2,7 +2,7 @@
 // The existing Ghost Signal renderer owns EXPLORATION; this canvas is battle-only.
 // No third-party art or combat math. Until production sheets arrive, draw clearly marked
 // schematic diagnostic units rather than pretending they are final character sprites.
-import {BATTLE_VIEW,sideViewSlots,validateBattleArtManifest,battleAnimationFrame} from './rpg-sideview-layout.js';
+import {BATTLE_VIEW,sideViewSlots,validateBattleArtManifest,battleAnimationFrame,sideViewPose} from './rpg-sideview-layout.js';
 
 const COL={bg:'#0b0d12',floor:'#20252b',wall:'#171c22',steel:'#46505a',red:'#ff3b30',
   text:'#dcd6d8',ally:'#a6c9d0',echo:'#91a8ae',foe:'#b26e6b',glow:'#f2bd75'};
@@ -152,12 +152,7 @@ export function createSideViewBattleScene(manifest={}) {
       const active=activeKey===slot.key;
       if(active&&unit.hp>0){rect(c,slot.x-18,slot.y+11,36,1,COL.red);}
       const delta=cue?t-cue.when:1e5;
-      const pose=unit.hp===0?'down':
-        cue&&delta>=0&&delta<.34&&cue.actor===slot.key?
-          (['pulse','repair','item'].includes(cue.kind)?'cast':cue.kind):
-        cue&&delta>=0&&delta<.42&&cue.target===slot.key?
-          (cue.kind==='attack'||cue.kind==='pulse'||cue.kind==='overload'?'hit':'idle'):
-        unit.guard?'guard':unit.chargeTarget?'charge':'idle';
+      const pose=sideViewPose(unit,slot.side,state.status,cue,delta);
       if(!(art[slot.key]&&sheet(slot,art[slot.key],unit,t,pose,active)))
         schematic(slot,unit,t,pose,active);
       const fill=Math.round(30*Math.max(0,unit.hp)/unit.maxHp);
