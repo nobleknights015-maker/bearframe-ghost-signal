@@ -1,0 +1,535 @@
+AEON CIRCUIT: THE SILENT WAKE
+REGULAR CHAT RECOVERY AND CONTINUATION HANDOFF
+Prepared November 16, 2026
+
+READ THIS FIRST
+
+Continue the existing Ghost Signal-based game. Do not build another engine or
+rewrite the approved story. The task is to reconnect/rebuild the missing campaign
+implementation using the approved private source package and the saved engine.
+
+The user is upset about losing campaign implementation progress. Give accurate,
+brief updates. Distinguish recovered files, newly rebuilt files, historical
+reports, and work that is still missing. Never describe a module as recovered
+because its design was remembered. Do not say the campaign is playable based on
+unit tests, synthetic maps, a narrative import, or a working engine demonstration.
+
+This document is a technical handoff, not a copy of the missing executable files.
+The actual saved source is available at the pinned GitHub checkpoint below.
+Private story and artwork remain in the owner's existing ZIP packages.
+
+1. EXACT SAVED SOURCE TO START FROM
+
+Repository:
+https://github.com/nobleknights015-maker/bearframe-ghost-signal
+
+Development branch: ghost-signal-engine
+
+Latest verified saved engine checkpoint at handoff:
+6cea4b1a948e3f90c4fdebf6732a98b1534f5bba
+
+Pinned full source download INCLUDING the rebuilt dialogue adapter:
+https://github.com/nobleknights015-maker/bearframe-ghost-signal/archive/6cea4b1a948e3f90c4fdebf6732a98b1534f5bba.zip
+
+Do not accidentally start from the repository's default main branch. Preserve
+main and the frozen baseline/ghost-signal-20261114 reference.
+
+Merged rebuilt dialogue work:
+https://github.com/nobleknights015-maker/bearframe-ghost-signal/pull/5
+
+Tested PR head:
+da6894f47fcce3f08fd67123a43399266531c350
+
+Merge commit:
+6cea4b1a948e3f90c4fdebf6732a98b1534f5bba
+
+The merge tree was verified identical to the tested PR head tree.
+
+Verification receipts for that tested head:
+Node regressions, all 135 passing:
+https://github.com/nobleknights015-maker/bearframe-ghost-signal/actions/runs/43972393232
+Full Chromium integration workflow, passing:
+https://github.com/nobleknights015-maker/bearframe-ghost-signal/actions/runs/43972393217
+
+These are code/browser results. They are not private campaign completion,
+physical Android testing, or an APK delivery.
+
+2. PRIVATE FILES TO OPEN IN THE NEXT CHAT
+
+Most useful recovery package:
+Aeon_Circuit_Recovered_Work_Checkpoint_20261116.zip
+
+A second saved filename also exists:
+Aeon_Circuit_Recovered_Work_Checkpoint_20261116(1).zip
+
+Do not assume the two copies are byte-identical without comparing them.
+The first package was previously exported and checked as:
+22,551,095 bytes; 123 entries
+SHA256:
+9e02026af1d31e47d8870e6c00fd4fefb012379ec5b5b3bda6a3d7bff163a9c0
+
+Recorded contents of that package:
+- STOP_HERE_README.txt
+- HANDOFF_UNRECOVERED_SESSION.md
+- CODE_CHECKPOINT.json
+- PRIVATE_RUNTIME/frontend/public/assets/aeon/...
+- ORIGINAL_PRIVATE_SOURCES/Aeon_Circuit_Animated_Asset_Polish_v5.zip
+- ORIGINAL_PRIVATE_SOURCES/Aeon_Circuit_The_Silent_Wake_Directors_Cut_v2.zip
+- ORIGINAL_DEVELOPMENT_HANDOFF.txt
+- A starter identity reference PNG
+- CHECKSUMS.json
+
+Important: CODE_CHECKPOINT.json in that older ZIP points to
+fe14870bf6498e6aa4f5049411295a6f2851d250. That is the pre-rebuild engine.
+Use the NEWER pinned source from section 1 and restore the private assets from
+the recovery ZIP. Do not downgrade the engine to the ZIP's older code reference.
+
+The recovery ZIP contains private runtime art and an imported campaign JSON,
+plus the original private source ZIPs. It does NOT contain the missing later
+campaign-world implementation or a completed private APK. Its unrecovered-session
+notes describe missing work; they are not executable recovery of that work.
+
+Other useful existing source packages if needed:
+- Aeon_Circuit_Work_Chat_Max_Mode_Handoff.txt
+- Aeon_Circuit_V5_Integrated_Engine_QA_20261116.zip
+- Aeon_Circuit_Animated_Asset_Polish_v5.zip
+- Aeon_Circuit_The_Silent_Wake_Directors_Cut_v2.zip
+- Aeon_Circuit_Character_Generator_Engine_Proof_Final.zip
+
+Current project attachments also include:
+- Bearframe assets.zip
+- Bearframe_characters.zip
+- Bearframe_Revision_4_10_Download.zip
+- living_world_fx_urban_vol_1_free_citizen_v1.0.zip
+
+Read actual package contents before making source-specific decisions. Prefer
+the recovery ZIP's verified original sources and the original development
+handoff over conversational recollection. If files are not available to regular
+chat, ask for the recovery ZIP, not for the user to describe or rewrite the story.
+
+Private content belongs in the ignored assets/aeon installation. Do not commit
+the owner's screenplay, private maps, artwork or extracted campaign data to the
+public repository. Public tests use synthetic fixtures.
+
+3. WHAT THE SAVED ENGINE ALREADY HAS
+
+Earlier engine integration survived and was merged in PR #4:
+https://github.com/nobleknights015-maker/bearframe-ghost-signal/pull/4
+Earlier merge: caeda5cfe7fe754d79fd66636b7c2fe8b965a008
+
+Saved functionality includes:
+- Additive aeon.html entry with New Game, Continue and four-starter selection.
+- An explicitly noncanonical connected field demonstration, including portals,
+  interactions, patrol-triggered combat, results, menus, formation and saves.
+- Route flag gates, reciprocal portal validation and overlapping-portal checks.
+- Private v5 art import/bindings and native field actor rendering hooks.
+- Starter portrait/field/battle identity mappings.
+- Side-view combat with party on left, enemies on right.
+- Action release/recoil/hit/down/victory timings and input locks.
+- Three active party slots plus one reserve.
+- Explicit normal-area encounter policies and target selection UI.
+- RPG save corruption/rollback checks and character identity validation.
+- New-game record rotation, lifecycle autosave and doorway continuation fixes.
+- Touch pointer ownership and modal input fixes.
+- Native Back/inset/pause hooks.
+- An offline private campaign importer and pure narrative transactions.
+
+The connected demonstration is not the approved campaign. Do not relabel its
+test rooms as finished story locations.
+
+Useful source files to inspect:
+frontend/public/js/engine/aeon-game.js
+frontend/public/js/engine/aeon-connected-field.js
+frontend/public/js/engine/aeon-world-actors.js
+frontend/public/js/engine/rpg-lab.js
+frontend/public/js/engine/rpg-save.js
+frontend/public/js/engine/rpg-combat.js
+frontend/public/js/engine/narrative-runtime.js
+frontend/narrative-tools/import_campaign.py
+docs/PRIVATE_NARRATIVE_RUNTIME.md
+docs/AEON_UNIFIED_CHECKPOINT_20261116.md
+
+Inspect the current tree for exact additional module names rather than assuming
+a remembered path exists.
+
+4. WHAT WAS JUST REBUILT AND IS DEFINITELY SAVED
+
+Added in merged PR #5:
+frontend/public/js/engine/campaign-narrative.js
+frontend/tests/campaign-narrative.test.mjs
+frontend/tests/browser-campaign-narrative.mjs
+
+Updated:
+docs/PRIVATE_NARRATIVE_RUNTIME.md
+.github/workflows/ghost-signal-browser.yml
+
+This is a live dialogue/choice adapter around the saved pure narrative runtime.
+It uses the original Ghost Signal UI without modifying the locked ui.js.
+
+Current API:
+
+mountCampaignNarrative({
+  game, ui, content,
+  readWorld, commitWorld,
+  choiceGates,
+  canComplete,
+  onComplete,
+  onBlocked,
+  choiceRoot
+})
+
+Returns:
+- trigger(actualTrigger, {sceneId} = {})
+- resume()
+- inspect()
+- stop()
+
+readWorld returns the current world record.
+commitWorld(nextWorld) is SYNCHRONOUS and must return exactly true only after
+a durable successful write. Promise-based saves are not this adapter's contract.
+
+Progress lives in world.narrative. Narrative flags merge into world.flags.
+Unrelated inventory and other world fields are preserved.
+
+Choice staging is explicit:
+choiceGates[choiceId] = {afterLine: lineId}
+or {afterLine: null} for a choice before the first line.
+Missing/unreachable placement fails closed. This adapter does not derive
+production choice gates automatically from the screenplay.
+
+Behavior already implemented and tested:
+- Only the actual matching trigger starts the next pending milestone.
+- No automatic playback of all scenes.
+- Source line effects apply after acknowledged dialogue and durable save.
+- Failed line writes re-present the same line.
+- Failed choice writes do not publish the branch or effects.
+- Multi-selection drafts save independently and survive reload.
+- Choice effects apply only after the full distinct selection is confirmed.
+- Old callbacks cannot double-confirm a choice or acknowledge a new line.
+- Keyboard choice navigation/confirmation is consumed before gameplay input.
+- Pointerdown followed by click does not consume a newly opened dialogue line.
+- canComplete(sceneId, world) can withhold completion pending a saved battle.
+- Failed completion writes show RETRY through the existing UI.
+- stop invalidates callbacks while leaving saved progression resumable.
+- Completion flags save before onComplete is called.
+
+For production scenes requiring combat, the host MUST explicitly bind
+canComplete to the saved mandatory outcome. Its default is permissive; merely
+mounting the adapter does not infer encounters from prose.
+
+The adapter is not yet connected to a playable private campaign entry route.
+It does not construct private maps, assign actors, stage camera directions,
+award prose-described rewards, or provide a finished campaign session host.
+
+5. WHAT LATER CAMPAIGN WORK IS STILL UNRECOVERED
+
+The restored local workspace did not contain the later campaign implementation.
+Do not claim these files are saved just because they were reported earlier.
+
+Historically reported local commits that were NOT found in the restored git
+object database:
+aea22b1 - earlier live narrative controller
+a13842f - campaign combat configuration/integration
+f4e1cbf - field role sprite rendering
+
+The newly merged PR #5 replaces part of the missing narrative functionality.
+It does not recover the original missing commit.
+
+Other reported missing files/changes:
+- campaign-world.js
+- stage_campaign.py
+- Private opening-layouts.json
+- Private world.json
+- Private combat-rules.json
+- campaign-session.js
+- A generalized adventure host inside rpg-lab.js
+- campaign.html and entry-point integration
+- Private field actor role placements and depth-order integration
+- Android private-preview and acceptance-diagnostic changes
+
+Earlier reports of approximately 143 passing tests belonged to the missing
+session and must not be treated as current verified evidence. The current
+verified rebuilt checkpoint has 135 passing Node tests and a passing full
+Chromium workflow.
+
+A five-map opening blockout was reported, with the remaining 24 source areas
+unstaged. The exact authored geometry is NOT recovered. New layouts must be
+identified as rebuilt review candidates, never as the original recovered maps.
+
+No completed private campaign APK is verified or available from this work.
+
+6. APPROVED PRESENTATION AND SOURCE CONSTRAINTS
+
+Keep the original Ghost Signal interface and visual language:
+- Logical viewport: 480 x 270; landscape, responsive scaling.
+- CRT industrial presentation and existing menu/dialog patterns.
+- Red #ff3b30; silver #dcd6d8; gunmetal #15181c.
+- Outline #3a3f47; green #7dffb0.
+- Existing Silkscreen / VT323 typography.
+- Preserve original UI/layout/art source bytes covered by regression checks.
+- Side-view combat stage: 416 x 116; party left, enemies right.
+
+Starter mapping is fixed:
+A: violet male
+B: weathered scarf male
+C: violet ponytail female
+D: cyan weathered female
+
+Portrait, field actor and battler must agree. Use the approved files unchanged.
+Four-direction movement/animation remains the agreed target. The runtime world
+grid is 32 px; a source character frame may be larger than one grid cell.
+Use the installed v5 animation metadata instead of inventing new frame layouts.
+
+Party: 3 active + 1 reserve.
+Android target: Moto G (2025), 4 GB RAM, offline landscape APK.
+
+The approved Director's Cut v2 is the story authority, not a proposal.
+Use the lore package for canon; do not fill missing implementation with an
+invented replacement story.
+
+The prior imported source manifest recorded:
+64 scenes, 664 dialogue lines, 30 quests, 61 encounters, 29 areas,
+113 textual storyboard shots and 7 choice contracts.
+Recheck against the actual source package after opening it.
+
+Scene identifiers are not chronology. The saved importer derives chronology
+from screenplay headings and checks insertion records. Conditional branches
+and endings need explicit staging; screenplay order is not a command to run
+every scene unconditionally.
+
+Do not reveal spoilers in public commits, screenshots, PR descriptions or
+progress updates. Source identifiers/locations stay in private runtime data.
+Any newly authored geometry, actor assignment or unspecified numeric balance
+must be clearly recorded as an implementation/review candidate.
+
+7. REBUILD DESIGNS RECORDED FROM THE MISSING SESSION
+   THESE ARE RECONSTRUCTION NOTES, NOT RECOVERED CODE
+
+A. Private campaign world and staging
+
+Read exact source areas, adjacency, dialogue, encounter and insertion tables.
+The intended private world data shape was approximately:
+
+{
+  schemaVersion: 1,
+  status: "authored-blockout-review-candidate",
+  campaignRevision,
+  startArea,
+  openingScene: {sceneId, trigger},
+  maps: [{
+    id, name, width, height,
+    orientation: "orthogonal",
+    tilewidth: 32, tileheight: 32,
+    layers: [
+      collisionTileLayer,
+      portalObjectGroup
+    ],
+    start: {x, y, dir},
+    entities, props, lamps, triggers, security, drones,
+    source, objective
+  }],
+  bootstrap,
+  events,
+  encounters,
+  sourceAreaCount,
+  pendingAreaIds,
+  bindingNotes,
+  sourceDigest,
+  layoutDigest
+}
+
+Candidate public adapter interfaces previously discussed:
+loadCampaignWorld
+compileCampaignWorld
+createCampaignMissionFactory(world, callbacks)
+
+Factory capabilities to reconstruct after inspecting existing map APIs:
+graph/get/destination
+missionForSync / async missionFor
+bind
+startLocation
+policyFor
+
+Callbacks:
+onPortal(portalIdOrNull, game)
+onTrigger(descriptor, game)
+onEnter(map, game)
+onInteract(entity, game)
+onUpdate(game, dt)
+
+Private source area IDs can contain uppercase/underscores; do not silently
+force them through a lower-case-only demonstration-map identifier validator.
+
+Bind actual scene/event/encounter metadata and prerequisite flags to field
+interactions and rectangular triggers. Preserve reciprocal portal rules and
+save-before-transition behavior. Validate reachable spawns and blocked paths.
+
+B. Production narrative staging
+
+Use the now-saved campaign-narrative.js instead of starting another dialogue
+system. Build source-derived choiceGates in private data.
+
+A source choice placement can be evidenced by screenplay branching markers and
+dialogue anchors, or by the enum a choice writes and subsequent lines test.
+Use the actual text to derive these relationships and verify them. Do not put
+all choices at the end of the dialogue by default.
+
+Unclear placement must block and be reported for explicit staging.
+Preserve exact required multi-selection counts.
+Optional insertion status must come from the source; resolve editorial
+ambiguities explicitly. Do not make mandatory insertions skippable.
+Apply scene completion/rewards only after required saved combat outcomes.
+Do not auto-run all source scenes or every ending branch.
+
+C. Campaign combat configuration
+
+Preserve legacy battle math and command behavior for the old engine/demo.
+Campaign changes should be opt-in through encounter configuration.
+
+An intended configurable rules shape was:
+
+encounter.combatRules = {
+  chargeGain: 1,
+  chargeActions: ["attack", "guard"],
+  techniques: {
+    techniqueId: {
+      label,
+      cost,
+      effect: "damage" | "disrupt" | "guard" | "heal",
+      power,
+      heal,
+      requiredItem
+    }
+  }
+}
+
+The source-related bootstrap notes recorded HP 100, Charge 0 with maximum 3,
+two repair kits and a basic brace. VERIFY those values in the actual private
+source before implementing them; do not copy the old lab's 38 HP / 10 EP /
+5-EP Pulse assumptions into the campaign.
+
+The intended campaign behavior was basic attack/guard generating capped Charge,
+with techniques consuming their source-defined 1-3 cost. Source techniques
+need their actual unlock/item checks and presentation/target mapping.
+Numbers not supplied by source are tuning candidates, not approved canon.
+
+Candidate helpers previously discussed, not currently recovered:
+normalizeCampaignCombatRules
+campaignTechCommands
+campaignRulesFromContent
+campaignPresentationAction
+
+D. Field actor rendering
+
+Use approved v5 art families and existing sprite rendering infrastructure.
+Do not redraw or modify the approved source images.
+Bind world actors with correct feet positions, direction rows and depth order.
+If an exact source-specific actor is absent, record a family/body-only match as
+a review candidate instead of claiming canonical approval.
+
+E. Campaign session host and separate entry
+
+Generalize the existing host rather than duplicating the engine.
+Earlier design suggested optional adventure configuration for:
+namespace, initialState, gearCatalog,
+update, interact, trigger, enter,
+battleResult, afterBattle.
+
+Desired host API:
+world()
+commitWorld(nextWorld)
+startEncounter(spec)
+
+Use the campaign start location instead of hard-coding a demonstration room.
+Use a separate campaign namespace and preserve old game/demo saves.
+Keep aeon.html as the existing engine QA route until the real campaign route
+has its own verified production bindings.
+
+Commit encounter outcomes, inventory/reward changes and story progression as
+one durable transaction. Wait for full battle animation before returning control.
+Failed writes must preserve the pre-transaction record and allow retry.
+Test loss/flee/retry as well as victory and repeated-trigger prevention.
+
+8. ANDROID STATUS AND REBUILD CAUTIONS
+
+The missing session reported work on Gradle 8.10.2, Android SDK 35/build tools,
+platform tools and an official JDK. Some downloads/checksums succeeded, but the
+private build was not verified complete.
+
+Historical problems included:
+- An installed JRE without the compiler needed by Gradle.
+- Java TLS trust differences behind the environment's proxy.
+- No hardware virtualization device for a fast emulator.
+- Native fullscreen education overlays and black restart screenshots.
+
+These are past observations, not current environment diagnoses. Recheck rather
+than assuming the next runtime has the same conditions. Keep TLS verification
+enabled if adjusting a legitimate trust-store configuration.
+
+A proposed private-preview flavor/property would give the private campaign a
+separate application ID/label and campaign entry, while leaving the original
+release entry unchanged. That implementation is not recovered.
+
+Native acceptance needs:
+- Actual page-ready/error diagnostics.
+- Visible nonblank game rendering after cold launch and restart.
+- Landscape/inset behavior.
+- Offline assets.
+- Pause/resume and lifecycle saving.
+- Touch and controller checks.
+- Installable APK proof.
+
+Separate browser success, Android build success, emulator verification and
+physical Moto G verification. Do not call one proof of the others.
+
+9. PRACTICAL NEXT STEPS FOR REGULAR CHAT
+
+1) Obtain the pinned source archive in section 1 and the existing recovery ZIP.
+   Inspect actual files and check their manifest before editing.
+
+2) Restore private assets into the newer engine. Read the original handoff,
+   Director's Cut v2 source package and imported private campaign JSON.
+   Preserve hashes and source files.
+
+3) Run the saved baseline tests:
+   node --test frontend/tests/*.test.mjs
+   Full browser steps are in .github/workflows/ghost-signal-browser.yml.
+   Install the workflow's pinned Playwright/Chromium version if needed.
+
+4) Make a short inventory of present versus missing campaign modules.
+   Do not redo PR #5's saved dialogue adapter.
+
+5) Rebuild private opening-world staging from the approved source:
+   map layouts, actor roles, scene/choice gates, interactions, portals and
+   encounter bindings. Label replacement geometry as rebuilt review candidates.
+
+6) Add opt-in campaign combat configuration and the durable session host.
+   Connect exploration -> actual source trigger -> dialogue/choice -> mandatory
+   battle -> saved outcome -> scene completion -> next field objective.
+
+7) Verify an end-to-end private opening segment with actual approved assets:
+   New Game, each starter identity, source-correct opening, movement,
+   interactions, battle, rewards, Save, reload/Continue and no repeated rewards.
+   Test blocked saves and both touch and keyboard/controller input.
+
+8) Continue source-directed campaign implementation in saved batches.
+   Persist private data/checkpoints durably after every substantial batch.
+   Commit public generic engine code promptly. Do not leave a session's only
+   copy in scratch files or unpushed local commits.
+
+9) Build/test a separate private APK, then provide the concrete file and a
+   concise list of what is implemented, tested and still outstanding.
+
+The previous Work session could access GitHub and run GitHub Actions, but its
+local execution environment returned:
+"No usable execution environment is available."
+This blocked local ZIP extraction and Android/private-content work there.
+It is not evidence that the next regular chat is blocked, that the account has
+no usage, or that the approved source ZIPs have been erased.
+
+If the next chat has a working file/code runtime, use it to continue immediately.
+If it lacks required file access, state the specific missing file or capability.
+Do not invent a claim that all campaign code was recovered, and do not make the
+user rewrite approved story material that already exists in the source package.
+
+END OF HANDOFF
