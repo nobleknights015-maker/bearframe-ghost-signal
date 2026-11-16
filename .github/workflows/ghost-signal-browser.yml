@@ -61,6 +61,20 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Aeon v5 — select starter, use 8-frame world and real side-view pipeline (synthetic CI art)
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-aeon-v5.mjs
+
+      - name: Upload v5 opt-in integration preview
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aeon-v5-synthetic-integration-preview
+          path: |
+            frontend/test-artifacts/aeon-v5-starter-field.png
+            frontend/test-artifacts/aeon-v5-sideview-battle.png
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Connected expedition — real Tiled map crossing, interactions, saves
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-connected-lab.mjs
 
