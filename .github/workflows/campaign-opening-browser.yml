@@ -7,6 +7,13 @@ on:
       - 'frontend/public/campaign.html'
       - 'frontend/tests/browser-campaign-opening.mjs'
       - '.github/workflows/campaign-opening-browser.yml'
+  pull_request:
+    branches: [ghost-signal-engine]
+    paths:
+      - 'frontend/public/js/engine/campaign-*.js'
+      - 'frontend/public/campaign.html'
+      - 'frontend/tests/browser-campaign-opening.mjs'
+      - '.github/workflows/campaign-opening-browser.yml'
   workflow_dispatch:
 concurrency:
   group: aeon-campaign-opening-${{ github.ref }}

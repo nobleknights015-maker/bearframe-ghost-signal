@@ -18,7 +18,7 @@ const saveFor=id=>'bearframe_aeon_campaign_'+id+'_v1';
 // Confirmation uses EXISTING industrial Ghost Signal buttons; never native confirm().
 function confirmReplacement(id){
   return new Promise(resolve=>{
-    const layer=document.createElement('div');layer.className='overlay';layer.id='campaign-replace';layer.style.zIndex='60';
+    const layer=document.createElement('div');layer.className='overlay';layer.id='aeon-confirm';layer.style.zIndex='60';
     const panel=document.createElement('section');panel.className='panel case';panel.setAttribute('role','dialog');
     panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','Replace saved campaign');
     const title=document.createElement('h2');title.textContent='REPLACE '+id.replace('_',' ').toUpperCase()+' RECORD?';panel.append(title);
