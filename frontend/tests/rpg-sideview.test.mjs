@@ -25,7 +25,7 @@ test('side-view battler sheet contract accepts real transparent sprite atlas wit
     'party:sleeper':{
       src:'assets/battlers/sleeper.png',frameWidth:64,frameHeight:64,scale:1,
       animations:{idle:{row:0,frames:4,fps:5},attack:{row:1,frames:6,fps:12},
-        cast:{row:2,frames:6,fps:10},hit:{row:3,frames:3,fps:9},guard:{row:4,frames:2,fps:5}}
+        cast:{row:3,frames:6,fps:10},hit:{row:5,frames:3,fps:9},guard:{row:4,frames:2,fps:5}}
     }
   };
   const data=validateBattleArtManifest(spec);
@@ -46,7 +46,10 @@ test('side-view rejects external files, traversal, invalid sheet geometry and un
     {...base,scale:0},
     {...base,animations:{idle:{row:0,frames:7,fps:6}}},
     {...base,animations:{attack:{row:1,frames:4,fps:6}}},
-    {...base,animations:{idle:{row:0,frames:4,fps:6},hacked:{row:1,frames:4,fps:6}}}
+    {...base,animations:{idle:{row:0,frames:4,fps:6},hacked:{row:1,frames:4,fps:6}}},
+    {...base,animations:{idle:{row:1,frames:4,fps:6}}},
+    {...base,animations:{idle:{row:0,frames:4,fps:6},attack:{row:8,frames:4,fps:6}}},
+    {...base,animations:{idle:{row:0,frames:4,fps:6},charge:{row:9,frames:4,fps:6}}}
   ])assert.throws(()=>validateBattleArtManifest({'party:sleeper':bad}),TypeError);
 });
 
