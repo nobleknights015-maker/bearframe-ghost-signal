@@ -88,6 +88,15 @@ try{
   assert.equal((await inspect()).mode,'play');
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#btn-continue')?.disabled===false);
+  // A protected record can be kept instead of overwritten, including when
+  // Back/Escape is sent by keyboard or the existing gamepad menu bridge.
+  await page.locator('#btn-new').click();
+  await page.locator('#aeon-v5-choose button[data-starter="sleeper_D"]').click();
+  await page.locator('#aeon-confirm').waitFor();
+  await page.keyboard.press('Escape');
+  await page.locator('#aeon-confirm').waitFor({state:'detached'});
+  assert.equal(await page.evaluate(()=>window.__gs.mode),'title');
+  assert.equal(await page.locator('#btn-continue').isEnabled(),true);
   await page.locator('#btn-continue').click();
   await page.locator('#aeon-v5-choose button[data-starter="sleeper_D"]').click();
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play');
