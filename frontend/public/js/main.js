@@ -141,8 +141,15 @@ if (new URLSearchParams(location.search).get('connected-lab') === '1') {
     ui.toast('CONNECTED EXPEDITION INIT FAILED — SEE CONSOLE',5);
   });
 } else if (new URLSearchParams(location.search).get('rpg-lab') === '1') {
-  import('./engine/rpg-lab.js').then(({mountRpgLab}) => {
-    mountRpgLab({game, ui, sfx, touchMode});
+  import('./engine/rpg-lab.js').then(async ({mountRpgLab}) => {
+    let v5=null;
+    if(new URLSearchParams(location.search).get('aeon-v5')==='1') {
+      // This opt-in path only loads verified local/private art once installed.
+      // Never override the original game, Wraith art or other lab saves.
+      const module=await import('./engine/aeon-v5-bridge.js');
+      v5=await module.prepareAeonV5();
+    }
+    mountRpgLab({game, ui, sfx, touchMode,v5});
     refreshTouch();
     const requested=new URLSearchParams(location.search).get('character-demo');
     if(requested)import('./engine/rpg-field-art.js')
