@@ -42,6 +42,14 @@ test('checked-in Tiled JSON assets compile as a connected map graph',()=>{
  const graph=compileConnectedWorld(maps);
  assert.equal(graph.destination('staging','east-gate').mapId,'annex');
  assert.equal(graph.destination('annex','west-gate').mapId,'staging');
+ const hatch=graph.destination('staging','service-hatch');
+ assert.deepEqual({
+   map:hatch.mapId,return:hatch.portalId,gate:hatch.requiresFlag,x:hatch.x,y:hatch.y
+ },{map:'annex',return:'service-return',gate:'power-switch',x:144,y:80});
+ const back=graph.destination('annex','service-return');
+ assert.deepEqual({map:back.mapId,return:back.portalId},
+   {map:'staging',return:'service-hatch'});
+ assert.equal(back.requiresFlag,undefined,'Return route must stay available');
 });
 
 test('conditional portal metadata is validated and preserved without changing ordinary doors',()=>{
