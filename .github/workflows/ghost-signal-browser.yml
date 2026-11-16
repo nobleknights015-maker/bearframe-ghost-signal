@@ -36,6 +36,9 @@ jobs:
           done
           cat /tmp/ghost-signal-server.log
           exit 1
+      - name: Narrative adapter — original UI, keyboard, rollback and reload
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-campaign-narrative.mjs
+
       - name: Browser smoke — field, UI, saves, original game, Sprite Studio
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-rpg-lab.mjs
 
