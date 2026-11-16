@@ -51,7 +51,8 @@ validation, immutable input states and unsupported expression rejection.
 Signal `UI.say` / `UI.choose` interface. Its host supplies `readWorld` and a
 synchronous `commitWorld(nextWorld)` that returns exactly true only after a
 durable write. Failed writes keep the previous progression and re-present the
-line or choice; a failed scene-completion write is retried with `resume()`.
+line or choice; a failed scene-completion write displays an original-style RETRY choice and
+can also be retried with `resume()`.
 `onBlocked(reason)` lets the host display a retry/status message.
 
 `trigger(actualTrigger, {sceneId})` starts only the pending milestone with a

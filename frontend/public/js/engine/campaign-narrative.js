@@ -58,6 +58,31 @@ export function mountCampaignNarrative({
       used=true;callback(...args);
     };
   }
+  function choose(prompt,options,callback){
+    takeMode('choice');
+    ui.choose(prompt,options,once(callback));
+    // Original UI handles pointerdown. Native keyboard/controller click has
+    // detail 0, and needs its own bridge without editing the locked UI source.
+    const renderToken=token;
+    choiceRoot?.querySelectorAll('button').forEach((button,index)=>{
+      button.addEventListener('keydown',event=>{
+        if(token!==renderToken||stopped)return;
+        if(['Enter','Space'].includes(event.code)){
+          event.preventDefault();event.stopPropagation();
+          if(!event.repeat)ui.pick(index);
+        }else if(['ArrowLeft','ArrowUp','ArrowRight','ArrowDown'].includes(event.code)){
+          event.preventDefault();event.stopPropagation();
+          const buttons=[...choiceRoot.querySelectorAll('button')];
+          const delta=['ArrowLeft','ArrowUp'].includes(event.code)?-1:1;
+          buttons[(index+delta+buttons.length)%buttons.length]?.focus();
+        }
+      });
+      button.addEventListener('click',event=>{
+        if(event.detail===0&&token===renderToken&&!stopped)ui.pick(index);
+      });
+    });
+    choiceRoot?.querySelector('button')?.focus();
+  }
   function pump(){
     if(stopped)return false;
     ++token;
@@ -77,8 +102,7 @@ export function mountCampaignNarrative({
          drafts.some(option=>!Object.hasOwn(ready.options,option)))
         return blocked('draft');
       const options=Object.keys(ready.options).filter(option=>!drafts.includes(option));
-      takeMode('choice');
-      ui.choose(ready.prompt,options,once(index=>{
+      choose(ready.prompt,options,index=>{
         if(!Number.isInteger(index)||index<0||index>=options.length){pump();return;}
         transact(current=>{
           const selected=[...(current.choiceDrafts?.[ready.id]||[]),options[index]];
@@ -90,28 +114,7 @@ export function mountCampaignNarrative({
           return {...current,choiceDrafts:{...(current.choiceDrafts||{}),[ready.id]:selected}};
         });
         pump();
-      }));
-      // Original UI handles pointerdown. Native keyboard/controller click has
-      // detail 0, and needs its own bridge without editing the locked UI source.
-      const renderToken=token;
-      choiceRoot?.querySelectorAll('button').forEach((button,index)=>{
-        button.addEventListener('keydown',event=>{
-          if(token!==renderToken||stopped)return;
-          if(['Enter','Space'].includes(event.code)){
-            event.preventDefault();event.stopPropagation();
-            if(!event.repeat)ui.pick(index);
-          }else if(['ArrowLeft','ArrowUp','ArrowRight','ArrowDown'].includes(event.code)){
-            event.preventDefault();event.stopPropagation();
-            const buttons=[...choiceRoot.querySelectorAll('button')];
-            const delta=['ArrowLeft','ArrowUp'].includes(event.code)?-1:1;
-            buttons[(index+delta+buttons.length)%buttons.length]?.focus();
-          }
-        });
-        button.addEventListener('click',event=>{
-          if(event.detail===0&&token===renderToken&&!stopped)ui.pick(index);
-        });
       });
-      choiceRoot?.querySelector('button')?.focus();
       return true;
     }
     const line=narrativeLines(content,state).find(line=>!state.linesRead[line.line_id]);
@@ -128,7 +131,10 @@ export function mountCampaignNarrative({
     // Combat/quest adapters may withhold completion until their saved outcome.
     if(canComplete(id,copy(world))!==true){release();return blocked('completion');}
     const complete=completeNarrativeScene(content,state,id);
-    if(!persist(world,complete))return false;
+    if(!persist(world,complete)){
+      choose('SAVE FAILED — RETRY TO CONTINUE',['RETRY'],()=>pump());
+      return false;
+    }
     release();onComplete(id,copy(complete));return true;
   }
   return {

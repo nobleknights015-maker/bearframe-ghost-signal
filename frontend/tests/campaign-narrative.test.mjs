@@ -97,7 +97,8 @@ test('completion write can be retried without repeating confirmed choices',()=>{
  ready=true;x.fail(true);assert.equal(x.controller.resume(),false);
  assert.equal(x.world.narrative.completed.opening,undefined);
  assert.deepEqual(x.world.narrative.choices.route,['LEFT']);
- x.fail(false);x.controller.resume();
+ assert.deepEqual(x.ui.options,['RETRY']);
+ x.fail(false);x.pick(0);
  assert.equal(x.world.narrative.completed.opening,true);
 });
 test('missing choice placement fails before any save or presentation',()=>{

@@ -51,7 +51,12 @@ try{
  await page.reload({waitUntil:'networkidle'});await install();
  assert.equal(await page.evaluate(()=>window.__adapter.controller.resume()),true);
  assert.equal(await page.locator('#dialog-speaker').textContent(),'SYSTEM');
- await advance();assert.equal((await saved()).narrative.completed.opening,true);
+ await page.evaluate(()=>window.__adapter.fail=true);
+ await advance();assert.equal((await saved()).narrative.completed.opening,undefined);
+ assert.equal(await page.locator('#dialog-choices button').textContent(),'1. RETRY');
+ await page.evaluate(()=>window.__adapter.fail=false);
+ await page.locator('#dialog-choices button').click();
+ assert.equal((await saved()).narrative.completed.opening,true);
  assert.equal((await saved()).flags.legacy,true);
  assert.equal(await page.evaluate(()=>window.__adapter.game.mode),'title');
  // Pointerdown plus its subsequent click must not consume a newly opened line.
