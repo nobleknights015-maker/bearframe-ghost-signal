@@ -295,8 +295,9 @@ export async function validateCharacter(characterId,{outputRoot=OUTPUT_ROOT}={})
     if(!bytes.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex')))problems.push(role+' is not a PNG');
     const cv=createCanvas(img.width,img.height),c=cv.getContext('2d');c.drawImage(img,0,0);
     const px=c.getImageData(0,0,img.width,img.height).data;
-    let opaque=0,transparent=0;for(let i=3;i<px.length;i+=4){if(px[i]===0)transparent++;else opaque++;}
+    let opaque=0,transparent=0,partialAlpha=0;for(let i=3;i<px.length;i+=4){if(px[i]===0)transparent++;else{opaque++;if(px[i]!==255)partialAlpha++;}}
     if(!opaque||!transparent)problems.push(role+' must have nonempty pixels AND transparency');
+    if(partialAlpha)problems.push(role+' has '+partialAlpha+' partially transparent pixels (native pixel alpha must be binary)');
     assets[role]={width:img.width,height:img.height,sha256:sha(bytes),opaquePixels:opaque};
     if(role==='portrait')continue;
     const metaFile=path.join(base,role+'.json');
@@ -308,6 +309,31 @@ export async function validateCharacter(characterId,{outputRoot=OUTPUT_ROOT}={})
       [meta.frameWidth*6,meta.frameHeight*9];
     if(img.width!==expected[0]||img.height!==expected[1])
       problems.push(role+' atlas pixel dimensions differ from metadata');
+    if(role==='world'&&img.width===expected[0]&&img.height===expected[1]){
+      const actions=['idle','walk','scan','malfunction'];let offset=0;
+      for(const action of actions){
+        const a=meta.animations?.[action];
+        if(!a||a.start!==offset||!Number.isInteger(a.count)||a.count<1)
+          problems.push('World clip order/count incorrect: '+action);
+        else offset+=a.count;
+      }
+      const walk=meta.animations.walk;
+      if(walk&&walk.count>0){
+        for(let row=0;row<4;row++){
+          const bounds=[];
+          for(let col=walk.start;col<walk.start+walk.count;col++){
+            let bottom=-1;
+            for(let y=0;y<meta.frameHeight;y++)for(let x=0;x<meta.frameWidth;x++){
+              const index=((row*meta.frameHeight+y)*img.width+col*meta.frameWidth+x)*4+3;
+              if(px[index])bottom=Math.max(bottom,y);
+            }
+            bounds.push(bottom);
+          }
+          if(bounds.includes(-1)||Math.max(...bounds)-Math.min(...bounds)>2)
+            problems.push('Walk sprite feet drift beyond registered anchor in '+WORLD_DIRECTIONS[row]);
+        }
+      }
+    }
   }
   if(!existsSync(path.join(base,'request.json')))problems.push('Request/source missing');
   return {characterId,ok:problems.length===0,problems,assets};
