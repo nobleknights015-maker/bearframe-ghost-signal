@@ -92,3 +92,38 @@ test('side-view maps known combat cues to supported art rows and ignores unknown
   for(const kind of ['overload','pulse','repair','guard','unrecognized-effect'])
     assert.ok(ANIMATION_NAMES.includes(pose(kind)));
 });
+
+test('v5 independent per-frame exposures survive validation and play at exact boundaries',()=>{
+  const original=[180,220,180,240];
+  const art=validateBattleArtManifest({'party:sleeper_A':{
+    src:'assets/battlers/sleeper_A.png',frameWidth:64,frameHeight:64,scale:1,
+    animations:{
+      idle:{row:0,frames:4,fps:4.878,durationsMs:original,loop:true},
+      attack:{row:1,frames:3,fps:6,durationsMs:[120,160,200],loop:false},
+      down:{row:6,frames:3,fps:4,durationsMs:[100,180,300],holdLast:true}
+    }
+  }})['party:sleeper_A'];
+  assert.notEqual(art.animations.idle.durationsMs,original,'Imported exposures must be copied');
+  assert.ok(Object.isFrozen(art.animations.idle.durationsMs));
+  const draw=(name,t)=>battleAnimationFrame(art,name,t).x/64;
+  assert.deepEqual([0,.179,.18,.399,.40,.579,.58,.819,.82,1.0].map(t=>draw('idle',t)),
+    [0,0,1,1,2,2,3,3,0,1]);
+  assert.deepEqual([0,.119,.12,.279,.28,.8].map(t=>draw('attack',t)),
+    [0,0,1,1,2,2],'Non-looping attacks must hold their last frame');
+  assert.equal(draw('down',10),2,'Shutdown terminal pose must remain down');
+  original[0]=9999;
+  assert.equal(art.animations.idle.durationsMs[0],180,'Original caller must not mutate timings');
+});
+test('v5 per-frame exposure metadata is validated rather than accepted blindly',()=>{
+  const base={src:'assets/battlers/sleeper_A.png',frameWidth:64,frameHeight:64,scale:1};
+  const clip={row:0,frames:4,fps:5};
+  for(const bad of [
+    {...clip,durationsMs:[120,130,150]},
+    {...clip,durationsMs:[120,0,150,130]},
+    {...clip,durationsMs:[100,100,100,'1']},
+    {...clip,loop:'yes'},
+    {...clip,holdLast:1}
+  ])assert.throws(()=>validateBattleArtManifest({'party:sleeper_A':{
+    ...base,animations:{idle:bad}
+  }}),TypeError);
+});
