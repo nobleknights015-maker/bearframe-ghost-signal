@@ -28,6 +28,8 @@ export function compileConnectedWorld(maps){
          !DIRECTIONS.has(props(p.properties).facing))fail('invalid destination '+p.name);
       const gate=props(p.properties).requiresFlag;
       if(gate!==undefined&&!validFlag(gate))fail('invalid portal flag '+p.name);
+      const absent=props(p.properties).requiresNotFlag;
+      if(absent!==undefined&&(!validFlag(absent)||absent===gate))fail('invalid inverse portal flag '+p.name);
     }
     byId.set(map.id,map);
   }
@@ -57,7 +59,7 @@ export function compileConnectedWorld(maps){
       if(!p)fail('unknown portal '+mapId+'/'+portalId);
       const to=byId.get(props(p.properties).toMap);
       const arrival=to.layers.find(l=>l.name==='portals').objects.find(x=>x.name===props(p.properties).toPortal);
-      return Object.freeze({mapId:to.id,portalId:arrival.name,x:arrival.x+16,y:arrival.y+16,facing:props(p.properties).facing,...(props(p.properties).requiresFlag?{requiresFlag:props(p.properties).requiresFlag}:{})});
+      return Object.freeze({mapId:to.id,portalId:arrival.name,x:arrival.x+16,y:arrival.y+16,facing:props(p.properties).facing,...(props(p.properties).requiresFlag?{requiresFlag:props(p.properties).requiresFlag}:{}),...(props(p.properties).requiresNotFlag?{requiresNotFlag:props(p.properties).requiresNotFlag}:{})});
     }
   });
 }
