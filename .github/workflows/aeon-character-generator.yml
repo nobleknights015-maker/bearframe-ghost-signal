@@ -67,46 +67,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # After this workflow reaches ghost-signal-engine, any committed request
-          # automatically invokes the generator; no manual Actions dispatch needed.
+          # Request-only commits on ghost-signal-engine invoke generation by ID.
           if [[ -z "$REQUEST_FILE" && "$EVENT_NAME" == "push" ]]; then
-            REQUEST_FILE="$(git show --pretty=format: --name-only "$GITHUB_SHA" |
-              grep -E '^frontend/character-tools/requests/[a-zA-Z0-9_-]+[.]json
-      - name: Generate and register the opt-in noncanonical test battler
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ ! -f frontend/character-output/test_relay_01/manifest.json ]]; then
-            node frontend/character-tools/cli.mjs generate frontend/character-tools/requests/test_relay_01.json
-          fi
-          node frontend/character-tools/cli.mjs validate test_relay_01
-          node frontend/character-tools/cli.mjs register test_relay_01 --development
-      - name: Existing Ghost Signal and RPG regression tests
-        run: node --test frontend/tests/*.test.mjs
-      - name: Boot the actual Ghost Signal / RPG test game
-        run: |
-          PORT=3000 HOST=127.0.0.1 node frontend/serve.js > /tmp/gs-character-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:3000/index.html > /dev/null; then exit 0; fi
-            sleep 1
-          done
-          cat /tmp/gs-character-server.log
-          exit 1
-      - name: Verify rendered field and side-view battle with real generated pixels
-        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/character-tools/tests/browser-integration.mjs
-      - name: Export development artifacts for independent visual review
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: aeon-character-draft-and-renderer-evidence
-          path: |
-            frontend/character-output/
-            frontend/test-artifacts/generated-character/
-            frontend/public/assets/character-registry.json
-          if-no-files-found: warn
-          retention-days: 14
- |
-              head -n 1 || true)"
+            REQUEST_FILE="$(git show --pretty=format: --name-only "$GITHUB_SHA" | grep -E '^frontend/character-tools/requests/[A-Za-z0-9_-]+[.]json' | head -n 1 || true)"
           fi
           REQUEST_FILE="${REQUEST_FILE:-frontend/character-tools/requests/test_relay_01.json}"
           case "$REQUEST_FILE" in
@@ -116,7 +79,6 @@ jobs:
           if [[ "$REQUEST_FILE" == *".."* || ! -f "$REQUEST_FILE" ]]; then
             echo "::error::Invalid or absent request"; exit 2
           fi
-          echo "Generating artifact from reviewed public request: $REQUEST_FILE"
           node frontend/character-tools/cli.mjs generate "$REQUEST_FILE"
       - name: Generate and register the opt-in noncanonical test battler
         shell: bash
