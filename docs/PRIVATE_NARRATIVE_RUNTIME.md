@@ -44,3 +44,36 @@ staging; chronology is an index, not proof that every scene runs unconditionally
 Verification covers source tampering, insertion order, exact CSV preservation,
 state migration, conditioned dialogue, one-shot effects, multi-select choice
 validation, immutable input states and unsupported expression rejection.
+
+## Rebuilt live dialogue adapter
+
+`campaign-narrative.js` mounts the pure transactions onto the unchanged Ghost
+Signal `UI.say` / `UI.choose` interface. Its host supplies `readWorld` and a
+synchronous `commitWorld(nextWorld)` that returns exactly true only after a
+durable write. Failed writes keep the previous progression and re-present the
+line or choice; a failed scene-completion write is retried with `resume()`.
+`onBlocked(reason)` lets the host display a retry/status message.
+
+`trigger(actualTrigger, {sceneId})` starts only the pending milestone with a
+matching trigger. `resume()` restores an active scene. Nothing automatically
+starts the following scene. `stop()` invalidates callbacks without deleting
+saved progress. State lives in `world.narrative`, while narrative flags merge
+into `world.flags` without removing unrelated flags or inventory.
+
+Every attached choice needs an explicit source-derived binding:
+`choiceGates[choiceId] = {afterLine: lineId}`, or `afterLine: null` for a
+choice before the first line. Missing or unreachable anchors block progression;
+the adapter never guesses placement from numeric scene identifiers.
+Multi-selection drafts save independently; effects apply only when the full
+distinct selection is confirmed. Keyboard/controller-generated clicks bridge
+to the existing pointer UI without modifying the frozen UI source.
+
+An optional `canComplete(sceneId, world)` predicate must return true before
+scene completion flags are saved. The campaign combat host must bind this to
+its durable encounter outcome for scenes that require a battle. This module
+does not infer encounters or rewards from prose.
+
+This is rebuilt integration code, not recovered later-session campaign files.
+It does not install private scene staging, construct maps, enable a campaign
+entry route, or constitute an Android build. Synthetic Node and Chromium tests
+exercise the adapter independently of the private authored package.

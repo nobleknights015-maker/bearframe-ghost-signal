@@ -95,6 +95,9 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Narrative adapter — original UI, keyboard, rollback and reload
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-campaign-narrative.mjs
+
       - name: Upload browser failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
