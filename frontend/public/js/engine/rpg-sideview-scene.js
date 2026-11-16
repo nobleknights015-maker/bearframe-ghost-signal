@@ -23,7 +23,7 @@ export function createSideViewBattleScene(manifest={}) {
   const images={};
   for(const [key,spec] of Object.entries(art)){
     const img=new Image();images[key]={image:img,loaded:false};
-    img.onload=()=>{images[key].loaded=img.naturalWidth>=spec.frameWidth&&
+    img.onload=()=>{images[key].loaded=img.naturalWidth>=spec.frameWidth*Math.max(...Object.values(spec.animations).map(x=>x.frames))&&
       img.naturalHeight>=spec.frameHeight*(Math.max(...Object.values(spec.animations).map(x=>x.row))+1);};
     img.onerror=()=>{images[key].loaded=false;};
     img.src=new URL('../../'+spec.src,import.meta.url).href;
