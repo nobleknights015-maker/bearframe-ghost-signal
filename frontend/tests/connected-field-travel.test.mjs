@@ -35,7 +35,7 @@ for(const failure of ['failWrite','failLoad','block']){
   await assert.rejects(f.travel.transition('east-gate'));
   assert.equal(f.game.m.id,'staging');
   assert.deepEqual(f.game.player,{x:48,y:48,dir:'right',moving:false});
-  assert.deepEqual(f.journal,{mapId:'staging',maps:{}});
+  assert.deepEqual(f.journal,{mapId:'staging',maps:{},world:{flags:{}}});
   assert.equal(f.travel.busy,false);
  });
 }
