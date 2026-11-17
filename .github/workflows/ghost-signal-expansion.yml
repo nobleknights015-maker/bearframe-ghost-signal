@@ -6,7 +6,7 @@ on:
   pull_request:
     paths:
       - 'frontend/public/**'
-      - 'frontend/tests/ghost-signal-expansion.test.mjs'
+      - 'frontend/tests/**'
       - '.github/workflows/ghost-signal-expansion.yml'
 jobs:
   surface-regression:
@@ -16,4 +16,35 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Check modified module syntax
+        run: |
+          node --check frontend/public/js/main.js
+          node --check frontend/public/js/game.js
+          node --check frontend/public/js/ui.js
+          node --check frontend/public/js/art/tiles.js
+          node --check frontend/public/js/missions/index.js
+          node --check frontend/public/js/missions/mission2.js
+          node --check frontend/public/js/missions/mission3.js
+      - name: Verify complete static build
+        run: npm run build --prefix frontend
       - run: node --test frontend/tests/ghost-signal-expansion.test.mjs
+  chromium-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser runner
+        run: npm install --no-save playwright@1.56.1 --prefix frontend
+      - name: Install Chromium
+        run: npx --prefix frontend playwright install --with-deps chromium
+      - name: Exercise original and expansion in real browser
+        run: node --test frontend/tests/ghost-signal-browser.test.mjs
+      - name: Store landscape screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-surface-chromium
+          path: frontend/test_reports/ghost-signal-m03-chromium.png
+          if-no-files-found: ignore
