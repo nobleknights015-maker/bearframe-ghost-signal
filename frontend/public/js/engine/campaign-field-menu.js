@@ -16,7 +16,7 @@ const button=(label,fn)=>{
   n.type='button';n.addEventListener('click',fn);return n;
 };
 
-export function mountCampaignFieldMenu({game,ui,journal,touchMode}){
+export function mountCampaignFieldMenu({game,ui,journal,touchMode,questJournal=null}){
   if(!game||!ui||!journal||typeof journal.readWorld!=='function'||
      typeof journal.writeJournal!=='function')
     throw new TypeError('Campaign field menu requires existing game and journal');
@@ -98,7 +98,12 @@ export function mountCampaignFieldMenu({game,ui,journal,touchMode}){
   }
   function render(){
     if(!visible())return;
-    const world=journal.readWorld(),model=rpgMenuModel(world,tab,journal.inspect());
+    const world=journal.readWorld();
+    // Present only quests unlocked by source-authored durable flags. Keep
+    // manually recorded quest entries intact; this view never edits saves.
+    const staged=questJournal?.project(world.flags)||{};
+    const menuWorld={...world,quests:{...staged,...world.quests}};
+    const model=rpgMenuModel(menuWorld,tab,journal.inspect());
     panel.replaceChildren();
     const header=node('div',undefined,'case-head');
     header.append(node('h2',model.title),button('CLOSE',close));
