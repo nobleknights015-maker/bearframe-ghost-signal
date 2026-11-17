@@ -41,3 +41,17 @@ test('stale stealth detection cannot cross stealth-to-normal mode change with re
   assert.equal(result.mode,'normal');
   assert.equal(result.alert,false);
 });
+
+test('same-id detection cannot substitute a different encounter policy', () => {
+  const spoofed = {id:'gate',mode:'stealth',consequence:'encounter',encounterId:'SourceEncounter'};
+  const actual = {id:'gate',mode:'stealth',consequence:'alarm'};
+  const result = applySecurityDetection({zoneId:'gate',mode:'stealth',alert:false},actual,spoofed,permitted);
+  assert.equal(result.consequence,'alarm');
+  assert.equal(result.alert,true);
+});
+test('same-id detection uses current authorized encounter rather than stale payload', () => {
+  const stale = {id:'gate',mode:'stealth',consequence:'alarm'};
+  const result = applySecurityDetection({zoneId:'gate',mode:'stealth',alert:false},gate,stale,permitted);
+  assert.equal(result.consequence,'encounter');
+  assert.equal(result.alert,false);
+});
