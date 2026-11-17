@@ -6,6 +6,8 @@ const props = raw => Array.isArray(raw) ?
 const types=new Set(['bulkhead','hatch','exit']);
 const prompts=Object.freeze({bulkhead:'BULKHEAD',hatch:'HATCH',exit:'ELEVATOR / EXIT'});
 const idValid=s=>typeof s==='string'&&/^[A-Za-z][A-Za-z0-9_-]{0,95}$/.test(s);
+const captionValid=s=>typeof s==='string'&&s.length<=48&&
+  /^[A-Z][A-Z0-9 /_-]*$/.test(s);
 const blocked=properties=>!types.has(properties.portalStyle);
 export function compileCampaignDoorways(graph){
   if(!graph||!Array.isArray(graph.ids)||typeof graph.get!=='function')
@@ -18,7 +20,9 @@ export function compileCampaignDoorways(graph){
       const p=props(portal.properties);
       const style=p.portalStyle??'bulkhead';
       if(!idValid(portal.name)||!types.has(style)||
-         (p.portalArt!==undefined&&!/^[a-z][a-z0-9_]{0,63}$/.test(p.portalArt)))
+         (p.portalArt!==undefined&&!/^[a-z][a-z0-9_]{0,63}$/.test(p.portalArt))||
+         (p.portalLabel!==undefined&&!captionValid(p.portalLabel))||
+         (p.portalLockedLabel!==undefined&&!captionValid(p.portalLockedLabel)))
         throw new TypeError('Campaign doorway style, art binding or source identifier is invalid');
       return Object.freeze({
         id:'campaign_door_'+portal.name,
@@ -28,7 +32,9 @@ export function compileCampaignDoorways(graph){
         w:1,h:1,interact:true,solid:false,
         requiresFlag:p.requiresFlag??null,
         requiresNotFlag:p.requiresNotFlag??null,
-        prompt:prompts[style]
+        prompt:prompts[style],
+        caption:p.portalLabel??null,
+        lockedCaption:p.portalLockedLabel??null
       });
     });
     const originalIds=new Set((area.entities||[]).map(e=>e.id));
@@ -44,6 +50,7 @@ export function compileCampaignDoorways(graph){
       (!door.requiresNotFlag||safe[door.requiresNotFlag]!==true);
   };
   const label=(door,flags)=>!canOpen(door,flags)?
-    'SEALED '+door.prompt:'OPEN '+door.prompt;
+    (door.lockedCaption??'SEALED '+door.prompt):
+    (door.caption??'OPEN '+door.prompt);
   return Object.freeze({forArea,canOpen,label});
 }
