@@ -1,0 +1,19 @@
+name: Ghost Signal surface expansion regression
+on:
+  push:
+    branches:
+      - feature/ghost-signal-expanded-m03-surface-20261117
+  pull_request:
+    paths:
+      - 'frontend/public/**'
+      - 'frontend/tests/ghost-signal-expansion.test.mjs'
+      - '.github/workflows/ghost-signal-expansion.yml'
+jobs:
+  surface-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test frontend/tests/ghost-signal-expansion.test.mjs
