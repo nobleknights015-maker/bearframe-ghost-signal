@@ -37,16 +37,24 @@ const content={schemaVersion:1,revision:2,
     {id:'trial',trigger:'ARRIVE_A01',dialogue:[],sets:'trial_complete'}],
   dialogue:[{line_id:'line-opening',sequence:1,speaker:'SYSTEM',text:'Synthetic opening.',condition:'',event_effects:''},
     {line_id:'line-machine',sequence:1,speaker:'SYSTEM',text:'Synthetic terminal.',condition:'',event_effects:''}],
-  insertions:[],choices:[],encounters:[{id:'SYNTHETIC_ENCOUNTER'}]};
+  insertions:[],choices:[],encounters:[{id:'SYNTHETIC_ENCOUNTER'},{id:'SYNTHETIC_ENCOUNTER_2'}]};
 const soldier=id=>({id:'sleeper',artId:id,lineage:'sleeper',name:'Synthetic Sleeper',
   hp:36,maxHp:36,ep:10,maxEp:10,attack:28,defense:4,speed:20,skills:['pulse','guard']});
-world.mandatoryCombat={sceneId:'trial',encounterId:'SYNTHETIC_ENCOUNTER',saveOutcomeRequired:'victory'};
+world.mandatoryCombats=[
+  {sceneId:'trial',encounterId:'SYNTHETIC_ENCOUNTER',saveOutcomeRequired:'victory'},
+  {sceneId:'trial',encounterId:'SYNTHETIC_ENCOUNTER_2',saveOutcomeRequired:'victory'}
+];
 world.combat={schemaVersion:1,campaignRevision:2,layoutDigest:world.layoutDigest,
   partyByStarter:Object.fromEntries(starters.map(id=>[id,[soldier(id)]])),
   encounters:[{id:'SYNTHETIC_ENCOUNTER',mapId:'A01',enemies:[
     {id:'sentinel',artId:'synthetic_0',name:'Synthetic Sentry',
       hp:12,maxHp:12,ep:0,maxEp:0,attack:2,defense:1,speed:4}],
-    rewards:{xp:5,items:{synthetic_scrap:1}},canFlee:true}]};
+    rewards:{xp:5,items:{synthetic_scrap:1}},canFlee:true},
+    {id:'SYNTHETIC_ENCOUNTER_2',mapId:'A01',enemies:[
+      {id:'sentry_next',artId:'synthetic_0',name:'Synthetic Second Sentry',
+        hp:12,maxHp:12,ep:0,maxEp:0,attack:2,defense:1,speed:4}],
+      rewards:{xp:7,items:{second_scrap:1}},canFlee:true}
+    ]};
 const crcTable=Array.from({length:256},(_,i)=>{let c=i;for(let j=0;j<8;j++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;return c>>>0;});
 const crc=data=>{let c=0xffffffff;for(const b of data)c=crcTable[(c^b)&255]^(c>>>8);return(c^0xffffffff)>>>0;};
 const chunk=(type,payload)=>{const name=Buffer.from(type),length=Buffer.alloc(4),sum=Buffer.alloc(4);
@@ -164,14 +172,38 @@ try{
   await page.getByRole('button',{name:'ATTACK',exact:true}).click();
   await page.getByRole('button',{name:'RETURN TO FIELD'}).waitFor({timeout:15000});
   await page.getByRole('button',{name:'RETURN TO FIELD'}).click();
+  await page.waitForFunction(()=>window.__campaign?.inspect().battle?.encounterId==='SYNTHETIC_ENCOUNTER_2'&&
+    window.__campaign?.inspect().mode==='battle',null,{timeout:12000});
+  assert.equal((await inspect()).story,'trial',
+    'First saved victory must not prematurely complete a scene with two mandatory battles');
+  // Confirm first victory was durably recorded before the second battle began.
+  const midway=await page.evaluate(()=>{
+    const keys=['A','B'].map(x=>localStorage.getItem('bearframe_aeon_campaign_sleeper_D_v1:'+x));
+    return keys.filter(Boolean).map(raw=>JSON.parse(JSON.parse(raw).body));
+  });
+  assert.equal(midway.some(s=>s.world.encounters?.SYNTHETIC_ENCOUNTER?.outcome==='victory'),true);
+  assert.equal(midway.some(s=>s.world.encounters?.SYNTHETIC_ENCOUNTER_2?.outcome==='victory'),false);
+  // The second mandatory battle, like the first, must survive a hard reload.
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>document.querySelector('#btn-continue')?.disabled===false);
+  await page.locator('#btn-continue').click();
+  await page.locator('#aeon-v5-choose button[data-starter="sleeper_D"]').click();
+  await page.waitForFunction(()=>window.__campaign?.inspect().battle?.encounterId==='SYNTHETIC_ENCOUNTER_2',
+    null,{timeout:12000});
+  await page.getByRole('button',{name:'ATTACK',exact:true}).click();
+  await page.getByRole('button',{name:'RETURN TO FIELD'}).waitFor({timeout:15000});
+  await page.getByRole('button',{name:'RETURN TO FIELD'}).click();
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
-  assert.equal((await inspect()).story,null,'Victory must unblock the staged scene exactly once');
+  assert.equal((await inspect()).story,null,'Only both saved victories unblock the authored scene');
   const durable=await page.evaluate(()=>{
     const keys=['A','B'].map(x=>localStorage.getItem('bearframe_aeon_campaign_sleeper_D_v1:'+x));
     const saves=keys.filter(Boolean).map(raw=>JSON.parse(JSON.parse(raw).body));
     return {saves};});
   assert.equal(durable.saves.some(s=>s.world.encounters?.SYNTHETIC_ENCOUNTER?.outcome==='victory'),true);
   assert.equal(durable.saves.some(s=>s.world.inventory?.synthetic_scrap===1),true);
+  assert.equal(durable.saves.some(s=>s.world.inventory?.second_scrap===1),true);
+  assert.equal(durable.saves.some(s=>s.world.progression?.xp===12),true,
+    'Each authored battle must award XP exactly once');
   assert.equal((await inspect()).areaCount,2);
   const arrival=await page.evaluate(()=>({x:window.__gs.player.x,dir:window.__gs.player.dir}));
   assert.equal(arrival.x,48,'Arrival must use the reciprocal portal feet coordinate');
@@ -191,7 +223,7 @@ try{
   assert.equal(errors.length,0,errors.join('\n'));
   await mkdir(artifacts,{recursive:true});
   await page.screenshot({path:join(artifacts,'campaign-battle-synthetic.png'),fullPage:true});
-  console.log('PASS campaign combat: staged trigger, side-view, interrupted turn resume, victory and rewards, Continue');
+  console.log('PASS campaign combat: two ordered mandatory fights, each interrupted safely, atomic rewards and gated scene completion');
 }catch(error){
   await mkdir(artifacts,{recursive:true});
   try{await page.screenshot({path:join(artifacts,'campaign-battle-failure.png'),fullPage:true});}catch(_){}
