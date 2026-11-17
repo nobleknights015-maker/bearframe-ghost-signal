@@ -64,4 +64,5 @@ jobs:
             frontend/test_reports/ghost-signal-m03-chromium.png
             frontend/test_reports/ghost-signal-m04-chromium.png
             frontend/test_reports/ghost-signal-m05-chromium.png
+            frontend/test_reports/ghost-signal-m05-gate-chromium.png
           if-no-files-found: ignore

@@ -46,6 +46,8 @@ export class Game {
     this.drones = this.makeDrones();
     this.mode = 'play'; this.ui.show('hud', true);
     if (snap) this.applySnap(snap); else { this.checkpoint(true); mission.onStart(this); }
+    // The new chapter HUD must not show the previous mission's default status during opening dialogue.
+    this.refreshHud();
   }
   get drone() { return this.drones[0]; }
 

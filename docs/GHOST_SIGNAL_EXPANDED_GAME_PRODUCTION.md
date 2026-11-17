@@ -57,6 +57,10 @@ Do not use paid packs as unreviewed placeholder bundles or assume a generic NPC 
 
 M04 now includes a second weathered surface environment, a missing surveyor, a real path-following escort, field regulator repair, search evidence, and two extraction methods. Wraith does not commandeer Exploration's rescue operation. Later missions listed below remain proposals, not implemented.
 
+## M05: Broken Relay (added 17 November 2026)
+
+A distinct storm-swept surface relay chapter with a *real obstructing sliding gate*, safeguarded circuit isolation, two receiver archive choices, dynamic electrical-arc vents and a surface-only withdrawal. It is a candidate addition with dedicated Node story/topology tests, Android source-payload checks and Chromium collision-gate checks. The unknown carrier is **not** given an unapproved identity; the lower conduit remains isolated. The previous M04 survivor outcome is referenced only if recorded; it is not invented for legacy saves.
+
 ## Next expansion targets (proposed only)
 
 1. **Missing Survey**: investigate an overdue field team with search-and-rescue, environmental threats and multiple routes, **not** another long alarm corridor.

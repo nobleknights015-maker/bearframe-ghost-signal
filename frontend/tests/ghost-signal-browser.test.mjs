@@ -91,6 +91,30 @@ test('Chromium renders original title and isolated surface expansion', { timeout
     });
     assert.deepEqual(relay,{mission:'m5',status:'RELAY SERVICE',gateClosed:true,gateExists:true,weather:'electrical'});
     await page.screenshot({path:resolve(screenshots,'ghost-signal-m05-chromium.png')});
+    // Full UI exercise: dismiss the authored opening dialogue, inspect the real
+    // physical collision interlock, then verify the engine animates open.
+    const door = await page.evaluate(()=>{
+      const g=window.__gs;
+      for(let i=0;i<20&&g.mode==='dialog';i++)g.ui.advance();
+      if(g.mode!=='play')throw Error('Opening Mission 05 dialogue did not complete');
+      const actual=g.ent('fieldGate');
+      const tileX=actual.tx*32+16,tileY=actual.ty*32+16;
+      const before=g.solidAt(tileX,tileY);
+      g.flags.isolated=true;
+      g.updateWorld(.4);
+      const after=g.solidAt(tileX,tileY);
+      const opened=actual.open;
+      g.flags.isolated=false;
+      actual.open=0;
+      g.player.x=(actual.tx-2)*32+16;g.player.y=tileY;
+      g.cam=null;g.refreshHud();g.render();
+      return {before,after,opened,status:g.stealth()[0],label:document.getElementById('hud-stealth')?.textContent??''};
+    });
+    assert.equal(door.before,true);
+    assert.equal(door.after,false);
+    assert.equal(door.opened,1);
+    assert.equal(door.status,'RELAY SERVICE');
+    await page.screenshot({path:resolve(screenshots,'ghost-signal-m05-gate-chromium.png')});
     assert.deepEqual(exceptions,[]);
   } finally {
     await browser?.close();
