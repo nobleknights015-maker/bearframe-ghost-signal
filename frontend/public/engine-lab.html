@@ -90,6 +90,7 @@
         try{
           const pad=Array.from(navigator.getGamepads?.()||[]).find(Boolean);
           const links=[...document.querySelectorAll('.choices a')].filter(a=>!a.hidden);
+          links.push(document.querySelector('.owner-import label'));
           if(pad&&links.length){
             const pressed=n=>pad.buttons?.[n]?.pressed===true;
             const x=pad.axes?.[0]||0,y=pad.axes?.[1]||0;
@@ -116,11 +117,18 @@
         const delta={ArrowLeft:-1,ArrowRight:1,ArrowUp:-2,ArrowDown:2}[event.code];
         if(!delta||!['BODY','A'].includes(document.activeElement?.tagName))return;
         const links=[...document.querySelectorAll('.choices a')].filter(a=>!a.hidden);
+          links.push(document.querySelector('.owner-import label'));
         if(!links.length)return;
         event.preventDefault();const selected=links.indexOf(document.activeElement);
         links[(selected<0?0:(selected+delta+links.length)%links.length)].focus();
       });
     })();
+    document.querySelector('.owner-import label').addEventListener('keydown',event=>{
+      if(['Enter','Space'].includes(event.code)&&!event.repeat){
+        event.preventDefault();
+        event.currentTarget.click();
+      }
+    });
     (function fit(){
       const s=Math.min(innerWidth/480,innerHeight/270);
       const stage=document.getElementById('stage');
