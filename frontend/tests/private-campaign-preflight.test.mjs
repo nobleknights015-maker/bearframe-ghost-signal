@@ -51,8 +51,14 @@ async function fixture(){
     battle:{src:'assets/battlers/'+id+'.png',frameWidth:64,frameHeight:64,
       columns:6,rows:9,animations:animation}
   }));
+  // Real Ghost Grid/Nullframe world atlases are not 32x56 Sleepers.
+  // Validate their approved larger frame geometry rather than misreporting
+  // every nonstarter as corrupt or missing.
+  const enemy=characters.find(x=>x.id==='synthetic_0');
+  enemy.world.frameWidth=48;enemy.world.frameHeight=64;
   for(const id of ids){
-    await writeFile(join(root,'assets/world',id+'.png'),worldImg);
+    await writeFile(join(root,'assets/world',id+'.png'),
+      id==='synthetic_0'?png(432,256):worldImg);
     await writeFile(join(root,'assets/battlers',id+'.png'),battleImg);
   }
   for(const id of ids.slice(0,4))
@@ -136,5 +142,21 @@ test('Reviewed enemy, four starter combat rosters and authored battle art satisf
   assert.equal(r.pass,true,JSON.stringify(r.problems));
   assert.equal(r.counts.combatEncounters,1);
   assert.equal(r.counts.mandatoryBattles,1);
+ }finally{await f.cleanup();}
+});
+
+test('Unstaged future screenplay choices are deferred in review but block a final game',async()=>{
+ const f=await fixture();
+ try{
+  await f.edit('story/campaign.json',s=>{
+    s.scenes.push({id:'SC_LATER',trigger:'OWNER_FUTURE',dialogue:[],sets:''});
+    s.choices.push({id:'CHOICE_FUTURE',scene:'SC_LATER',prompt:'Synthetic later choice',
+      options:{A:'synthetic'},selection_count:1});
+  });
+  const review=await preflightPrivateCampaign({root:f.root,profile:'review'});
+  const release=await preflightPrivateCampaign({root:f.root,profile:'release'});
+  assert.equal(has(review,'CHOICE_PRESENTATION_NOT_AUTHORED'),false);
+  assert.equal(has(release,'CHOICE_PRESENTATION_NOT_AUTHORED'),true);
+  assert.equal(has(release,'UNSTAGED_STORY_SCENES'),true);
  }finally{await f.cleanup();}
 });
