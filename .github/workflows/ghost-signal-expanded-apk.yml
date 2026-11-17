@@ -1,0 +1,73 @@
+name: Ghost Signal Expanded standalone Android APK
+on:
+  push:
+    branches: [feature/ghost-signal-expanded-m03-surface-20261117]
+    paths: ['android/**', 'frontend/public/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
+  pull_request:
+    branches: [main]
+    paths: ['android/**', 'frontend/public/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
+  workflow_dispatch:
+jobs:
+  assemble:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install supported Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$ANDROID_SDK_ROOT/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | sort -V | tail -n1)"
+          if [[ -z "$SDKMANAGER" ]]; then echo "Android sdkmanager missing"; exit 1; fi
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build standalone Ghost Signal app
+        run: gradle -p android :app:assembleDebug --no-daemon
+      - name: Verify exact UI, source and missions are in the APK
+        run: bash android/ci/verify-apk-assets.sh
+      - name: Publish test APK build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-expanded-android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+  emulator:
+    needs: assemble
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ghost-signal-expanded-android-apk
+          path: android/app/build/outputs/apk/debug
+      - name: Verify exact APK from assemble job
+        run: bash android/ci/verify-apk-assets.sh
+      - name: Android 35 emulator install and lifecycle smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -camera-front none
+          emulator-boot-timeout: 900
+          script: bash android/ci/emulator-smoke.sh
+      - name: Store emulator screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-expanded-emulator-evidence
+          path: ghost-signal-expanded-*.png
+          if-no-files-found: ignore
+          retention-days: 30
