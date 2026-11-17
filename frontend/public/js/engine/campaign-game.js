@@ -109,8 +109,9 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
       };
       const blocked=reason=>{
         if(reason==='completion'){
-          const mandatory=worldSpec.mandatoryCombat,scene=journal.readWorld()?.narrative?.activeScene;
-          if(mandatory?.sceneId===scene&&combat?.start(mandatory.encounterId))return;
+          const scene=journal.readWorld()?.narrative?.activeScene;
+          const mandatory=journal.pendingCombat(scene);
+          if(mandatory&&combat?.start(mandatory.encounterId))return;
           ui.toast('PROGRESSION HELD — SAVED ENCOUNTER OUTCOME REQUIRED',4);
         }
         else if(reason==='save')ui.toast('CAMPAIGN SAVE FAILED — RETRY',3);
