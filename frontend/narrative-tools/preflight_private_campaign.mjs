@@ -108,13 +108,13 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
       // actors legitimately use larger world cells (up to 128x176) and must
       // be validated against THEIR OWN native atlas metadata, not the
       // player-only sprite contract.
-      const w=art.world;
+      const worldMeta=art.world;
       if(STARTERS.includes(art.id))worldSheetSpec(manifest,art.id);
-      else if(w.columns!==9||w.rows!==4||
-         !Number.isInteger(w.frameWidth)||w.frameWidth<16||w.frameWidth>256||
-         !Number.isInteger(w.frameHeight)||w.frameHeight<16||w.frameHeight>256||
-         JSON.stringify(w.directions)!==JSON.stringify(['down','left','right','up'])||
-         JSON.stringify(w.walkColumns)!==JSON.stringify([1,2,3,4,5,6,7,8]))
+      else if(worldMeta.columns!==9||worldMeta.rows!==4||
+         !Number.isInteger(worldMeta.frameWidth)||worldMeta.frameWidth<16||worldMeta.frameWidth>256||
+         !Number.isInteger(worldMeta.frameHeight)||worldMeta.frameHeight<16||worldMeta.frameHeight>256||
+         JSON.stringify(worldMeta.directions)!==JSON.stringify(['down','left','right','up'])||
+         JSON.stringify(worldMeta.walkColumns)!==JSON.stringify([1,2,3,4,5,6,7,8]))
         throw new Error('Invalid reviewed nonstarter world atlas contract');
       mapV5Art(manifest,{['enemy:'+art.id]:art.id});
       const w=await pngSize(root,art.world.src);
