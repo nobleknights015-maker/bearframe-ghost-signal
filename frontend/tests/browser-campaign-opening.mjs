@@ -108,6 +108,35 @@ try{
   assert.equal((await inspect()).mode,'play');
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#btn-continue')?.disabled===false);
+  // Portable campaign records are opt-in and cannot bypass the owner story
+  // revision or silent-replace a valid existing save. The Android user can
+  // copy a record BEFORE an APK reinstall and restore it afterward.
+  await page.locator('#campaign-backup-launch').click();
+  await page.locator('#campaign-backup-menu').waitFor({state:'visible'});
+  await page.getByRole('button',{name:'BACK UP SLEEPER D'}).click();
+  await page.waitForFunction(()=>document.querySelector('#campaign-backup-text')?.value?.length>100);
+  const backupText=await page.locator('#campaign-backup-text').inputValue();
+  const edited=JSON.parse(backupText);edited.record.world.inventory.synthetic_bad_item=999;
+  await page.locator('#campaign-backup-text').fill(JSON.stringify(edited));
+  await page.getByRole('button',{name:'RESTORE PASTED RECORD'}).click();
+  assert.match(await page.locator('#campaign-backup-status').innerText(),/CHECKSUM MISMATCH/i);
+  // Browser fixture simulates an APK uninstall or new phone profile, then
+  // exercises the same copy/paste restore flow against EMPTY slots.
+  await page.evaluate(()=>{
+    localStorage.removeItem('bearframe_aeon_campaign_sleeper_D_v1:A');
+    localStorage.removeItem('bearframe_aeon_campaign_sleeper_D_v1:B');
+  });
+  await page.locator('#campaign-backup-text').fill(backupText);
+  await page.getByRole('button',{name:'RESTORE PASTED RECORD'}).click();
+  assert.match(await page.locator('#campaign-backup-status').innerText(),/RESTORED SLEEPER_D/);
+  assert.equal(await page.locator('#btn-continue').isEnabled(),true);
+  // Existing save replacement must ask explicitly. KEEP must preserve bytes.
+  await page.getByRole('button',{name:'RESTORE PASTED RECORD'}).click();
+  await page.locator('#aeon-confirm').waitFor({state:'visible'});
+  await page.locator('#aeon-confirm').getByRole('button',{name:'KEEP RECORD'}).click();
+  assert.match(await page.locator('#campaign-backup-status').innerText(),/NO CHANGES MADE/);
+  await page.getByRole('button',{name:'BACK',exact:true}).click();
+  await page.locator('#campaign-backup-menu').waitFor({state:'hidden'});
   // A protected record can be kept instead of overwritten, including when
   // Back/Escape is sent by keyboard or the existing gamepad menu bridge.
   await page.locator('#btn-new').click();
