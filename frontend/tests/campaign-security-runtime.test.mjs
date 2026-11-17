@@ -119,3 +119,34 @@ test('Malformed author zone is rejected before field session begins',()=>{
     }),TypeError);
   }
 });
+
+test('Thrown storage failure cannot trigger combat or alert and retries safely',()=>{
+  let attempts=0,world={flags:{preserved:true}},failures=0,fights=0,alarms=0;
+  const runtime=createCampaignSecurityRuntime({
+    worldSpec:authoredWorld([gate]),
+    readWorld:()=>structuredClone(world),
+    commitWorld:next=>{
+      attempts++;
+      if(attempts<=2)throw new Error('Synthetic storage quota failure');
+      world=structuredClone(next);return true;
+    },
+    encounterFor:()=>({id:'EN_SOURCE',mapId:'A00'}),
+    onEncounter:()=>{fights++;},
+    onAlert:()=>{alarms++;},
+    onSaveFailure:()=>{failures++;}
+  });
+  const g=player();g.drones=[{state:'chase',vis:true}];
+  assert.equal(runtime.tick(g),false);
+  assert.equal(runtime.tick(g),false);
+  assert.equal(failures,1,'Repeated exceptions report one storage failure');
+  assert.equal(fights,0);
+  assert.equal(alarms,0);
+  assert.equal(world.security,undefined,'Failed commits leave saved world untouched');
+  assert.equal(runtime.tick(g),true);
+  assert.equal(fights,1);
+  assert.equal(alarms,0);
+  assert.equal(world.security.consequence,'encounter');
+  assert.deepEqual(world.flags,{preserved:true});
+  assert.equal(runtime.tick(g),false);
+  assert.equal(fights,1);
+});
