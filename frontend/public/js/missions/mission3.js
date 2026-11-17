@@ -123,7 +123,7 @@ export const mission3 = {
   onStart(g) {
     g.flags.power = true;
     g.flags.lights = false;
-    const m2 = g.store.loadProgress().outcomes?.m2;
+    const m2 = g.store?.loadProgress?.().outcomes?.m2;
     const recordReport = m2
       ? (m2.tookRecord ? 'The resident offered an unlabelled record. I accepted it for your custody review.' : 'I left the unlabelled record with the resident. Consent and provenance remain unresolved.')
       : 'The outcome of the earlier record offer is not retained in this legacy save. I will not invent what happened.';
