@@ -63,7 +63,12 @@ export function createCampaignSecurityRuntime({
       mode:current.mode,alert:current.alert,consequence:current.consequence});
     if(same(world.security,next))return false;
     // A pending save failure cannot launch a battle or claim a durable alert.
-    if(commitWorld({...world,security:next})!==true){
+    // Storage adapters may reject a write by returning false OR throwing
+    // (for example, quota exhaustion). Neither path may dispatch gameplay.
+    let saved=false;
+    try { saved=commitWorld({...world,security:next})===true; }
+    catch { saved=false; }
+    if(!saved){
       if(!failedSave)onSaveFailure();
       failedSave=true;return false;
     }
