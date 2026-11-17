@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {transitionSecurity} from '../public/js/engine/campaign-security-transition.mjs';
+const stealth={id:'corridor',mode:'stealth'};
+test('crossing normal to stealth and back preserves caller-owned campaign state',()=>{
+ const world={x:32,y:64,party:['A','B'],inventory:['key'],questFlags:{relay:true},zoneId:null,alert:false};
+ const a=transitionSecurity(world,stealth);
+ assert.deepEqual(a,{zoneId:'corridor',mode:'stealth',alert:false,entered:true,consequence:'none'});
+ const b=transitionSecurity({...world,...a},null);
+ assert.equal(b.mode,'normal');assert.equal(b.alert,false);
+ assert.deepEqual(world,{x:32,y:64,party:['A','B'],inventory:['key'],questFlags:{relay:true},zoneId:null,alert:false});
+});
+test('alarm persists within stealth and clears on exit',()=>{
+ const a=transitionSecurity({zoneId:'corridor',alert:false},stealth,{kind:'alarm'});
+ assert.equal(a.alert,true);
+ assert.equal(transitionSecurity(a,stealth).alert,true);
+ assert.equal(transitionSecurity(a,null).alert,false);
+});
+test('normal regions never emit encounter or alarms',()=>{
+ assert.equal(transitionSecurity({alert:true},null,{kind:'encounter'}).consequence,'none');
+});
+test('rejects invalid state, zones and outcomes',()=>{
+ assert.throws(()=>transitionSecurity(null,stealth));
+ assert.throws(()=>transitionSecurity({}, {id:'__proto__',mode:'stealth'}));
+ assert.throws(()=>transitionSecurity({},stealth,{kind:'battle'}));
+});
+test('alert does not bleed into a different stealth zone',()=>{
+ const a=transitionSecurity({zoneId:'corridor',alert:true},{id:'vault',mode:'stealth'});
+ assert.equal(a.alert,false);assert.equal(a.entered,true);
+});
