@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCampaignJournal} from '../public/js/engine/campaign-journal.js';
+import {createHybridSession,beginHybridEncounter,actHybrid} from '../public/js/engine/hybrid-session.js';
 import {makeCampaignBackup,inspectCampaignBackup,restoreCampaignBackup}
   from '../public/js/engine/campaign-backup.js';
 
@@ -97,4 +98,39 @@ test('Unknown valid-checksum journal bytes cannot overwrite unreadable user slot
  const current=storage();current.setItem('bearframe_aeon_campaign_sleeper_A_v1:A','corrupt but user-owned');
  assert.throws(()=>restoreCampaignBackup(backup,{storage:current,...options()}),/unreadable records/);
  assert.equal(current.getItem('bearframe_aeon_campaign_sleeper_A_v1:A'),'corrupt but user-owned');
+});
+
+test('Interrupted side-view combat transfers and resumes on the exact turn, without extra loot',()=>{
+ const originStore=storage(),story=content(),worldSpec=world();
+ story.encounters.push({id:'EN_SYNTHETIC'});
+ const party=[{id:'sleeper',artId:'sleeper_A',lineage:'sleeper',
+   name:'Synthetic Sleeper',hp:30,maxHp:30,ep:10,maxEp:10,
+   attack:28,defense:3,speed:20,skills:['pulse','guard']}];
+ const journal=createCampaignJournal({storage:originStore,starterId:'sleeper_A',
+   content:story,worldSpec,bootstrap:{party,activeParty:['sleeper'],
+     inventory:{},progression:{xp:0}}});
+ assert.equal(journal.newGame(),true);
+ const initial=createHybridSession(journal.readWorld(),{defaultMode:'normal',zones:[]});
+ const battle=beginHybridEncounter(initial,{
+   id:'EN_SYNTHETIC',mapId:'A00',enemies:[{
+     id:'hostile',artId:'synthetic',name:'Synthetic Hostile',hp:9,maxHp:9,
+     ep:0,maxEp:0,attack:2,defense:0,speed:3
+   }],rewards:{xp:6,items:{scrap:1}},canFlee:true
+ });
+ const snapshot={mission:'A00',player:{x:80,y:112,dir:'right'}};
+ assert.equal(journal.beginBattle('EN_SYNTHETIC',battle,snapshot),true);
+ const data=makeCampaignBackup(journal),dest=storage();
+ assert.equal(inspectCampaignBackup(data,{content:story,worldSpec}).hasBattle,true);
+ assert.equal(restoreCampaignBackup(data,{storage:dest,content:story,worldSpec}).hasBattle,true);
+ const resumed=createCampaignJournal({storage:dest,starterId:'sleeper_A',content:story,worldSpec});
+ assert.equal(resumed.load(),true);
+ assert.deepEqual(resumed.readJournal().battle.session,battle);
+ const outcome=actHybrid(resumed.readJournal().battle.session,{
+   actor:'party:sleeper',type:'attack',target:'enemy:hostile'
+ });
+ assert.equal(outcome.phase,'exploration');
+ assert.equal(resumed.finishBattle(outcome),true);
+ assert.equal(resumed.readWorld().inventory.scrap,1);
+ assert.equal(resumed.readWorld().progression.xp,6);
+ assert.equal(resumed.finishBattle(outcome),false,'Replaying the same reward cannot award it twice');
 });
