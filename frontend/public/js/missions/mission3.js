@@ -56,7 +56,7 @@ function fieldMap() {
 }
 
 export const mission3 = {
-  id: 'm3', title: 'RETURN TO THE SURFACE',
+  id: 'm3', title: 'RETURN TO THE SURFACE', next: 'm4',
   visualTheme: 'surface', ambient: 'daylight', hideStealth: true,
   // Map actor IDs to local, approved 32x56 Sprite Studio compatibility PNGs after review.
   // No licensed/private character art is distributed in the public source.

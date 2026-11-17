@@ -3,7 +3,7 @@ set -euo pipefail
 APK="${1:-}"
 if [[ -z "$APK" ]]; then APK="$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)"; fi
 test -s "$APK" || { echo "Missing built APK"; exit 1; }
-for src in index.html css/game.css js/game.js js/main.js js/ui.js js/engine/input.js js/engine/save.js js/missions/index.js js/missions/mission1.js js/missions/mission2.js js/missions/mission3.js js/art/tiles.js studio/studio.js; do
+for src in index.html css/game.css js/game.js js/main.js js/ui.js js/engine/input.js js/engine/save.js js/missions/index.js js/missions/mission1.js js/missions/mission2.js js/missions/mission3.js js/missions/mission4.js js/art/tiles.js studio/studio.js; do
   test -f "frontend/public/$src" || { echo "Missing source $src"; exit 1; }
   unzip -p "$APK" "assets/$src" | cmp - "frontend/public/$src" || { echo "Stale APK asset $src"; exit 1; }
 done

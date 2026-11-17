@@ -37,6 +37,7 @@ function showTitle() {
   }
   ui.show('btn-m2', !!progress.unlocked.m2);
   ui.show('btn-m3', !!progress.unlocked.m3);
+  ui.show('btn-m4', !!progress.unlocked.m4);
   refreshTouch();
 }
 function titleSprite(now) {
@@ -45,11 +46,12 @@ function titleSprite(now) {
 function begin(snap, missionId) {
   sfx.init(); ui.show('title', false); ui.show('ending', false);
   const id = (snap && snap.mission) || missionId || FIRST_MISSION; let carry = null;
+  if (!MISSIONS[id]) { showTitle(); return; }
   if (!snap && id !== FIRST_MISSION) { const pc = store.loadProgress().case; if (pc) carry = { ev: pc.ev.filter(e => e.m !== id), logs: pc.logs.filter(l => l.m !== id) }; }
   ui.fade(true);
   game.start(MISSIONS[id], snap, carry); refreshTouch();
   setTimeout(() => ui.fade(false), 120);
-  if (!snap) { $('card-num').textContent = 'MISSION ' + (id === 'm3' ? '03' : id === 'm2' ? '02' : '01'); $('card-title').textContent = MISSIONS[id].title; const cd = $('card'); cd.classList.remove('play'); void cd.offsetWidth; cd.classList.add('play'); }
+  if (!snap) { $('card-num').textContent = 'MISSION ' + (id.slice(1).padStart(2, '0')); $('card-title').textContent = MISSIONS[id].title; const cd = $('card'); cd.classList.remove('play'); void cd.offsetWidth; cd.classList.add('play'); }
   try { if (coarse && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {}); } catch (_) {}
 }
 
@@ -60,7 +62,7 @@ game.onEnd = (g) => {
   const mm = String(Math.floor(time / 60)).padStart(2, '0'), ss = String(Math.floor(time % 60)).padStart(2, '0');
   $('ending-title').textContent = e.title;
   $('ending-stats').textContent = `TIME INSIDE ............. ${mm}:${ss}\nSCANNER PULSES .......... ${stats.scans}\nSECURITY UNIT CONTACTS .. ${stats.hits}\nCHECKPOINT RESTORES ..... ${stats.restores}\n` + e.lines.join('\n');
-  if (g.m.next) $('btn-next').textContent = 'PROCEED TO MISSION ' + (g.m.next === 'm3' ? '03' : '02');
+  if (g.m.next) $('btn-next').textContent = 'PROCEED TO MISSION ' + (g.m.next.slice(1).padStart(2, '0'));
   ui.show('btn-next', !!g.m.next); ui.show('ending', true); refreshTouch();
 };
 
@@ -73,6 +75,7 @@ $('btn-quit').onclick = () => { game.checkpoint(true); showTitle(); };
 $('btn-ending-title').onclick = showTitle;
 $('btn-m2').onclick = () => begin(null, 'm2');
 $('btn-m3').onclick = () => begin(null, 'm3');
+$('btn-m4').onclick = () => begin(null, 'm4');
 $('btn-next').onclick = () => begin(null, game.m.next);
 $('btn-case').onclick = () => game.openCase();
 $('btn-pause-case').onclick = () => game.openCase();

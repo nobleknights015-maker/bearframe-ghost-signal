@@ -8,6 +8,23 @@ function rust(c, X, Y, x, y, s, n = 20, spread = 12) {
   for (let i = 0; i < n; i++) R(c, i % 3 ? '#4a2a1c' : '#6b3a22', X + cx + (hsh(x, y, s + 10 + i) - .5) * spread, Y + cy + (hsh(x, y, s + 40 + i) - .5) * spread * .7, 2, 1);
 }
 
+function ruinFloor(c,x,y,shadow) {
+  const X=x*T,Y=y*T,v=hsh(x,y,427);
+  R(c,v>.5?'#252e30':'#283130',X,Y,T,T);
+  R(c,'#3b4946',X,Y,T,1);
+  for(let i=0;i<18;i++){
+   const px=Math.floor(hsh(x,y,i+1500)*30),py=Math.floor(hsh(x,y,i+2100)*30);
+   R(c,i%3===0?'#4c574e':i%3===1?'#395248':'#1c2529',X+px,Y+py,1+(i%3),1+(i%2));
+  }
+  if(v>.6)for(let i=0;i<7;i++){
+   const ox=4+Math.floor(hsh(x,y,i+600)*22);
+   const oy=6+Math.floor(hsh(x,y,i+800)*20);
+   R(c,i%2?'#4f775d':'#7c8461',X+ox,Y+oy,2,4);
+  }
+  if(v<.22){R(c,'#11181c',X+8,Y+10,15,12);R(c,'#535c58',X+8,Y+10,15,1);}
+  if(shadow)R(c,'rgba(0,0,0,.23)',X,Y,T,4);
+}
+
 function surfaceFloor(c, x, y, shadow) {
   // Deterministic field palette: slate path, dust, moss, scattered basalt.
   // Only used for the expedition surface; original indoor missions are untouched.
@@ -158,8 +175,8 @@ export function bakeMap(map, mission) {
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const g = at(x, y);
-    if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); }
-    else if (g === 1) { if (mission.visualTheme === 'surface') surfaceEdge(c, x, y, at); else if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
+    if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'ruins') ruinFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); }
+    else if (g === 1) { if (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins') surfaceEdge(c, x, y, at); else if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
   }
   // soft ambient occlusion where floor meets side / lower walls
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) if (at(x, y) === 2) {
@@ -178,7 +195,7 @@ export function bakeMap(map, mission) {
 export function bakeOver(map, mission) {
   const cv = document.createElement('canvas'); cv.width = map.w * T; cv.height = map.h * T; const c = cv.getContext('2d');
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
-  if (mission && mission.visualTheme === 'surface') return cv; // no indoor ceiling pipes outdoors
+  if (mission && (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins')) return cv; // no indoor ceiling pipes outdoors
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const X = x * T, Y = y * T;
     if (at(x, y) === 2 && y % 6 === 2 && hsh(y, 3, 5) > .25) { // overhead conduit run
@@ -383,7 +400,7 @@ export function drawEntity(c, e, g) {
         c.drawImage(actor.image, frame * 32, 0, 32, 56, X, Y + 32 - 56, 32, 56);
         break;
       }
-      if (e.role === 'mira' || e.role === 'nova' || e.role === 'kai') { expeditionFrame(c, e, t); break; }
+      if (e.role === 'mira' || e.role === 'nova' || e.role === 'kai' || e.role === 'surveyor') { expeditionFrame(c, e, t); break; }
       const sw = Math.round(Math.sin(t * 1.1) * 1), bx = X + 6 + sw, by = Y - 16, k = .55 + .45 * Math.sin(t * 1.7);
       R(c, 'rgba(0,0,0,.45)', X + 6, Y + 27, 20, 4);
       R(c, '#1d2a26', bx + 4, by + 12, 12, 24); R(c, '#4f6b5c', bx + 5, by + 13, 10, 12); R(c, '#6b8a78', bx + 5, by + 13, 2, 12); R(c, '#3d5448', bx + 6, by + 25, 8, 10);

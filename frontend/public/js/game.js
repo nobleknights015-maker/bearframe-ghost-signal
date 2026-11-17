@@ -405,7 +405,7 @@ export class Game {
 
     // darkness + light sources
     const lc = this.lc, sx = p.x - cx, sy = p.y - cy - 24;
-    lc.globalCompositeOperation = 'source-over'; lc.clearRect(0, 0, VW, VH); lc.fillStyle = `rgba(2,4,7,${this.m.ambient === 'daylight' ? .12 : f.power ? .45 : .9})`; lc.fillRect(0, 0, VW, VH);
+    lc.globalCompositeOperation = 'source-over'; lc.clearRect(0, 0, VW, VH); lc.fillStyle = `rgba(2,4,7,${this.m.ambient === 'daylight' ? .12 : this.m.ambient === 'dusk' ? .32 : f.power ? .45 : .9})`; lc.fillRect(0, 0, VW, VH);
     lc.globalCompositeOperation = 'destination-out';
     const hole = (x, y, r, a) => { if (x < -r || y < -r || x > VW + r || y > VH + r) return; const gr = lc.createRadialGradient(x, y, 2, x, y, r); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); lc.fillStyle = gr; lc.fillRect(x - r, y - r, r * 2, r * 2); };
     hole(sx, sy, p.hidden ? 40 : 62, .9);
