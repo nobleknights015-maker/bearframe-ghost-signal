@@ -17,12 +17,13 @@ export function compileCampaignDoorways(graph){
     const doorways=portals.map(portal=>{
       const p=props(portal.properties);
       const style=p.portalStyle??'bulkhead';
-      if(!idValid(portal.name)||!types.has(style))
-        throw new TypeError('Campaign doorway style or source identifier is invalid');
+      if(!idValid(portal.name)||!types.has(style)||
+         (p.portalArt!==undefined&&!/^[a-z][a-z0-9_]{0,63}$/.test(p.portalArt)))
+        throw new TypeError('Campaign doorway style, art binding or source identifier is invalid');
       return Object.freeze({
         id:'campaign_door_'+portal.name,
         // Runtime sprite art uses the same original 32x32 field entity path.
-        type:style,portalId:portal.name,
+        type:style,portalId:portal.name,portalArt:p.portalArt??null,
         tx:portal.x/32,ty:portal.y/32,
         w:1,h:1,interact:true,solid:false,
         requiresFlag:p.requiresFlag??null,
