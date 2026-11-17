@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {compileCampaignTransmissionMarkers,createCampaignTransmissionPainter} from
   '../public/js/engine/campaign-transmission-markers.js';
+import {compileCampaignWorld} from '../public/js/engine/campaign-world.js';
 
 function fixture(){
   const map=(id,toId,portal,back,gate=false)=>{
@@ -40,7 +41,7 @@ function canvas(){
   return c;
 }
 test('Private source portals are marked only at reciprocal authored map tiles',()=>{
-  const source=fixture(),compiled=compileCampaignTransmissionMarkers(source);
+  const source=fixture(),compiled=compileCampaignTransmissionMarkers(compileCampaignWorld(source));
   assert.deepEqual(compiled.mapIds,['A00','A01']);
   const [locked]=compiled.statesFor('A00',{});
   assert.deepEqual(locked,{id:'link_east',x:160,y:96,locked:true});
@@ -50,7 +51,7 @@ test('Private source portals are marked only at reciprocal authored map tiles',(
   assert.deepEqual(compiled.statesFor('not_an_area',{}),[]);
 });
 test('Markers remain opt-in and update in place when a gate opens',()=>{
-  const painter=createCampaignTransmissionPainter(fixture());
+  const painter=createCampaignTransmissionPainter(compileCampaignWorld(fixture()));
   const base=canvas(),game={m:{id:'A00'},base};
   assert.equal(painter.paint(game,{}),true);
   assert.equal(base.calls.some(c=>c[0]==='color'&&c[1]==='#c89a5e'),true);
@@ -64,7 +65,7 @@ test('Markers remain opt-in and update in place when a gate opens',()=>{
   assert.equal(painter.paint(game,{relay_active:true}),false);
 });
 test('No canvas, wrong map, or mismatched native pixel dimensions are no-ops',()=>{
-  const painter=createCampaignTransmissionPainter(fixture());
+  const painter=createCampaignTransmissionPainter(compileCampaignWorld(fixture()));
   assert.equal(painter.paint({m:{id:'A00'}},{}),false);
   assert.equal(painter.paint({m:{id:'unknown'},base:canvas()},{}),false);
   const wrong=canvas();wrong.width=128;
@@ -73,10 +74,10 @@ test('No canvas, wrong map, or mismatched native pixel dimensions are no-ops',()
 test('Invisible wrong-map portals are rejected by graph validation',()=>{
   const world=fixture();
   world.maps[0].layers[1].objects[0].properties[0].value='not_an_area';
-  assert.throws(()=>compileCampaignTransmissionMarkers(world),/nonreciprocal route/);
+  assert.throws(()=>compileCampaignTransmissionMarkers(compileCampaignWorld(world)),/nonreciprocal route/);
 });
 test('Markers never mutate underlying portal gates or source map arrays',()=>{
-  const world=fixture(),before=JSON.stringify(world),p=createCampaignTransmissionPainter(world);
+  const world=fixture(),before=JSON.stringify(world),p=createCampaignTransmissionPainter(compileCampaignWorld(world));
   const g={m:{id:'A00'},base:canvas()};
   p.paint(g,{relay_active:true});
   p.paint(g,{relay_active:false});
