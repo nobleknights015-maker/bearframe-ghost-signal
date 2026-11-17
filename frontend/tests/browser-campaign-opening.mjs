@@ -93,6 +93,12 @@ try{
   await page.keyboard.press('Escape');
   await page.locator('#rpg-lab-menu').waitFor({state:'hidden'});
   assert.equal((await inspect()).mode,'play');
+  await page.locator('#campaign-field-menu').click();
+  await page.waitForFunction(()=>window.__campaign?.inspect().mode==='rpgmenu');
+  // The existing Ghost Signal gamepad B bridge calls game.onResume().
+  await page.evaluate(()=>window.__gs.onResume());
+  assert.equal((await inspect()).mode,'play');
+  assert.equal(await page.locator('#rpg-lab-menu').isVisible(),false);
   await page.keyboard.press('KeyE'); // No object yet adjacent: no accidental scene.
   assert.equal((await inspect()).story,null);
   await page.locator('#btn-pause').click();
