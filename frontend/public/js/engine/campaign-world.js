@@ -1,6 +1,7 @@
 // Data-driven campaign map graph and Ghost Signal mission adapter.
 // PRIVATE campaign geometry/actors/story triggers are installed offline, never in source.
 // Preserves the original Game, UI, saves, and noncanonical engine test routes.
+import {createCampaignTransmissionPainter} from './campaign-transmission-markers.js';
 const dir = new Set(['up','down','left','right']);
 const idOk = x => typeof x==='string' && /^[A-Za-z][A-Za-z0-9_-]{0,95}$/.test(x) &&
   !['__proto__','prototype','constructor'].includes(x);
@@ -144,7 +145,7 @@ export function auditCampaignPortalApproaches(world){
 
 export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=()=>{},onInteract=()=>{},
   onTrigger=()=>{},onEnter=()=>{},onUpdate=()=>{}}={}){
-  const graph=compileCampaignWorld(world),missions=new Map();
+  const graph=compileCampaignWorld(world),transmission=createCampaignTransmissionPainter(graph),missions=new Map();
   const missionForSync=id=>{
     if(missions.has(id))return missions.get(id);
     const source=graph.get(id);
@@ -177,7 +178,10 @@ export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=(
           (!t.requiresNotFlag||getWorld()?.flags?.[t.requiresNotFlag]!==true));
         if(!hit)lastTrigger=null;
         else if(hit.id!==lastTrigger){lastTrigger=hit.id;onTrigger(hit,g);}
-        if(g.mode==='play')onUpdate(g,dt);
+        if(g.mode==='play'){
+          transmission.paint(g,getWorld()?.flags);
+          onUpdate(g,dt);
+        }
       },
       migrate(g){
         const flags=getWorld()?.flags||{};
