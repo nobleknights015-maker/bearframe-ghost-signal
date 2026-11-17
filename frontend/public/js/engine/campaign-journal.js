@@ -13,6 +13,14 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
   if(!starterOK(starterId))throw new TypeError('Campaign starter must be an approved A-D identity');
   const graph=compileCampaignWorld(worldSpec);
   const combatGates=compileCampaignEncounterGates(worldSpec,content);
+  const sourceEncounters=new Map((content.encounters||[]).map(e=>[e.id,e]));
+  const declaredFlags=new Set(content.flagSchema?.gameplay_flags||[]);
+  const sourceBattleAllowed=(id,mapId)=>{
+    const source=sourceEncounters.get(id);
+    return !!source&&(!source.kind||['battle','boss'].includes(source.kind))&&
+      (!source.area||source.area===mapId)&&
+      (!source.set_flag||(idOK(source.set_flag)&&declaredFlags.has(source.set_flag)));
+  };
   if(content?.schemaVersion!==1||!Array.isArray(content.scenes)||content.revision!==worldSpec.campaignRevision)
     throw new TypeError('Campaign and layout revisions disagree');
   const db=createRpgSaveStore(storage,'bearframe_aeon_campaign_'+starterId+'_v1');
@@ -46,7 +54,7 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
     // exploration record, not a new or incompatible save format.
     if(next.battle!==undefined){
       const b=next.battle;
-      if(!b||!idOK(b.encounterId)||!content.encounters?.some(e=>e.id===b.encounterId)||
+      if(!b||!idOK(b.encounterId)||!sourceBattleAllowed(b.encounterId,next.mapId)||
          b.session?.phase!=='battle'||b.session?.handoff?.encounter?.id!==b.encounterId||
          b.session?.exploration?.location?.mapId!==next.mapId||
          b.field?.mission!==next.mapId)return false;
@@ -119,7 +127,7 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
     setEncounterOutcome,canComplete,
     beginBattle(encounterId,session,field){
       if(!record||record.battle||!idOK(encounterId)||
-         !content.encounters?.some(e=>e.id===encounterId)||
+         !sourceBattleAllowed(encounterId,record.mapId)||
          record.world.encounters?.[encounterId]?.outcome==='victory'||
          session?.phase!=='battle'||session?.handoff?.encounter?.id!==encounterId||
          session?.exploration?.location?.mapId!==record.mapId||
@@ -140,11 +148,18 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
       if(!record?.battle||session?.phase!=='exploration'||
          !['victory','fled','defeat'].includes(session.event?.outcome))return false;
       const encounterId=record.battle.encounterId,world=copy(session.exploration);
+      if(!sourceBattleAllowed(encounterId,record.mapId))return false;
       if(world.starterId!==starterId||world.story_schema!==2||
          world.location?.mapId!==record.mapId||
          JSON.stringify(world.narrative)!==JSON.stringify(record.world.narrative)||
          record.world.encounters?.[encounterId]?.outcome==='victory')return false;
       world.encounters={...(record.world.encounters||{}),[encounterId]:{outcome:session.event.outcome}};
+      // Only a completed, source-authorized battle grants its screenplay
+      // milestone. Record the flag in the exact SAME atomic journal save as
+      // HP/EP, rewards and outcome; flee/defeat never silently unlock quests.
+      const authoredFlag=sourceEncounters.get(encounterId)?.set_flag;
+      if(session.event.outcome==='victory'&&authoredFlag)
+        world.flags={...(world.flags||{}),[authoredFlag]:true};
       // Match the established RPG field-recovery contract: a defeated party
       // can still move and recover rather than loading into a permanent softlock.
       if(session.event.outcome==='defeat')for(const unit of world.party)
