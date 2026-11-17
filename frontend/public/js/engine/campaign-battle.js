@@ -92,7 +92,8 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
   function afterSaved(visual,actions){
     sideView.playActions(actions);
     sideView.setBattle(visual,currentCombatant(visual));
-    draw();
+    if(session.phase==='battle')draw();
+    else panel.replaceChildren(make('h2','ENCOUNTER RESULT PENDING'),sideView.canvas);
     busy=true;
     const finish=()=>{
       if(sideView.isPresenting){requestAnimationFrame(finish);return;}
@@ -193,11 +194,11 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
       'RESULT SAVED // XP AND SALVAGE RECORDED':
       outcome==='fled'?'WITHDRAWAL SAVED // FIELD RECORD RESTORED':
       'FRAME DISABLED // FIELD RECOVERY RECORDED'));
+    // Capture the source encounter before close() resets active presentation.
+    const id=encounter?.id;
     const b=button('RETURN TO FIELD',()=>{
-      const done=close();if(done&&outcome==='victory')onSavedVictory(encounter?.id);
+      if(close()&&outcome==='victory')onSavedVictory(id);
     });
-    // Capture encounter id before close() resets the active encounter.
-    const id=encounter?.id;b.onclick=()=>{if(close()&&outcome==='victory')onSavedVictory(id);};
     panel.append(b);b.focus();
   }
   return Object.freeze({
