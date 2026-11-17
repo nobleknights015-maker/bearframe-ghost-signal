@@ -4,7 +4,7 @@
 import {readFile} from 'node:fs/promises';
 import {resolve,join,relative,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {compileCampaignWorld} from '../public/js/engine/campaign-world.js';
+import {compileCampaignWorld,auditCampaignPortalApproaches} from '../public/js/engine/campaign-world.js';
 import {compileCampaignEncounterGates} from '../public/js/engine/campaign-encounter-gates.js';
 import {compileCampaignCombatStaging} from '../public/js/engine/campaign-combat-staging.js';
 import {worldSheetSpec,mapV5Art} from '../public/js/engine/aeon-v5-bridge.js';
@@ -164,6 +164,10 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
     }
     report.counts.reachableAreas=reachable.size;
     if(profile==='release')error(problems,'UNREACHABLE_AUTHORED_AREAS',graph.ids.length-reachable.size);
+    // Topological links can be reciprocal yet still physically unreachable
+    // behind static walls. This is a real softlock for ANY review/play build.
+    const approaches=auditCampaignPortalApproaches(world);
+    error(problems,'UNWALKABLE_PORTAL_APPROACHES',approaches.inaccessiblePortals);
   }
   try{gates=compileCampaignEncounterGates(world,content);
     report.counts.mandatoryBattles=gates.ordered.length;
