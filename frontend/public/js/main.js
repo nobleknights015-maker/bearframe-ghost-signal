@@ -29,7 +29,7 @@ function refreshTouch() { ui.show('touch', touchMode() && game.mode !== 'title' 
 function showTitle() {
   game.mode = 'title'; ['pause', 'settings', 'ending', 'hud', 'dialog', 'terminal'].forEach(id => ui.show(id, false));
   ['casefile'].forEach(id => ui.show(id, false));
-  ui.show('title', true); $('btn-continue').disabled = !store.load(); ui.show('btn-m2', !!store.loadProgress().unlocked.m2); refreshTouch();
+  ui.show('title', true); $('btn-continue').disabled = !store.load(); ui.show('btn-m2', !!store.loadProgress().unlocked.m2); ui.show('btn-m3', !!store.loadProgress().unlocked.m3); refreshTouch();
 }
 function titleSprite(now) {
   const c = $('title-sprite').getContext('2d'), f = IDLE0 + (Math.floor(now / 320) % IDLEN); c.clearRect(0, 0, FW, FH); c.drawImage(game.sheet, f * FW, 0, FW, FH, 0, 0, FW, FH);
@@ -41,7 +41,7 @@ function begin(snap, missionId) {
   ui.fade(true);
   game.start(MISSIONS[id], snap, carry); refreshTouch();
   setTimeout(() => ui.fade(false), 120);
-  if (!snap) { $('card-num').textContent = 'MISSION ' + (id === 'm2' ? '02' : '01'); $('card-title').textContent = MISSIONS[id].title; const cd = $('card'); cd.classList.remove('play'); void cd.offsetWidth; cd.classList.add('play'); }
+  if (!snap) { $('card-num').textContent = 'MISSION ' + (id === 'm3' ? '03' : id === 'm2' ? '02' : '01'); $('card-title').textContent = MISSIONS[id].title; const cd = $('card'); cd.classList.remove('play'); void cd.offsetWidth; cd.classList.add('play'); }
   try { if (coarse && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {}); } catch (_) {}
 }
 
@@ -52,6 +52,7 @@ game.onEnd = (g) => {
   const mm = String(Math.floor(time / 60)).padStart(2, '0'), ss = String(Math.floor(time % 60)).padStart(2, '0');
   $('ending-title').textContent = e.title;
   $('ending-stats').textContent = `TIME INSIDE ............. ${mm}:${ss}\nSCANNER PULSES .......... ${stats.scans}\nSECURITY UNIT CONTACTS .. ${stats.hits}\nCHECKPOINT RESTORES ..... ${stats.restores}\n` + e.lines.join('\n');
+  if (g.m.next) $('btn-next').textContent = 'PROCEED TO MISSION ' + (g.m.next === 'm3' ? '03' : '02');
   ui.show('btn-next', !!g.m.next); ui.show('ending', true); refreshTouch();
 };
 
@@ -63,6 +64,7 @@ $('btn-save').onclick = () => { $('pause-note').textContent = game.checkpoint(tr
 $('btn-quit').onclick = () => { game.checkpoint(true); showTitle(); };
 $('btn-ending-title').onclick = showTitle;
 $('btn-m2').onclick = () => begin(null, 'm2');
+$('btn-m3').onclick = () => begin(null, 'm3');
 $('btn-next').onclick = () => begin(null, game.m.next);
 $('btn-case').onclick = () => game.openCase();
 $('btn-pause-case').onclick = () => game.openCase();
