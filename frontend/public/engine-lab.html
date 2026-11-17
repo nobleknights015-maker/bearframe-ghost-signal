@@ -20,6 +20,14 @@
     .choices a[hidden]{display:none}
     .choices a:focus-visible,.choices a:active{outline:2px solid #ff3b30;background:#3b1516}
     footer{font-size:calc(var(--u)*9);color:#ff3b30;text-align:center}
+    .owner-import{display:flex;align-items:center;flex-direction:column;gap:calc(var(--u)*3);
+      max-width:94%;text-align:center}
+    .owner-import label{border:1px solid #66707a;padding:calc(var(--u)*5);
+      color:#dcd6d8;background:#18191b;font:inherit;font-size:calc(var(--u)*9);
+      cursor:pointer;letter-spacing:.03em}
+    .owner-import label:focus-visible{outline:2px solid #ff3b30}
+    .owner-import small{font-size:calc(var(--u)*7);color:#9a959c}
+    .owner-import input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
   </style>
 </head>
 <body>
@@ -34,6 +42,12 @@
       <a href="index.html">ORIGINAL GHOST SIGNAL</a>
       <a href="studio/">SPRITE STUDIO</a>
     </nav>
+    <div class="owner-import" id="owner-aeon-import">
+      <label for="owner-aeon-zip" tabindex="0">IMPORT OWNER-PRIVATE AEON ZIP (ANDROID DEBUG)</label>
+      <input id="owner-aeon-zip" type="file" accept=".zip,application/zip,application/x-zip-compressed"
+        aria-label="Choose trusted Aeon owner-private campaign ZIP"/>
+      <small>LOCAL ONLY · JSON/PNG DATA · NEVER UPLOADED TO GITHUB</small>
+    </div>
     <footer id="campaign-install-status">AEON MODES REQUIRE OWNER-INSTALLED V5 ART; CAMPAIGN REVIEW ALSO REQUIRES APPROVED STORY AND MAPS</footer>
   </main>
   <script>
