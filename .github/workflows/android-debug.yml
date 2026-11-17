@@ -6,6 +6,12 @@ on:
       - 'android/**'
       - 'frontend/public/**'
       - '.github/workflows/android-debug.yml'
+  pull_request:
+    branches: [ghost-signal-engine]
+    paths:
+      - 'android/**'
+      - 'frontend/public/**'
+      - '.github/workflows/android-debug.yml'
   workflow_dispatch:
 concurrency:
   group: ghost-signal-android-${{ github.ref }}
@@ -57,35 +63,13 @@ jobs:
             echo "Gradle download failed from external repository. Backoff before retry $((attempt+1))."
             sleep $((attempt * 35))
           done
+      - name: Verify packaged gameplay bytes and exclude owner-only assets
+        run: bash android/ci/verify-apk-assets.sh
       - uses: actions/upload-artifact@v4
         with:
           name: ghost-signal-engine-android-debug
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          retention-days: 7
-
-      - name: Emulator install and launch smoke (not physical acceptance)
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          profile: pixel_2
-          # Runner's automatic animation-settings ADB command failed (exit 224)
-          # after boot, before our smoke script could run. Avoid that setup path;
-          # the test itself checks launch/restart and does not depend on animations.
-          disable-animations: false
-          emulator-boot-timeout: 600
-          script: bash android/ci/emulator-smoke.sh
-      - name: Upload emulator launch screenshot
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ghost-signal-emulator-launch
-          path: |
-            ghost-signal-emulator-launch.png
-            ghost-signal-emulator-restart.png
-            ghost-signal-emulator-resume.png
-          if-no-files-found: ignore
           retention-days: 7
 
       - name: Record Android build result in engine evidence issue
@@ -97,4 +81,56 @@ jobs:
           BUILD_SHA: ${{ github.sha }}
           BUILD_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue comment 2 --body "Ghost Signal Android debug APK CI: **${BUILD_RESULT}** · source \`${BUILD_SHA}\` · [Build run / artifacts](${BUILD_RUN_URL}). This includes an Android emulator install/launch smoke when the job succeeds, NOT physical Moto G, real controller, lifecycle or production-signing acceptance."
+          gh issue comment 2 --body "Ghost Signal Android APK assemble+payload gate: **${BUILD_RESULT}** · source \`${BUILD_SHA}\` · [Build run / artifacts](${BUILD_RUN_URL}). This verifies assembled APK files/source parity and excludes private art; emulator is a separate job. It is NOT physical Moto G or production acceptance."
+
+  emulator:
+    # Isolate AVD startup from Gradle/SDK setup to avoid overloaded ADB
+    # transports on a single runner. Only the exact verified artifact is used.
+    needs: assemble
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ghost-signal-engine-android-debug
+          path: android/app/build/outputs/apk/debug
+      - name: Verify downloaded APK matches checkout
+        run: bash android/ci/verify-apk-assets.sh
+      - name: Emulator install and launch smoke (not physical acceptance)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          # An earlier shared build/emulator job hit an ADB input-service
+          # broken pipe before the smoke script even started. Fresh runner,
+          # cold AVD, software GPU and no snapshots reduce infra instability.
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -camera-front none
+          disable-animations: false
+          emulator-boot-timeout: 900
+          script: bash android/ci/emulator-smoke.sh
+      - name: Upload emulator lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-emulator-launch
+          path: |
+            ghost-signal-emulator-launch.png
+            ghost-signal-emulator-restart.png
+            ghost-signal-emulator-resume.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Record emulator result independently
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TEST_RESULT: ${{ job.status }}
+          BUILD_SHA: ${{ github.sha }}
+          EMULATOR_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue comment 2 --body "Ghost Signal Android emulator/lifecycle gate: **${TEST_RESULT}** · source \`${BUILD_SHA}\` · [Workflow / screenshots](${EMULATOR_RUN_URL}). The APK was independently assembled and source-verified. Emulator success is NOT physical Moto G, controller, gameplay-content, private-art or production-signing acceptance."
