@@ -368,7 +368,7 @@ export class Game {
       c.save();
       c.imageSmoothingEnabled=false;
       // Keep the owner PNG's original 32px pixel grid aligned as camera pans.
-      c.translate(-((cx*.45)%T),-((cy*.45)%T));
+      c.translate(-Math.round((cx*.45)%T),-Math.round((cy*.45)%T));
       c.fillStyle=this.ownerTerrainPattern;
       c.fillRect(-T,-T,VW+2*T,VH+2*T);
       c.restore();
