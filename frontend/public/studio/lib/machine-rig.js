@@ -1,3 +1,4 @@
+import {evaluateUnit} from './unit-families.js';
 // Bearframe Machine Rig — generic skeletal, multi-part pixel-art rasteriser for machines of any size or shape
 // (humanoid titans, quadrupeds, hexapods, flyers, drones, bosses, structures). No dependencies beyond sprite-rig's outline.
 //
@@ -32,7 +33,8 @@ function evalPart(rig, p, type, i, n) {
   if (p.rm != null) { const dv = rot - (p.r || 0); y -= p.rm > 0 ? Math.max(0, dv) * p.rm : Math.abs(dv) * -p.rm; rot = p.r || 0; } // front/back views: swing becomes lift
   const glow = Math.max(0, Math.min(1, .6 + osc('glow') + (ch.glowTo || 0) * ez - (ch.flick && h2(i, 3, sd) > .5 ? ch.flick : 0)));
   const spin = TAU * 3 / (p.seg || 12) * (ch.spin || 0) * t + (ch.spinJit ? (h2(i, 5, sd) - .5) * ch.spinJit : 0);
-  return { rot, x, y, glow, spin, sway: TAU * t + sd, tt: t };
+  const material=rig.materialPhase??t;
+  return { rot, x, y, glow:rig.poseGlow?.[p.id]??glow, spin, off:rig.poseGlow?.[p.id]===0, sway: TAU * material + sd, tt: material };
 }
 
 function shadePlate(p, u, v, w, h, e, K, M, T, pal, W, sd, taper) {
@@ -53,6 +55,25 @@ function shadePlate(p, u, v, w, h, e, K, M, T, pal, W, sd, taper) {
   if (w >= 10 && h >= 12 && v > h * .64 && v < h * .86 && Math.abs(cu) < hw * .5 && pv % 3 === 0) col = T[3];
   if (W.rust) { const b = h2(Math.floor(u / 3), Math.floor(v / 3), sd + 9); if (b > 1 - W.rust * .26) col = n > .5 ? pal.rust[1] : pal.rust[2]; else if (b > 1 - W.rust * .42 && n > .55) col = pal.rust[2]; }
   if (W.wear && n < W.wear * .06) col = T[3];
+  if (W.moss && p.m && v < h2(Math.floor(u * K / 2), 0, sd + 5) * W.moss * p.m * 5) col = n > .4 ? pal.moss[1] : pal.moss[2];
+  return col;
+}
+// Styling changes only the procedural surface, never the part transform or texture pixels.
+function shadeSleekPlate(p, u, v, w, h, e, K, M, T, pal, W, sd, taper) {
+  if (w < 4 || h < 4) return shadePlate(p, u, v, w, h, e, K, M, T, pal, W, sd, taper);
+  const t = v / h, cu = u - w / 2;
+  const profile = taper != null ? 1 - (1 - taper) * t : h > w * 1.2 ? 1 - .18 * Math.max(0, (t - .4) / .6) : 1;
+  const hw = w / 2 * profile, dl = cu + hw, dr = hw - cu, dt = v, db = h - v;
+  const ch = Math.min(w * .2, h * .18, 3);
+  if (dl < 0 || dr < 0 || dl + dt < ch || dr + dt < ch || dl + db < ch || dr + db < ch) return null;
+  const d = Math.min(dl, dr, dt, db), pu = Math.floor(u * K), pv = Math.floor(v * K), n = h2(pu, pv, sd);
+  const nx = d === dl ? -1 : d === dr ? 1 : 0, ny = d === dt ? -1 : d === db ? 1 : 0;
+  const lit = (M.c * nx - M.s * ny) * -.6 + (M.s * nx + M.c * ny) * -.8 > 0;
+  let col = d < e ? (lit ? T[0] : T[3]) : cu / hw + t * .6 > .7 ? T[2] : T[1];
+  // Preserve age and damage controls with larger rust clusters and fewer isolated specks.
+  if (W.rust && h2(Math.floor(u / 3), Math.floor(v / 3), sd + 9) > 1 - W.rust * .26) col = n > .5 ? pal.rust[1] : pal.rust[2];
+  if (W.wear && n < W.wear * .035) col = T[3];
+  if (W.wear && d < e && h2(pu >> 1, pv >> 1, sd + 3) < W.wear * .2) return null;
   if (W.moss && p.m && v < h2(Math.floor(u * K / 2), 0, sd + 5) * W.moss * p.m * 5) col = n > .4 ? pal.moss[1] : pal.moss[2];
   return col;
 }
@@ -95,12 +116,13 @@ function shadeBanner(p, u, v, w, h, e, K, T, pal, st, W, sd) {
   const col = Math.floor(uu * K), pv = Math.floor(v * K); if (v > h * (.7 + .3 * h2(col >> 1, 3, sd))) return null;
   if (W.wear && v > h * .3 && h2(col >> 1, pv >> 1, sd) < W.wear * .08) return null;
   if (p.g) { const cx = Math.abs(uu - w / 2), cy = Math.abs(v - h * .4), dd = cx + cy; if (dd < w * .3 && dd > w * .16) return pal[p.g][1]; if (dd < e) return pal[p.g][1]; }
-  const f = Math.sin(uu * 1.3 + st.sway * .7 + v * .12);
+  const f = Math.sin(uu * 1.3 + (p.closedLoop ? TAU * st.tt + sd * .7 : st.sway * .7) + v * .12);
   return v < e ? T[0] : f > .5 ? T[3] : f < -.6 ? T[0] : uu > w * .7 ? T[2] : T[1];
 }
 function shadeGlass(p, u, v, w, h, e, K, pal, L, st, sd) {
   if (u < 0 || u >= w || v < 0 || v >= h) return null; const G = pal[p.g || 'glow'], B = pal.brass;
   if (Math.min(u, w - u) < e) return B[2]; if (v < e || h - v < e) return B[3]; if ((v / h * 5) % 1 < .1) return B[1];
+  if (st.off) return pal.under[1];
   const cp = Math.floor(u * K), ds = Math.abs(v - st.tt * h), lv = L + (ds < 2 ? .5 : 0) + (h2(cp, Math.floor(v * K / 2) + Math.floor(st.tt * 8), sd) > .8 ? .3 : 0);
   return cp % 3 === 0 ? (lv > .7 ? G[0] : G[1]) : lv > .95 ? G[0] : lv > .45 ? G[1] : lv > .12 ? G[2] : G[3];
 }
@@ -116,19 +138,28 @@ function shadeTex(rig, p, u, v, L) {
 }
 // Renders one frame. Returns pivot markers [{id,x,y}] in frame pixels (for rig overlays / part picking).
 export function renderRig(ctx, rig, dir, type, i, n, fw, fh, opts = {}) {
+  rig=evaluateUnit(rig,dir,type,i,n);
   let view = rig.views[dir], flip = false;
   if (!view) { if (dir === 'left' && rig.views.right) { view = rig.views.right; flip = true; } else if (dir === 'right' && rig.views.left) { view = rig.views.left; flip = true; } else view = rig.views.right || rig.views.down || Object.values(rig.views)[0]; }
   else if ((rig.flipViews || []).includes(dir)) flip = true;
+  if(opts.effects===false)view=view.filter(p=>!p.id.startsWith('battle.fx.'));
   const K = Math.min(fw / rig.w, fh / rig.h), offX = Math.round((fw - rig.w * K) / 2), offY = Math.round(fh - rig.h * K), e = 1 / K;
   const pal = {}, palD = {}; for (const k in DEFAULT_COLORS) { const t = tones(hex((rig.colors || {})[k] || DEFAULT_COLORS[k])); pal[k] = t; palD[k] = [t[1], t[2], t[3], mix(t[3], [0, 0, 0], .3)]; }
   const wz = rig.weather || {}, byId = new Map(view.map(p => [p.id, p])), Ms = new Map();
+  const active=new Set();
   const world = p => {
-    let M = Ms.get(p.id); if (M) return M; const st = evalPart(rig, p, type, i, n), par = p.p && byId.get(p.p) && p.p !== p.id ? world(byId.get(p.p)) : null;
+    if(active.has(p.id))throw Error('Parent cycle at '+p.id);active.add(p.id);
+    let M = Ms.get(p.id); if (M) {active.delete(p.id);return M;} const st = evalPart(rig, p, type, i, n), par = p.p && byId.get(p.p) && p.p !== p.id ? world(byId.get(p.p)) : null;
     const a = (par ? par.a : 0) + st.rot * Math.PI / 180, tx = par ? par.tx + par.c * st.x - par.s * st.y : st.x, ty = par ? par.ty + par.s * st.x + par.c * st.y : st.y;
-    M = { a, c: Math.cos(a), s: Math.sin(a), tx, ty, st }; Ms.set(p.id, M); return M;
+    M = { a, c: Math.cos(a), s: Math.sin(a), tx, ty, st }; Ms.set(p.id, M); active.delete(p.id);return M;
   };
   const marks = () => view.map(p => { const M = world(p), x = M.tx * K + offX; return { id: p.id, x: flip ? fw - x : x, y: M.ty * K + offY }; });
+  if(opts.boundsOnly){
+    const points=[];for(const p of view){const M=world(p),ox=p.ox??p.w/2,oy=p.oy??0,mg=['cable','banner'].includes(p.s)?Math.max(3,p.amp||0):0;for(const [x,y] of [[-ox-mg,-oy],[p.w-ox+mg,-oy],[-ox-mg,p.h-oy],[p.w-ox+mg,p.h-oy]]){const xx=M.tx+M.c*x-M.s*y,yy=M.ty+M.s*x+M.c*y;points.push({x:flip?rig.w-xx:xx,y:yy});}}
+    return {left:Math.min(...points.map(p=>p.x))-2,top:Math.min(...points.map(p=>p.y))-2,right:Math.max(...points.map(p=>p.x))+2,bottom:Math.max(...points.map(p=>p.y))+2};
+  }
   if (opts.pivotsOnly) return marks();
+  if(opts.sockets)return opts.sockets.map(s=>{const part=byId.get(s.part);if(!part)throw Error('Missing action socket '+s.part);const M=world(part),sx=(s.x||0),sy=(s.y||0),x=(M.tx+M.c*sx-M.s*sy)*K+offX,y=(M.ty+M.s*sx+M.c*sy)*K+offY;return {name:s.name,x:flip?fw-x:x,y};});
   const img = new ImageData(fw, fh), D = img.data;
   const order = view.map((p, k) => [p, k]).sort((A, B) => ((A[0].z || 0) - (B[0].z || 0)) || A[1] - B[1]);
   for (const [p] of order) {
@@ -146,7 +177,7 @@ export function renderRig(ctx, rig, dir, type, i, n, fw, fh, opts = {}) {
       else if (p.s === 'disc') col = shadeDisc(p, u, v, w, h, e, K, M, T, P2, L);
       else if (p.s === 'ring') col = shadeRing(p, u, v, w, h, e, K, T, P2, L, M.st, W, sd);
       else if (p.s === 'glass') col = shadeGlass(p, u, v, w, h, e, K, P2, L, M.st, sd);
-      else col = shadePlate(p, u, v, w, h, e, K, M, T, P2, W, sd, p.s === 'taper' ? (p.t ?? .1) : null);
+      else col = (rig.style === 'sleek' ? shadeSleekPlate : shadePlate)(p, u, v, w, h, e, K, M, T, P2, W, sd, p.s === 'taper' ? (p.t ?? .1) : null);
       if (col) { const o = (py * fw + px) * 4; D[o] = col[0]; D[o + 1] = col[1]; D[o + 2] = col[2]; D[o + 3] = 255; }
     }
   }

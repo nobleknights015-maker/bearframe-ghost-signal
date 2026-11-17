@@ -1,3 +1,5 @@
+import {clipTiming} from './clip-timing.js';
+import {validateRig} from './rig-safety.js';
 // Bearframe sprite project model + sheet import/export helpers. No dependencies; reusable outside the Studio.
 // A project holds two independent sprite SETS: "exploration" (4-direction overworld) and "battle" (turn-based).
 // Sheet layout: one row per direction in set.dirs, animations laid out left-to-right in set.anims order.
@@ -18,9 +20,18 @@ export function humanoidProject(name = 'humanoid', cfg = DEFAULT_CFG) {
   return p;
 }
 export function machineProject(name, rig) {
-  const p = base(name, 'machine'); p.rig = JSON.parse(JSON.stringify(rig)); p.tiles = rig.tiles || [1, 1];
+  validateRig(rig);const p = base(name, 'machine'); p.rig = JSON.parse(JSON.stringify(rig)); p.tiles = rig.tiles || [1, 1];
   p.sets = { exploration: newSet(rig.w, rig.h, [...DIRS], [A('idle', 6, 6), A('walk', 8, 10), A('malfunction', 6, 10)]),
     battle: newSet(Math.round(rig.w * 1.5), Math.round(rig.h * 1.5), ['right', 'left'], [A('idle', 6, 6), A('attack', 6, 10), A('charge', 6, 10), A('hurt', 4, 10), A('malfunction', 6, 10), A('defeat', 6, 6)]) };
+  if(rig.clips){
+    for(const name of ['exploration','battle']){
+      const clips=rig.clips[name];if(!Array.isArray(clips)||!clips.length)throw Error('Missing supported '+name+' clips');
+      const names=new Set();for(const a of clips){if(!a||typeof a.name!=='string'||!a.name||names.has(a.name)||!Object.hasOwn(rig.anims,a.type)||!Number.isInteger(a.frames)||a.frames<1||a.frames>120||!Number.isFinite(a.fps)||a.fps<=0||a.fps>60)throw Error('Invalid supported clip');clipTiming(a);names.add(a.name);}
+      p.sets[name].anims=structuredClone(clips);
+    }
+  }
+  if(rig.battleSpec?.version===1)p.sets.battle.dirs=[...DIRS];
+  if(rig.groundAnchor)for(const s of Object.values(p.sets)){const k=Math.min(s.fw/rig.w,s.fh/rig.h);s.anchor={x:rig.groundAnchor.x*k,y:rig.groundAnchor.y*k};}
   return p;
 }
 export function cell(s, dir, anim, i) {
@@ -34,9 +45,19 @@ export function renameAnim(s, from, to) {
 }
 export function buildSheet(s, extra = {}) {
   const cv = document.createElement('canvas'); cv.width = s.fw * totalFrames(s); cv.height = s.fh * s.dirs.length; const c = cv.getContext('2d');
-  const meta = { generator: 'Bearframe Sprite Studio', ...extra, frameWidth: s.fw, frameHeight: s.fh, anchor: { x: s.fw / 2, y: s.fh }, rows: s.dirs, animations: {} }; let col = 0;
-  for (const a of s.anims) { meta.animations[a.name] = { type: a.type, start: col, count: a.frames, fps: a.fps }; for (let i = 0; i < a.frames; i++, col++) s.dirs.forEach((d, r) => c.drawImage(cell(s, d, a.name, i), col * s.fw, r * s.fh)); }
+  const meta = { generator: 'Bearframe Sprite Studio', ...extra, frameWidth: s.fw, frameHeight: s.fh, anchor: s.anchor || { x: s.fw / 2, y: s.fh }, rows: s.dirs, animations: {} }; let col = 0;
+  for (const a of s.anims) { meta.animations[a.name] = { type: a.type, start: col, count: a.frames, fps: a.fps, ...clipTiming(a) }; for (let i = 0; i < a.frames; i++, col++) s.dirs.forEach((d, r) => c.drawImage(cell(s, d, a.name, i), col * s.fw, r * s.fh)); }
   return { canvas: cv, meta };
+}
+// Bounded pages with explicit frame rectangles; the original strip exporter remains available.
+export function buildAtlasPages(s,extra={},limit=2048){
+ const cols=Math.floor(limit/s.fw),rows=Math.floor(limit/s.fh);if(cols<1||rows<1)throw Error('A frame exceeds the atlas page size');
+ const frames=[],clips={},items=[];for(const d of s.dirs)for(const a of s.anims){const list=clips[key(d,a.name,'frames')]=[];for(let i=0;i<a.frames;i++){list.push(items.length);items.push({d,a,i});}}
+ const pages=[],capacity=cols*rows;
+ for(let start=0;start<items.length;start+=capacity){const batch=items.slice(start,start+capacity),cv=document.createElement('canvas');cv.width=Math.min(cols,batch.length)*s.fw;cv.height=Math.ceil(batch.length/cols)*s.fh;const c=cv.getContext('2d'),page=pages.length;
+  batch.forEach(({d,a,i},j)=>{const x=(j%cols)*s.fw,y=Math.floor(j/cols)*s.fh;c.drawImage(cell(s,d,a.name,i),x,y);frames.push({direction:d,animation:a.name,index:i,type:a.type,page,x,y,w:s.fw,h:s.fh,durationMs:clipTiming(a).durationsMs[i]});});pages.push(cv);
+ }
+ return {pages,meta:{generator:'Bearframe Sprite Studio',format:'bearframe-paged-atlas',version:1,...extra,frameWidth:s.fw,frameHeight:s.fh,anchor:s.anchor||{x:s.fw/2,y:s.fh},pages:pages.map((c,i)=>({image:'page-'+i+'.png',w:c.width,h:c.height})),frames,clips,clipInfo:Object.fromEntries(s.anims.map(a=>[a.name,clipTiming(a)]))}};
 }
 // Slice an existing sheet into the set at 1:1 pixels. If its column count does not match the set's animations,
 // it is loaded as one animation called "sheet" so every frame stays editable.
@@ -51,18 +72,20 @@ export function importSheet(s, img, fw, fh) {
 // Change the canvas size without scaling: pixels stay 1:1, anchored at the feet (bottom-centre).
 export function resizeSet(s, fw, fh) {
   for (const [k, old] of s.cells) { const c = document.createElement('canvas'); c.width = fw; c.height = fh; c.getContext('2d').drawImage(old, Math.floor((fw - s.fw) / 2), fh - s.fh); s.cells.set(k, c); }
+  if(s.anchor)s.anchor={x:s.anchor.x+Math.floor((fw-s.fw)/2),y:s.anchor.y+fh-s.fh};
   s.fw = fw; s.fh = fh;
 }
 export function serialize(p) {
   const sets = {};
-  for (const n in p.sets) { const s = p.sets[n], cells = {}; for (const [k, c] of s.cells) cells[k] = c.toDataURL('image/png'); sets[n] = { fw: s.fw, fh: s.fh, dirs: s.dirs, anims: s.anims, edited: [...s.edited], cells }; }
+  for (const n in p.sets) { const s = p.sets[n], cells = {}; for (const [k, c] of s.cells) cells[k] = c.toDataURL('image/png'); sets[n] = { anchor:s.anchor, fw: s.fw, fh: s.fh, dirs: s.dirs, anims: s.anims, edited: [...s.edited], cells }; }
   return JSON.stringify({ format: FORMAT, version: 2, name: p.name, kind: p.kind, cfg: p.cfg, rig: p.rig, tiles: p.tiles, active: p.active, sets });
 }
 export async function deserialize(text) {
   const o = JSON.parse(text); if (o.format !== FORMAT) throw new Error('Not a Bearframe sprite project');
+  if(o.version!==1&&o.version!==2)throw Error('Unsupported sprite project version');if(o.kind==='machine')validateRig(o.rig);
   const p = { ...o, sets: {} }, jobs = [];
   for (const n in o.sets) {
-    const r = o.sets[n], s = newSet(r.fw, r.fh, r.dirs, r.anims); s.edited = new Set(r.edited || []); p.sets[n] = s;
+    const r = o.sets[n];for(const a of r.anims)if(a.loop!=null||a.durationsMs||a.events)clipTiming(a);const s = newSet(r.fw, r.fh, r.dirs, r.anims); if(r.anchor)s.anchor={...r.anchor};s.edited = new Set(r.edited || []); p.sets[n] = s;
     for (const [k, url] of Object.entries(r.cells || {})) jobs.push(new Promise(res => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = s.fw; c.height = s.fh; c.getContext('2d').drawImage(im, 0, 0); s.cells.set(k, c); res(); }; im.onerror = res; im.src = url; }));
   }
   await Promise.all(jobs); if (!p.sets[p.active]) p.active = Object.keys(p.sets)[0];

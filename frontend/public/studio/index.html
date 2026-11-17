@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bearframe Sprite Studio</title>
+  <title>Bearframe Sprite Studio — Sleek Copy</title>
   <link rel="stylesheet" href="studio.css" />
 </head>
 <body>
   <header>
-    <div class="brand">BEARFRAME <b>SPRITE STUDIO</b></div>
+    <div class="brand">BEARFRAME <b>SPRITE STUDIO</b> · SLEEK COPY</div>
     <input id="pname" data-testid="project-name" title="Project name" />
     <select id="set-sel" data-testid="set-select" title="Sprite set"><option value="exploration">Exploration set</option><option value="battle">Battle set</option></select>
     <select id="examples" data-testid="examples-select"><option value="">Open example…</option></select>
@@ -73,6 +73,13 @@
     <aside id="right">
       <h3>Preview <button id="play" data-testid="play-toggle">Pause</button></h3>
       <div id="pwrap"><canvas id="preview" data-testid="preview-canvas"></canvas></div>
+      <div id="preview-events" class="hint" aria-live="off"></div>
+      <details><summary data-testid="clip-timing-open">Timing &amp; events</summary>
+        <label class="chk"><input id="a-loop" data-testid="clip-loop" type="checkbox" /> Loop preview</label>
+        <label>Frame durations (ms)<input id="a-durations" data-testid="clip-durations" placeholder="Blank uses FPS; otherwise one value per frame" /></label>
+        <label>Event markers (JSON)<textarea id="a-events" data-testid="clip-events" rows="3" placeholder='[{"frame":0,"name":"foot.L.contact"}]'></textarea></label>
+        <div class="hint">Frame numbers start at 0. Custom durations override FPS. Markers are previewed and exported; they do not execute game actions here.</div>
+      </details>
       <div id="dirprev" data-testid="direction-previews"></div>
       <h3>Reference image <button id="btn-ref" data-testid="import-reference">Load</button><input type="file" id="file-ref" accept="image/*" hidden data-testid="file-reference" /></h3>
       <label class="mini"><input type="checkbox" id="ref-overlay" data-testid="ref-overlay" />Trace under canvas</label> <label class="mini">opacity <input id="ref-op" type="range" min="5" max="90" value="35" data-testid="ref-opacity" /></label>
