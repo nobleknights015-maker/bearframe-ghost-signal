@@ -149,7 +149,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
           setTimeout(()=>{
             if(game.m?.id===m.id&&game.mode==='play'){
               const next=content.scenes.find(s=>s.trigger===m.entryTrigger);
-              if(next)invoke(next.trigger,next.id);
+              invoke(m.entryTrigger,next?.id);
             }
           },0);
         },
