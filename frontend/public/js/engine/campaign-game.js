@@ -72,6 +72,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
       const field=await buildV5WorldSheet(manifest,starterId);
       const journal=createCampaignJournal({storage:localStorage,starterId,content,worldSpec,
         bootstrap:combatStaging?{party:combatStaging.roster(starterId),
+          activeParty:combatStaging.roster(starterId).slice(0,3).map(x=>x.id),
           progression:{xp:0}}:{party:[{id:'sleeper',artId:starterId}]}});
       if(continuing? !journal.load():!journal.newGame())throw new Error('Campaign journal could not be loaded/saved');
       // Add combat stats only from approved staging when continuing a legacy
@@ -84,6 +85,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
           if(savedWorld.party.length!==1||savedWorld.party[0].id!=='sleeper')
             throw new Error('Old party needs reviewed combat migration');
           savedWorld.party=combatStaging.roster(starterId);
+          savedWorld.activeParty=savedWorld.party.slice(0,3).map(x=>x.id);
           savedWorld.progression??={xp:0};
           if(!journal.commitWorld(savedWorld))throw new Error('Combat migration not saved');
         }
