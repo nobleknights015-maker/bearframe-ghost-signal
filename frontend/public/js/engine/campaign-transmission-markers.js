@@ -1,13 +1,13 @@
 // Private-campaign transmission markers for authored reciprocal map links.
 // Additive to the Ghost Signal field renderer: no mission edits, save changes,
 // collision edits, secret routes, imported assets, or replacement world artwork.
-import {compileCampaignWorld} from './campaign-world.js';
 
 const properties = entry => Array.isArray(entry)
   ? Object.fromEntries(entry.map(x=>[x.name,x.value])) : (entry||{});
 
-export function compileCampaignTransmissionMarkers(worldSpec){
-  const graph=compileCampaignWorld(worldSpec);
+export function compileCampaignTransmissionMarkers(graph){
+  if(!graph||!Array.isArray(graph.ids)||typeof graph.get!=='function')
+    throw new TypeError('Campaign transmission markers require a validated source graph');
   const byMap=new Map();
   for(const id of graph.ids){
     const map=graph.get(id);
@@ -71,11 +71,11 @@ function drawTransmission(ctx,marker){
  * No animation/frame allocations, original base tiles, UI skin or assets
  * are altered globally.
  */
-export function createCampaignTransmissionPainter(worldSpec){
-  const compiled=compileCampaignTransmissionMarkers(worldSpec);
+export function createCampaignTransmissionPainter(graph){
+  const compiled=compileCampaignTransmissionMarkers(graph);
   const painted=new WeakMap();
   function paint(game,flags={}){
-    const id=game?.m?.id,source=worldSpec?.maps?.find(m=>m.id===id);
+    const id=game?.m?.id,source=graph.get(id);
     const base=game?.base;
     if(!source||!base||typeof base.getContext!=='function'||
        base.width!==source.width*32||base.height!==source.height*32)return false;
