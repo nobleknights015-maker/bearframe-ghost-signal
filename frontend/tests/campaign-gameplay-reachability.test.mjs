@@ -37,7 +37,7 @@ test('Exact authored portal, NPC and story trigger are reachable from source sta
 });
 test('A reciprocal graph is NOT a guarantee of a walkable area exit',()=>{
  const spec=fixture(),w=spec.maps[0].width;
- for(let y=1;y<7;y++)collisions(spec.maps[0])[y*w+4]=1;
+ for(let y=1;y<7;y++)collisions(spec.maps[0])[y*w+3]=1;
  assert.doesNotThrow(()=>compileCampaignWorld(spec),'Legal route can still be physically unreachable');
  const qa=auditCampaignGameplayReachability(spec);
  assert.ok(qa.blocked.some(x=>x.mapId==='A00'&&x.kind==='portal'&&x.id==='east'));
@@ -55,7 +55,7 @@ test('New private structural maps opt into fail-closed preflight without modifyi
  approved.requiresNavigationQA=true;
  assert.doesNotThrow(()=>createCampaignMissionFactory(approved));
  const sealed=fixture();
- for(let y=1;y<7;y++)collisions(sealed.maps[0])[y*8+4]=1;
+ for(let y=1;y<7;y++)collisions(sealed.maps[0])[y*8+3]=1;
  sealed.requiresNavigationQA=true;
  assert.throws(()=>createCampaignMissionFactory(sealed),/inaccessible authored gameplay position/);
  // Old revision imports still load the original behavior when not opting in.
