@@ -17,6 +17,7 @@
       justify-content:center;padding:calc(var(--u)*5);border:1px solid #dcd6d8;
       text-decoration:none;color:#dcd6d8;background:#15181c;
       font-family:monospace;font-size:calc(var(--u)*10);text-align:center}
+    .choices a[hidden]{display:none}
     .choices a:focus-visible,.choices a:active{outline:2px solid #ff3b30;background:#3b1516}
     footer{font-size:calc(var(--u)*9);color:#ff3b30;text-align:center}
   </style>
@@ -27,14 +28,38 @@
     <p>DEVELOPMENT ONLY — SELECT ONE LIVE GAMEPLAY LAB</p>
     <nav class="choices" aria-label="Engine test modes">
       <a href="aeon.html">AEON UNIFIED ENGINE</a>
+      <a id="campaign-review" data-testid="campaign-review-link" href="campaign.html" hidden>AEON CAMPAIGN REVIEW</a>
       <a href="index.html?connected-lab=1">CONNECTED WORLD</a>
       <a href="index.html?rpg-lab=1">JRPG COMBAT</a>
       <a href="index.html">ORIGINAL GHOST SIGNAL</a>
       <a href="studio/">SPRITE STUDIO</a>
     </nav>
-    <footer>YOUR CAMPAIGN STORY IS NOT YET BUILT IN THIS TEST PACKAGE</footer>
+    <footer id="campaign-install-status">CAMPAIGN REVIEW REQUIRES OWNER-APPROVED OFFLINE ART AND STORY STAGING</footer>
   </main>
   <script>
+    (async function checkPrivateCampaign(){
+      const paths=[
+        'assets/aeon/asset-manifest.json',
+        'assets/aeon/story/campaign.json',
+        'assets/aeon/story/opening-world-review-candidate.json'
+      ];
+      try{
+        const [manifest,story,world]=await Promise.all(paths.map(async path=>{
+          const response=await fetch(path,{cache:'no-store'});
+          if(!response.ok)throw new Error('Private campaign files are not installed');
+          return response.json();
+        }));
+        if(manifest?.schema!=='aeon.asset-library.v4'||manifest.characters?.length!==42||
+           story?.schemaVersion!==1||world?.status!=='authored-blockout-review-candidate'||
+           world.campaignRevision!==story.revision||!world.layoutDigest)
+          throw new Error('Private campaign staging is not ready');
+        document.getElementById('campaign-review').hidden=false;
+        document.getElementById('campaign-install-status').textContent=
+          'OWNER-INSTALLED CAMPAIGN REVIEW // NOT FINAL STORY, ART OR ANDROID ACCEPTANCE';
+      }catch(_){
+        // Public APKs and unapproved installations keep the original test modes.
+      }
+    })();
     (function fit(){
       const s=Math.min(innerWidth/480,innerHeight/270);
       const stage=document.getElementById('stage');
