@@ -46,6 +46,35 @@ test('Doorway visuals are opt-in for three original engine-supported physical po
  assert.equal(compileCampaignDoorways(compileCampaignWorld(old)).forArea('A00')[0].type,
   'bulkhead','Unreviewed old passages use an industrial door, not invented final art');
 });
+test('Source-approved interior doors identify a real entrance and a return route',()=>{
+ const source=fixture();
+ const outbound=source.maps[0].layers[1].objects[0].properties;
+ outbound.portalLabel='ENTER SHELTER';
+ outbound.portalLockedLabel='SHELTER SEALED';
+ const inbound=source.maps[1].layers[1].objects[0].properties;
+ inbound.portalLabel='RETURN TO WASTELAND';
+ const doorways=compileCampaignDoorways(compileCampaignWorld(source));
+ assert.equal(doorways.label(doorways.forArea('A00')[0],{}),'SHELTER SEALED');
+ assert.equal(doorways.label(doorways.forArea('A00')[0],{relay_fixed:true}),'ENTER SHELTER');
+ assert.equal(doorways.label(doorways.forArea('A01')[0],{}),'RETURN TO WASTELAND');
+ assert.equal(doorways.forArea('A00')[0].type,'bulkhead');
+ assert.equal(doorways.forArea('A00')[0].portalId,'east');
+ assert.equal(compileCampaignDoorways(compileCampaignWorld(fixture())).label(
+  compileCampaignDoorways(compileCampaignWorld(fixture())).forArea('A01')[0],{}),
+ 'OPEN HATCH','No original door label or behavior is altered');
+});
+test('Private interior door labels reject injection, markup, controls and overlong text',()=>{
+ for(const unsafe of ['enter shelter','ENTER <SCRIPT>','ENTER\\nSHELTER',
+   'ENTER {SPOILER}', 'A'.repeat(49),'','\u0000']){
+  const source=fixture();
+  source.maps[0].layers[1].objects[0].properties.portalLabel=unsafe;
+  assert.throws(()=>compileCampaignDoorways(compileCampaignWorld(source)),/style, art binding or source identifier|invalid/i,
+    'Unapproved door label must reject: '+JSON.stringify(unsafe));
+ }
+ const source=fixture();
+ source.maps[0].layers[1].objects[0].properties.portalLockedLabel='\u0000';
+ assert.throws(()=>compileCampaignDoorways(compileCampaignWorld(source)),/invalid/);
+});
 test('Standing on portal tile never teleports; interacting with door does',()=>{
  const source=fixture(),calls=[],flags={};
  const f=createCampaignMissionFactory(source,{getWorld:()=>({flags}),
