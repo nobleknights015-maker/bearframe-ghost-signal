@@ -164,8 +164,13 @@ public final class MainActivity extends Activity {
                     Toast.makeText(MainActivity.this,
                         "Private campaign verified: " + installedMaps + " staged areas",
                         Toast.LENGTH_LONG).show();
-                    if (webView != null) webView.loadUrl(
-                        "https://appassets.androidplatform.net/engine-lab.html");
+                    if (webView != null) {
+                        // Replace cached PNG/JSON bytes after activating a new
+                        // approved owner package. This does not erase saves.
+                        webView.clearCache(true);
+                        webView.loadUrl(
+                            "https://appassets.androidplatform.net/engine-lab.html");
+                    }
                 } else {
                     Toast.makeText(MainActivity.this, failure, Toast.LENGTH_LONG).show();
                 }
