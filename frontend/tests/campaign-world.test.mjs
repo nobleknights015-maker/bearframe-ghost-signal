@@ -34,7 +34,9 @@ test('Binds exact triggers and private field entities without auto-completing sc
  assert.equal(world.w,10);assert.equal(world.h,8);
  assert.equal(world.grid[3*10+4],2);
  assert.equal(world.grid[0],0);
- assert.equal(m.entities().length,1);
+ assert.equal(m.entities().length,2,'Map source object plus physical portal doorway');
+ assert.equal(m.entities()[1].type,'bulkhead');
+ assert.equal(m.entities()[1].portalId,'east');
  assert.equal(m.label(m.entities()[0]),'ARCHIVED MACHINE');
  const g={mode:'play',player:{x:80,y:112,hidden:null},ents:m.entities()};
  m.onStart(g);
@@ -48,7 +50,12 @@ test('Binds exact triggers and private field entities without auto-completing sc
  m.update(g,.016);
  assert.equal(calls.filter(x=>x[0]==='trigger').length,1,'entry trigger is edge-driven, not fired every frame');
  g.player.x=272;m.update(g,.016);m.update(g,.016);
- assert.equal(calls.filter(x=>x[0]==='portal').length,1,'portal is edge-driven');
+ assert.equal(calls.filter(x=>x[0]==='portal').length,0,
+   'Stepping on a doorway tile must NEVER auto-transfer maps');
+ assert.equal(m.label(m.entities()[1]),'OPEN BULKHEAD');
+ m.interact(g.ents[1],g);
+ assert.deepEqual(calls.filter(x=>x[0]==='portal'),[['portal','east']],
+   'The physical doorway must respond to intentional interaction only');
  g.ents[0].gone=false;m.migrate(g);assert.equal(g.ents[0].gone,true);
 });
 test('Authored encounter-only area triggers do not require a synthetic story scene',()=>{
@@ -83,6 +90,12 @@ test('Gate metadata stays fail-closed and private world flags are not mutated',(
  const graph=compileCampaignWorld(c);
  assert.equal(graph.destination('A00','east').requiresFlag,'power_restored');
  assert.equal(graph.destination('A01','west').requiresFlag,undefined);
+ const door=createCampaignMissionFactory(c,{getWorld:()=>({flags:{power_restored:false}})})
+   .missionForSync('A00').entities()[1];
+ assert.equal(door.requiresFlag,'power_restored');
+ assert.equal(door.type,'bulkhead');
+ assert.equal(createCampaignMissionFactory(c,{getWorld:()=>({flags:{power_restored:false}})})
+   .missionForSync('A00').label(door),'SEALED BULKHEAD');
  const prior={flags:{power_restored:false}};
  const mission=createCampaignMissionFactory(c,{getWorld:()=>prior});
  const status=mission.missionForSync('A00').objectives();
