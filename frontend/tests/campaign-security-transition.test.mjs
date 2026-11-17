@@ -42,3 +42,20 @@ test('reserved property names cannot become security zone IDs',()=>{
   assert.throws(()=>transitionSecurity({}, {id,mode:'stealth'}),TypeError);
  }
 });
+
+test('late detection from old zone cannot trigger a battle after crossing a boundary',()=>{
+ const vault={id:'vault',mode:'stealth'};
+ const old={zoneId:'corridor',mode:'stealth',alert:false};
+ const late=transitionSecurity(old,vault,{kind:'encounter',zoneId:'corridor'});
+ assert.equal(late.consequence,'none');
+ assert.equal(late.alert,false);
+ assert.equal(late.zoneId,'vault');
+ assert.equal(late.entered,true);
+ const current=transitionSecurity(late,vault,{kind:'encounter',zoneId:'vault'});
+ assert.equal(current.consequence,'encounter');
+});
+test('late alarms cannot follow a player into normal exploration',()=>{
+ const result=transitionSecurity({zoneId:'corridor',alert:true},null,{kind:'alarm',zoneId:'corridor'});
+ assert.equal(result.consequence,'none');
+ assert.equal(result.alert,false);
+});
