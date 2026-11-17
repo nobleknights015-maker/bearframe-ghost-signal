@@ -6,6 +6,7 @@ on:
       - 'frontend/public/js/engine/campaign-*.js'
       - 'frontend/public/campaign.html'
       - 'frontend/tests/browser-campaign-opening.mjs'
+      - 'frontend/tests/browser-campaign-combat.mjs'
       - '.github/workflows/campaign-opening-browser.yml'
   pull_request:
     branches: [ghost-signal-engine]
@@ -13,6 +14,7 @@ on:
       - 'frontend/public/js/engine/campaign-*.js'
       - 'frontend/public/campaign.html'
       - 'frontend/tests/browser-campaign-opening.mjs'
+      - 'frontend/tests/browser-campaign-combat.mjs'
       - '.github/workflows/campaign-opening-browser.yml'
   workflow_dispatch:
 concurrency:
@@ -44,6 +46,8 @@ jobs:
           exit 1
       - name: Real browser starter, opening dialogue, saved Continue
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-campaign-opening.mjs
+      - name: Real browser reviewed combat gate, interruption and durable victory
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-campaign-combat.mjs
       - name: Upload useful diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -53,5 +57,8 @@ jobs:
             frontend/test-artifacts/campaign-opening-synthetic.png
             frontend/test-artifacts/campaign-opening-failure.png
             frontend/test-artifacts/campaign-opening-error.txt
+            frontend/test-artifacts/campaign-battle-synthetic.png
+            frontend/test-artifacts/campaign-battle-failure.png
+            frontend/test-artifacts/campaign-battle-error.txt
           if-no-files-found: ignore
           retention-days: 7
