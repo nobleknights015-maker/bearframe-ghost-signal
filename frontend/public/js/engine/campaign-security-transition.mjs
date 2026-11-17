@@ -4,6 +4,12 @@ export function transitionSecurity(previous, nextZone, detection = {kind:'none'}
   if (!previous || typeof previous !== 'object' || Array.isArray(previous)) throw new TypeError('invalid security state');
   if (!detection || !['none','alarm','chase','escape','checkpoint','encounter'].includes(detection.kind)) throw new TypeError('invalid detection result');
   if (nextZone !== null && (!nextZone || typeof nextZone.id !== 'string' || (!/^[A-Za-z][\w-]{0,95}$/.test(nextZone.id) || ['constructor','prototype','__proto__'].includes(nextZone.id)) || !['normal','stealth'].includes(nextZone.mode))) throw new TypeError('invalid security zone');
+  // A delayed detection from the previous map/zone must not trigger a
+  // consequence after the player has crossed into another security region.
+  if (detection.zoneId !== undefined && detection.zoneId !== null &&
+      (typeof detection.zoneId !== 'string' || detection.zoneId !== nextZone?.id)) {
+    detection = {kind:'none'};
+  }
   const zoneId = nextZone?.id ?? null;
   const mode = nextZone?.mode ?? 'normal';
   const entered = zoneId !== (previous.zoneId ?? null);
