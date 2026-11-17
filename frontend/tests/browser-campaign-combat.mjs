@@ -238,6 +238,14 @@ try{
   assert.equal((await inspect()).story,null,'Continue must not replay resolved narrative scenes');
   assert.equal(await page.evaluate(()=>window.__gs.player.x),48,
     'Continue must restore the saved destination position, not its area spawn');
+  // Even an in-page campaign remount must dispose stale side-view host,
+  // animation loop and controller DOM before installing the next one.
+  await page.evaluate(()=>document.getElementById('btn-new').click());
+  await page.locator('#aeon-v5-choose button[data-starter="sleeper_D"]').click();
+  await page.locator('#aeon-confirm').getByRole('button',{name:'REPLACE RECORD'}).click();
+  await page.waitForFunction(()=>window.__campaign?.inspect().story==='opening',null,{timeout:12000});
+  assert.equal(await page.locator('#rpg-lab-battle').count(),1,
+    'Only one battle overlay may survive an in-page campaign remount');
   assert.equal(errors.length,0,errors.join('\n'));
   await mkdir(artifacts,{recursive:true});
   await page.screenshot({path:join(artifacts,'campaign-battle-synthetic.png'),fullPage:true});
