@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Offline, non-spoiler static release preflight for OWNER-INSTALLED Aeon content.
 // This does not claim a full campaign or run proprietary story in public CI.
-import {readFile,open} from 'node:fs/promises';
+import {readFile} from 'node:fs/promises';
 import {resolve,join,relative,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {compileCampaignWorld} from '../public/js/engine/campaign-world.js';
@@ -20,21 +20,44 @@ const validFilePath=(root,path)=>{
   if(rel.startsWith('..')||isAbsolute(rel))throw new Error('Asset path escapes owner package');
   return full;
 };
+const CRC_TABLE=Array.from({length:256},(_,i)=>{
+  let c=i;
+  for(let j=0;j<8;j++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;
+  return c>>>0;
+});
+const crc32=data=>{
+  let c=0xffffffff;
+  for(const byte of data)c=CRC_TABLE[(c^byte)&255]^(c>>>8);
+  return (c^0xffffffff)>>>0;
+};
 async function pngSize(root,path){
-  const full=validFilePath(root,path),f=await open(full,'r');
-  try{
-    const stat=await f.stat();
-    if(!stat.isFile()||stat.size<45||stat.size>64*1024*1024)
-      throw new Error('PNG file missing or oversized');
-    const b=Buffer.alloc(24);
-    const {bytesRead}=await f.read(b,0,24,0);
-    if(bytesRead!==24||!b.subarray(0,8).equals(PNG_SIGNATURE)||
-       b.toString('ascii',12,16)!=='IHDR')
-      throw new Error('Not a readable PNG header');
-    const w=b.readUInt32BE(16),h=b.readUInt32BE(20);
-    if(w<1||h<1||w>16384||h>16384)throw new Error('Unsafe PNG dimensions');
-    return {width:w,height:h};
-  }finally{await f.close();}
+  const b=await readFile(validFilePath(root,path));
+  if(b.length<60||b.length>64*1024*1024||
+     !b.subarray(0,8).equals(PNG_SIGNATURE))
+    throw new Error('Unreadable PNG');
+  let position=8,head=null,hasPixels=false,ended=false;
+  while(position+12<=b.length){
+    const length=b.readUInt32BE(position);
+    if(length>b.length-position-12)throw new Error('Truncated PNG');
+    const type=b.toString('ascii',position+4,position+8);
+    const payload=b.subarray(position+8,position+8+length);
+    if(crc32(b.subarray(position+4,position+8+length))!==b.readUInt32BE(position+8+length))
+      throw new Error('PNG chunk checksum failed');
+    if(!head){
+      if(type!=='IHDR'||length!==13)throw new Error('Missing PNG header');
+      const width=payload.readUInt32BE(0),height=payload.readUInt32BE(4);
+      if(width<1||height<1||width>16384||height>16384)
+        throw new Error('Unsafe PNG dimensions');
+      head={width,height};
+    }else if(type==='IDAT')hasPixels=true;
+    else if(type==='IEND'){
+      if(length!==0||position+12!==b.length)throw new Error('Invalid PNG end');
+      ended=true;break;
+    }
+    position+=12+length;
+  }
+  if(!head||!hasPixels||!ended)throw new Error('Incomplete PNG image');
+  return head;
 }
 async function readJSON(root,path){
   return JSON.parse(await readFile(validFilePath(root,path),'utf8'));
