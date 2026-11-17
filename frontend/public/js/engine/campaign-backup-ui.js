@@ -107,7 +107,8 @@ export function mountCampaignBackupUI({title,storage,content,worldSpec,
     updateChoices();message('SAVE TRANSFER READY — NO EXISTING RECORDS HAVE BEEN ALTERED');
     original.classList.add('hidden');
     transfer.classList.remove('hidden');
-    chooser.querySelector('button:not(:disabled)')?.focus()||closeButton.focus();
+    const first=chooser.querySelector('button:not(:disabled)')||closeButton;
+    first.focus();
   }
   function close(){
     if(!openNow)return;
