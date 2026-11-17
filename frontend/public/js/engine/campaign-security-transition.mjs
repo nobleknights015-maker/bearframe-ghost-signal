@@ -7,7 +7,7 @@ export function transitionSecurity(previous, nextZone, detection = {kind:'none'}
   // A delayed detection from the previous map/zone must not trigger a
   // consequence after the player has crossed into another security region.
   if (detection.zoneId !== undefined && detection.zoneId !== null &&
-      (typeof detection.zoneId !== 'string' || detection.zoneId !== nextZone?.id)) {
+      (typeof detection.zoneId !== 'string' || detection.zoneId !== nextZone?.id || (detection.zoneMode !== undefined && detection.zoneMode !== nextZone?.mode))) {
     detection = {kind:'none'};
   }
   const zoneId = nextZone?.id ?? null;
