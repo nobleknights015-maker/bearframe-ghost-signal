@@ -16,6 +16,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -95,6 +97,28 @@ final class PrivateAeonAssets {
         }
     }
 
+    private static String sha256(File file) throws IOException {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (InputStream stream = new BufferedInputStream(new FileInputStream(file))) {
+                byte[] data = new byte[16384];
+                int n;
+                while ((n = stream.read(data)) != -1) digest.update(data, 0, n);
+            }
+            char[] alphabet = "0123456789abcdef".toCharArray();
+            byte[] bytes = digest.digest();
+            char[] hex = new char[bytes.length * 2];
+            for (int i = 0; i < bytes.length; i++) {
+                int v = bytes[i] & 0xff;
+                hex[i * 2] = alphabet[v >>> 4];
+                hex[i * 2 + 1] = alphabet[v & 0xf];
+            }
+            return new String(hex);
+        } catch (NoSuchAlgorithmException unavailable) {
+            throw new IOException("SHA-256 unavailable", unavailable);
+        }
+    }
+
     private static File required(File root, String path) throws IOException {
         File file = new File(root, path);
         String parent = root.getCanonicalPath() + File.separator;
@@ -133,8 +157,12 @@ final class PrivateAeonAssets {
 
     private static int validate(File root) throws IOException, JSONException {
         JSONObject manifest = readJson(required(root, "asset-manifest.json"));
-        JSONObject story = readJson(required(root, "story/campaign.json"));
+        File sourceStory = required(root, "story/campaign.json");
+        JSONObject story = readJson(sourceStory);
         JSONObject world = readJson(required(root, "story/opening-world-review-candidate.json"));
+        if (world.has("sourceDigest") &&
+                !world.getString("sourceDigest").equalsIgnoreCase(sha256(sourceStory)))
+            throw new IOException("Original Director's Cut source digest changed");
 
         if (!"aeon.asset-library.v4".equals(manifest.getString("schema"))
                 || story.getInt("schemaVersion") != 1
@@ -158,6 +186,7 @@ final class PrivateAeonAssets {
         if (characters.length() != 42)
             throw new IOException("Expected exactly 42 approved-structure characters");
         Set<String> ids = new HashSet<>();
+        Set<String> worldPaths = new HashSet<>(), battlePaths = new HashSet<>();
         for (int i = 0; i < characters.length(); i++) {
             JSONObject art = characters.getJSONObject(i);
             String id = art.getString("id");
@@ -187,18 +216,24 @@ final class PrivateAeonAssets {
                     throw new IOException("Starter identity sprite mismatch");
             }
             String worldPath = w.getString("src");
-            if (!worldPath.matches("assets/world/[A-Za-z0-9_-]+\\.png"))
-                throw new IOException("Unexpected world art reference");
+            if (!worldPath.matches("assets/world/[A-Za-z0-9_-]+\\.png")
+                    || !worldPaths.add(worldPath))
+                throw new IOException("Unexpected or duplicate world art reference");
             png(root, worldPath, ww * 9, wh * 4);
+            if (!w.getString("sha256").equalsIgnoreCase(sha256(required(root, worldPath))))
+                throw new IOException("Approved world artwork checksum mismatch");
 
             int bw = b.getInt("frameWidth"), bh = b.getInt("frameHeight");
             if (b.getInt("columns") != 6 || b.getInt("rows") != 9
                     || (bw != 64 && bw != 96 && bw != 128) || bh != bw)
                 throw new IOException("Invalid side-view sprite grid");
             String battlePath = b.getString("src");
-            if (!battlePath.matches("assets/battlers/[A-Za-z0-9_-]+\\.png"))
-                throw new IOException("Unexpected battle art reference");
+            if (!battlePath.matches("assets/battlers/[A-Za-z0-9_-]+\\.png")
+                    || !battlePaths.add(battlePath))
+                throw new IOException("Unexpected or duplicate battle art reference");
             png(root, battlePath, bw * 6, bh * 9);
+            if (!b.getString("sha256").equalsIgnoreCase(sha256(required(root, battlePath))))
+                throw new IOException("Approved battle artwork checksum mismatch");
             requireAnimation(b);
         }
         for (String starter : STARTERS) {
@@ -273,7 +308,8 @@ final class PrivateAeonAssets {
                 throw new IOException("Cannot activate verified private content");
             }
             installed = true;
-            removeTree(previous);
+            try { removeTree(previous); }
+            catch (IOException oldCleanupFailed) { /* New verified install is active. */ }
             return mapCount;
         } catch (JSONException badJson) {
             throw new IOException("Private source JSON validation failed", badJson);
