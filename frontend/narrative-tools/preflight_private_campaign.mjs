@@ -104,8 +104,19 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
     try{
       if(!art||!art.id||!pngPath(art.world?.src)||!pngPath(art.battle?.src))
         throw new Error('Manifest art references not installed');
-      worldSheetSpec(manifest,art.id);
-      mapV5Art(manifest,{['party:'+art.id]:art.id});
+      // The four Sleeper player sheets are exactly 32x56. Other reviewed
+      // actors legitimately use larger world cells (up to 128x176) and must
+      // be validated against THEIR OWN native atlas metadata, not the
+      // player-only sprite contract.
+      const w=art.world;
+      if(STARTERS.includes(art.id))worldSheetSpec(manifest,art.id);
+      else if(w.columns!==9||w.rows!==4||
+         !Number.isInteger(w.frameWidth)||w.frameWidth<16||w.frameWidth>256||
+         !Number.isInteger(w.frameHeight)||w.frameHeight<16||w.frameHeight>256||
+         JSON.stringify(w.directions)!==JSON.stringify(['down','left','right','up'])||
+         JSON.stringify(w.walkColumns)!==JSON.stringify([1,2,3,4,5,6,7,8]))
+        throw new Error('Invalid reviewed nonstarter world atlas contract');
+      mapV5Art(manifest,{['enemy:'+art.id]:art.id});
       const w=await pngSize(root,art.world.src);
       const b=await pngSize(root,art.battle.src);
       if(w.width!==art.world.frameWidth*art.world.columns||
@@ -162,8 +173,12 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
   report.counts.stagedScenes=authored.filter(scene=>triggerNames.has(scene.trigger)).length;
   if(profile==='release')
     error(problems,'UNSTAGED_STORY_SCENES',authored.length-report.counts.stagedScenes);
+  // A review-candidate opening cannot be failed for future screenplay
+  // choices that have not yet been mapped. Production release still requires
+  // every choice's explicit anchor; a staged review scene must pass now.
   let badChoices=0;
   for(const scene of authored){
+    if(profile==='review'&&!triggerNames.has(scene.trigger))continue;
     try{validateNarrativeStaging(content,scene.id,world.choiceGates||{});}
     catch{badChoices++;}
   }
