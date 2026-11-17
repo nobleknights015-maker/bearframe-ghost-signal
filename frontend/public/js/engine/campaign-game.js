@@ -109,7 +109,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
       }
       // Stop callbacks from previous previews before rebinding this Game.
       active?.fieldMenu?.stop();active?.combat?.stop();active?.narrative.stop();active=null;
-      let narrative=null,combat=null,traveler=null,portalArmed=false,lastPortal=null;
+      let narrative=null,combat=null,traveler=null;
       const commitWorld=next=>{
         const prior=journal.readJournal();if(!prior)return false;
         if(!game.m||!journal.graph.get(game.m.id))return journal.commitWorld(next);
@@ -164,18 +164,14 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
           },0);
         },
         onPortal(id){
-          if(!id){portalArmed=true;lastPortal=null;return;}
-          if(id===lastPortal||game.mode!=='play'||traveler?.busy)return;
-          const target=factory.graph.destination(game.m.id,id);
-          const heading=game.input?.dir||(game.player.moving?game.player.dir:null);
-          if(heading===target.facing)portalArmed=true;
-          if(!portalArmed)return;
-          lastPortal=id;portalArmed=false;
+          // Only the original Game INTERACT action on a rendered bulkhead,
+          // hatch, or lift enters a route. Walking onto a tile never teleports.
+          if(!id||game.mode!=='play'||traveler?.busy)return;
           traveler.transition(id).then(ok=>{
-            if(!ok)ui.toast('PASSAGE SEALED — MILESTONE REQUIRED',3);
+            if(!ok)ui.toast('ENTRANCE SEALED — STORY MILESTONE REQUIRED',3);
             else ui.toast('AREA RECORD SAVED',1.8);
-          }).catch(error=>{console.warn('Campaign route rolled back',error);
-            ui.toast('ROUTE UNAVAILABLE — PREVIOUS AREA RESTORED',3);});
+          }).catch(error=>{console.warn('Campaign doorway rolled back',error);
+            ui.toast('ENTRANCE UNAVAILABLE — PREVIOUS AREA RESTORED',3);});
         }
       });
       traveler=createConnectedFieldTravel({game,graph:factory.graph,
