@@ -91,7 +91,7 @@ test('Rejects unknown atlas, out-of-bounds crops and scenery obscuring story, ro
  assert.throws(()=>compileCampaignEnvironmentDetails(invalid({sw:13}),env),/invalid or duplicate/);
  assert.throws(()=>compileCampaignEnvironmentDetails(invalid({tx:8,sw:64}),env),/outside source map/);
  assert.throws(()=>compileCampaignEnvironmentDetails(invalid({id:'../bad'}),env),/invalid or duplicate/);
- assert.throws(()=>compileCampaignEnvironmentDetails(invalid({layer:'foreground',tx:3,ty:5}),env),/foreground artwork masks walkable floor/);
+ assert.throws(()=>compileCampaignEnvironmentDetails(invalid({layer:'foreground',tx:3,ty:5}),env),/structural scenery masks walkable floor/);
  assert.throws(()=>compileCampaignEnvironmentDetails(invalid({layer:'background',tx:4,ty:4}),env),/obscures critical source position/);
  assert.throws(()=>compileCampaignEnvironmentDetails(invalid({layer:'background',tx:5,ty:3}),env),/obscures critical source position/);
  assert.throws(()=>compileCampaignEnvironmentDetails(invalid({layer:'background',tx:2,ty:2}),env),/obscures critical source position/);
