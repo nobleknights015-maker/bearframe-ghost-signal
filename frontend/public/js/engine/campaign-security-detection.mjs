@@ -10,6 +10,7 @@ export function applySecurityDetection(previous, activeZone, detectedZone, optio
   const outcome = resolveDetection(detectedZone, options);
   return transitionSecurity(previous, activeZone, {
     ...outcome,
-    zoneId: detectedZone?.id ?? null
+    zoneId: detectedZone?.id ?? null,
+    zoneMode: detectedZone?.mode ?? null
   });
 }
