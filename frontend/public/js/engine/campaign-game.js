@@ -217,7 +217,8 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
         inspect:()=>({starterId,mapId:game.m?.id||null,mode:game.mode,
           story:journal.readWorld()?.narrative?.activeScene||null,
           battle:combat?.inspect()||null,
-          saved:journal.inspect(),areaCount:factory.graph.ids.length,
+          saved:journal.inspect(),security:journal.readWorld()?.security||null,
+          areaCount:factory.graph.ids.length,
           status:'authored-blockout-review-candidate'}),
         save:()=>journal.saveField(game.m.id,game.snapshot())
       });
