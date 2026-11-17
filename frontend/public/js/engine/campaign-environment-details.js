@@ -47,13 +47,14 @@ export function compileCampaignEnvironmentDetails(map,art){
     const box={x:row.tx,y:row.ty,w:width,h:height};
     if(row.layer!=='ground'&&reserved.some(r=>intersection(box,r)))
       complain('scenery obscures critical source position: '+row.id);
-    // Avoid solid-looking foreground objects masking accessible floor; only
-    // transparent ground decals may cover traversable authored tiles.
-    if(row.layer==='foreground'&&
+    // Solid-looking building/fence/wall artwork may only dress EXISTING
+    // nonwalkable cells. Never imply a blocking structure on accessible
+    // ground without a reviewed collision and pathfinding update.
+    if(row.layer!=='ground'&&
        Array.from({length:width*height},(_,i)=>{
          const x=row.tx+i%width,y=row.ty+Math.floor(i/width);
          return collision[y*map.width+x]!==1;
-       }).some(Boolean))complain('foreground artwork masks walkable floor: '+row.id);
+       }).some(Boolean))complain('structural scenery masks walkable floor: '+row.id);
     const detail=Object.freeze({
       id:row.id,atlas:row.atlas,layer:row.layer,image:sprite,
       sx:row.sx,sy:row.sy,sw:row.sw,sh:row.sh,
