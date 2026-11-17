@@ -12,7 +12,7 @@ const fail=reason=>{throw new Error('Private environment art: '+reason);};
 function checkedPaths(manifest){
   if(manifest?.schema!=='aeon.private-environment-art.v1'||manifest.tileSize!==TILE||
       !isRecord(manifest.doorways)||!isRecord(manifest.palettes))fail('wrong import manifest version');
-  const imagePaths=new Set(),doorways=new Map(),palettes=new Map();
+  const imagePaths=new Set(),doorways=new Map(),palettes=new Map(),objects=new Map();
   for(const [id,pair] of Object.entries(manifest.doorways)){
     if(!ID.test(id)||!isRecord(pair)||!validImage(pair.closed)||
        (pair.open!==undefined&&!validImage(pair.open)))fail('invalid private door '+id);
@@ -26,16 +26,27 @@ function checkedPaths(manifest){
     imagePaths.add(pair.floor);imagePaths.add(pair.wall);
     palettes.set(id,Object.freeze({...pair}));
   }
-  return {imagePaths,doorways,palettes};
+  // The owner supplied real wasteland/ruin/bunker atlases. Their full native
+  // sheets are larger than individual 32-128px door sprites.
+  if(manifest.objects!==undefined&&!isRecord(manifest.objects))
+    fail('invalid atlas registry');
+  for(const [id,src] of Object.entries(manifest.objects||{})){
+    if(!ID.test(id)||!validImage(src))fail('invalid source atlas '+id);
+    imagePaths.add(src);objects.set(id,src);
+  }
+  return {imagePaths,doorways,palettes,objects};
 }
 export function compileCampaignEnvironmentArt(manifest,images){
-  const {imagePaths,doorways,palettes}=checkedPaths(manifest);
+  const {imagePaths,doorways,palettes,objects}=checkedPaths(manifest);
   if(!(images instanceof Map))fail('expected decoded owner asset images');
   for(const src of imagePaths){
     const img=images.get(src);
     const w=img?.naturalWidth??img?.width,h=img?.naturalHeight??img?.height;
-    if(!Number.isInteger(w)||!Number.isInteger(h)||w<=0||h<=0||w>128||h>128||
-       w%TILE!==0||h%TILE!==0)fail('missing or non-native source sprite: '+src);
+    const atlas=[...objects.values()].includes(src);
+    if(!Number.isInteger(w)||!Number.isInteger(h)||w<=0||h<=0||
+       w>(atlas?2048:128)||h>(atlas?2048:128)||
+       w%TILE!==0||h%TILE!==0)
+      fail('missing or non-native source sprite: '+src);
   }
   for(const [id,pair] of palettes){
     for(const key of ['floor','wall']){
@@ -59,6 +70,12 @@ export function compileCampaignEnvironmentArt(manifest,images){
       if(!pair)fail('unknown owner terrain palette '+id);
       return Object.freeze({floor:images.get(pair.floor),wall:images.get(pair.wall),id});
     },
+    atlas:id=>{
+      const source=objects.get(id);
+      if(!source)fail('unknown owner environment atlas '+id);
+      return images.get(source);
+    },
+    atlasIds:Object.freeze([...objects.keys()]),
     doorIds:Object.freeze([...doorways.keys()]),
     paletteIds:Object.freeze([...palettes.keys()]),
     imageCount:imagePaths.size
