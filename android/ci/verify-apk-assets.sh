@@ -15,4 +15,4 @@ fi
 if unzip -Z -1 "$APK" | grep -Ei '(^|/)(Bearframe[_ -]?Revision|quiet.directive|Director.s.Cut|private.*campaign)' ; then
   echo "Unexpected private campaign material!" >&2; exit 1;
 fi
-echo "PASSED: APK contains exact Ghost Signal UI, original missions, expansion and Studio."
+echo "PASSED: APK contains Ghost Signal M01–M04 and exact generated upgraded Studio NPC sprites."

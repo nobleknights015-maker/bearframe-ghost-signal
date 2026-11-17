@@ -20,8 +20,8 @@ test('upgraded generator produced native world sheets for all M03/M04 NPCs',asyn
   assert.equal(img.width,384);assert.equal(img.height,224);
   assert.ok(item.nontransparentPixels>350);
   assert.equal(item.pngSha256.length,64);
-  await access(resolve(tools,'../character-output/ghost-signal-expedition',item.id,'source.bfsprite.json'));
-  await access(resolve(tools,'../character-output/ghost-signal-expedition',item.id,'battle.png'));
-  await access(resolve(tools,'../character-output/ghost-signal-expedition',item.id,'preview.png'));
+  await access(resolve(tools,'../../character-output/ghost-signal-expedition',item.id,'source.bfsprite.json'));
+  await access(resolve(tools,'../../character-output/ghost-signal-expedition',item.id,'battle.png'));
+  await access(resolve(tools,'../../character-output/ghost-signal-expedition',item.id,'preview.png'));
  }
 });

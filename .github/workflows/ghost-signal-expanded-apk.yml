@@ -47,14 +47,18 @@ jobs:
         run: gradle -p android :app:assembleDebug --no-daemon
       - name: Verify exact UI, source and missions are in the APK
         run: bash android/ci/verify-apk-assets.sh
-      - name: Upload upgraded generator editable sources and previews
+      - name: Upload upgraded generator editable sources, battlers, previews
         uses: actions/upload-artifact@v4
         with:
-          name: ghost-signal-upgraded-generator-drafts
-          path: |
-            frontend/character-output/ghost-signal-expedition/
-            frontend/public/assets/characters/gs_*_exp_draft.png
-            frontend/public/assets/characters/ghost-signal-expedition.json
+          name: ghost-signal-upgraded-generator-review
+          path: frontend/character-output/ghost-signal-expedition/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload exact upgraded NPC runtime sprite sheets for APK parity
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-upgraded-npc-sheets
+          path: frontend/public/assets/characters/
           retention-days: 30
           if-no-files-found: error
       - name: Publish test APK build artifact
@@ -76,14 +80,8 @@ jobs:
           path: android/app/build/outputs/apk/debug
       - uses: actions/download-artifact@v4
         with:
-          name: ghost-signal-upgraded-generator-drafts
-          path: frontend/expedition-draft-artifacts
-      - name: Restore generated comparison bytes for APK verification
-        shell: bash
-        run: |
-          mkdir -p frontend/public/assets/characters
-          cp frontend/expedition-draft-artifacts/frontend/public/assets/characters/gs_*_exp_draft.png frontend/public/assets/characters/
-          cp frontend/expedition-draft-artifacts/frontend/public/assets/characters/ghost-signal-expedition.json frontend/public/assets/characters/
+          name: ghost-signal-upgraded-npc-sheets
+          path: frontend/public/assets/characters
       - name: Verify exact APK from assemble job
         run: bash android/ci/verify-apk-assets.sh
       - name: Android 35 emulator install and lifecycle smoke
