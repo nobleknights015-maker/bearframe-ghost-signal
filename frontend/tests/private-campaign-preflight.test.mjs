@@ -79,7 +79,7 @@ test('Source-safe report approves complete synthetic art/scene contract without 
   const r=await preflightPrivateCampaign({root:f.root,profile:'release'});
   assert.equal(r.pass,true,JSON.stringify(r.problems));
   assert.deepEqual(r.problems,[]);
-  assert.deepEqual(r.counts,{characters:42,portraits:4,areas:1,reachableAreas:1,
+  assert.deepEqual(r.counts,{characters:42,portraits:4,areas:1,sourceAreas:0,reachableAreas:1,
     scenes:1,stagedScenes:1,encounters:0,combatEncounters:0,mandatoryBattles:0});
   assert.equal(JSON.stringify(r).includes('SC_OPEN'),false,'No private scene identifiers in report');
  }finally{await f.cleanup();}
@@ -158,5 +158,26 @@ test('Unstaged future screenplay choices are deferred in review but block a fina
   assert.equal(has(review,'CHOICE_PRESENTATION_NOT_AUTHORED'),false);
   assert.equal(has(release,'CHOICE_PRESENTATION_NOT_AUTHORED'),true);
   assert.equal(has(release,'UNSTAGED_STORY_SCENES'),true);
+ }finally{await f.cleanup();}
+});
+
+test('Release detects source-authored areas absent from a fully connected review blockout',async()=>{
+ const f=await fixture();
+ try{
+   await f.edit('story/campaign.json',s=>{
+     s.areas=[{id:'A00',name:'Synthetic start'},{id:'A01',name:'Unstaged source area'}];
+   });
+   const review=await preflightPrivateCampaign({root:f.root,profile:'review'});
+   const release=await preflightPrivateCampaign({root:f.root,profile:'release'});
+   assert.equal(review.pass,true,JSON.stringify(review.problems));
+   assert.equal(release.pass,false);
+   assert.equal(release.counts.sourceAreas,2);
+   assert.equal(release.counts.areas,1);
+   assert.equal(has(release,'UNSTAGED_SOURCE_AREAS'),true);
+   assert.equal(release.problems.find(p=>p.code==='UNSTAGED_SOURCE_AREAS').count,1);
+   await f.edit('story/campaign.json',s=>s.areas=[{id:'A01',name:'Only other area'}]);
+   const bad=await preflightPrivateCampaign({root:f.root,profile:'review'});
+   assert.equal(has(bad,'UNKNOWN_STAGED_SOURCE_AREAS'),true,
+     'Even a review map cannot claim a location absent from the approved area source');
  }finally{await f.cleanup();}
 });
