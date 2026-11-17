@@ -25,7 +25,8 @@ export function compileCampaignCombatStaging(spec,{worldSpec,content,manifest}){
      !spec.partyByStarter||typeof spec.partyByStarter!=='object'||
      !Array.isArray(spec.encounters))fail('invalid private review revision or structure');
   const knownAreas=new Set(worldSpec.maps.map(m=>m.id));
-  const authoredEncounters=new Set((content.encounters||[]).map(e=>e.id));
+  const authoredEncounters=new Map((content.encounters||[]).map(e=>[e.id,e]));
+  const gameplayFlags=new Set(content.flagSchema?.gameplay_flags||[]);
   const partyByStarter={};
   for(const id of ids){
     const party=spec.partyByStarter[id];
@@ -38,11 +39,21 @@ export function compileCampaignCombatStaging(spec,{worldSpec,content,manifest}){
   }
   const entries=new Map(),triggers=new Map();
   for(const encounter of spec.encounters){
-    if(!validId(encounter?.id)||entries.has(encounter.id)||!authoredEncounters.has(encounter.id)||
+    const source=authoredEncounters.get(encounter?.id);
+    if(!validId(encounter?.id)||entries.has(encounter.id)||!source||
        !knownAreas.has(encounter.mapId)||!Array.isArray(encounter.enemies)||
        encounter.enemies.length<1||encounter.enemies.length>6||
        new Set(encounter.enemies.map(u=>u.id)).size!==encounter.enemies.length)
       fail('unknown or duplicate authored encounter');
+    // The original screenplay distinguishes fights from repairs, puzzles,
+    // stealth, social choices, and other noncombat interactions. Never
+    // reinterpret an authored noncombat event as a random battle.
+    if(source.kind!==undefined&&!['battle','boss'].includes(source.kind))
+      fail('source encounter is not a turn-based battle');
+    if(source.area!==undefined&&source.area!==encounter.mapId)
+      fail('source encounter belongs to another area');
+    if(source.set_flag&&(!validId(source.set_flag)||!gameplayFlags.has(source.set_flag)))
+      fail('source victory flag is not declared in the approved gameplay schema');
     for(const enemy of encounter.enemies)checkUnit(enemy,false);
     if(encounter.trigger!==undefined&&!validId(encounter.trigger))fail('invalid encounter trigger');
     if(encounter.requiresFlag!==undefined&&!validId(encounter.requiresFlag))fail('invalid encounter prerequisite');
