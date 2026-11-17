@@ -86,6 +86,48 @@ export function compileCampaignWorld(world){
   });
 }
 
+
+/**
+ * Audit physical walkability from each map's authored start point to each
+ * reciprocal portal. A valid link/portal tile alone does not prove that the
+ * player can reach it through static collision obstacles. Story flags may
+ * still legitimately seal a walkable portal; no game data is mutated here.
+ */
+export function auditCampaignPortalApproaches(world){
+  const graph=compileCampaignWorld(world),blocked=[];
+  let portalCount=0;
+  for(const areaId of graph.ids){
+    const map=graph.get(areaId),w=map.width,h=map.height;
+    const col=map.layers.find(layer=>layer.name==='collision').data;
+    const start=Math.floor(map.start.y/32)*w+Math.floor(map.start.x/32);
+    const reachable=new Uint8Array(w*h),queue=[start];
+    reachable[start]=1;
+    for(let head=0;head<queue.length;head++){
+      const cur=queue[head],x=cur%w,y=Math.floor(cur/w);
+      const neighbors=[x>0?cur-1:-1,x<w-1?cur+1:-1,
+        y>0?cur-w:-1,y<h-1?cur+w:-1];
+      for(const next of neighbors){
+        if(next<0||reachable[next]||col[next]!==0)continue;
+        reachable[next]=1;
+        queue.push(next);
+      }
+    }
+    for(const portal of map.layers.find(l=>l.name==='portals').objects){
+      portalCount++;
+      const tile=Math.floor(portal.y/32)*w+Math.floor(portal.x/32);
+      if(reachable[tile]!==1)blocked.push(Object.freeze({
+        areaId,portalId:portal.name
+      }));
+    }
+  }
+  return Object.freeze({
+    areaCount:graph.ids.length,portalCount,
+    accessiblePortals:portalCount-blocked.length,
+    inaccessiblePortals:blocked.length,
+    blockedPortals:Object.freeze(blocked)
+  });
+}
+
 export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=()=>{},onInteract=()=>{},
   onTrigger=()=>{},onEnter=()=>{},onUpdate=()=>{}}={}){
   const graph=compileCampaignWorld(world),missions=new Map();
