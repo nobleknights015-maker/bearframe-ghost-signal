@@ -165,8 +165,12 @@ try{
   await page.locator('#btn-quit').click();
   await page.waitForURL(/engine-lab\.html/);
   const launcher=page.getByRole('navigation',{name:'Engine test modes'});
-  assert.equal(await launcher.getByRole('link').count(),5);
-  assert.equal(await launcher.getByRole('link',{name:'AEON UNIFIED ENGINE',exact:true}).getAttribute('href'),'aeon.html');
+  // Public debug APKs intentionally hide the Aeon unified route until the
+  // owner-installed V5 art package is present. The four playable test modes
+  // still work and preserve their independent journals.
+  assert.equal(await launcher.getByRole('link').count(),4);
+  assert.equal(await launcher.getByRole('link',{name:'AEON UNIFIED ENGINE',exact:true}).count(),0);
+  assert.equal(await page.locator('#aeon-unified').isVisible(),false);
   assert.equal(await launcher.getByRole('link',{name:'ORIGINAL GHOST SIGNAL'}).getAttribute('href'),'index.html');
   const link=launcher.getByRole('link',{name:'JRPG COMBAT'});
   const bounds=await link.boundingBox();
