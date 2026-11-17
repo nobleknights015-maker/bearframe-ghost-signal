@@ -5,6 +5,8 @@ on:
     paths:
       - 'frontend/public/js/engine/campaign-*.js'
       - 'frontend/public/campaign.html'
+      - 'frontend/public/engine-lab.html'
+      - 'frontend/tests/browser-engine-lab-campaign.mjs'
       - 'frontend/tests/browser-campaign-opening.mjs'
       - 'frontend/tests/browser-campaign-combat.mjs'
       - '.github/workflows/campaign-opening-browser.yml'
@@ -13,6 +15,8 @@ on:
     paths:
       - 'frontend/public/js/engine/campaign-*.js'
       - 'frontend/public/campaign.html'
+      - 'frontend/public/engine-lab.html'
+      - 'frontend/tests/browser-engine-lab-campaign.mjs'
       - 'frontend/tests/browser-campaign-opening.mjs'
       - 'frontend/tests/browser-campaign-combat.mjs'
       - '.github/workflows/campaign-opening-browser.yml'
@@ -48,6 +52,8 @@ jobs:
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-campaign-opening.mjs
       - name: Real browser reviewed combat gate, interruption and durable victory
         run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-campaign-combat.mjs
+      - name: Debug launcher only advertises owner-installed campaign
+        run: GS_BASE_URL=http://127.0.0.1:3000 node frontend/tests/browser-engine-lab-campaign.mjs
       - name: Upload useful diagnostics
         if: always()
         uses: actions/upload-artifact@v4
