@@ -35,7 +35,8 @@ const hash=(x,y,s=0)=>{
 const GROUND={
   surface:['r0_6','r0_5','r1_5','r3_6','r4_6','r5_6'],
   ruins:['r1_5','r0_5','r4_6','r5_6','r0_6','r3_6'],
-  storm:['r0_5','r1_5','r0_6','r4_2','r5_2','r4_6']
+  storm:['r0_5','r1_5','r0_6','r4_2','r5_2','r4_6'],
+  bunker:['l0_4','l1_4','l2_4','l1_5','l4_5','l5_5']
 };
 export function packAudit(){return {loaded:available,cells:textures.size,size:32,
   sources:['Top Down Lab (Ansimuz, redistributable)','Robot Warfare (mattwalkden, CC0)']};}
@@ -45,13 +46,13 @@ export function paintPackFloor(ctx,theme,x,y){
   const serviceWalk=theme==='storm'&&x>=28&&x<=49&&y>=17&&y<=20;
   // The source atlas includes corners as well as seamless tiles: use natural
   // patches and flipped native cells instead of a repetitive grid of borders.
-  const h=hash(x,y,31),coverage=theme==='surface'?48:theme==='ruins'?58:66;
+  const h=hash(x,y,31),coverage=theme==='surface'?48:theme==='ruins'?58:theme==='bunker'?28:66;
   if(!serviceWalk&&h%100>=coverage)return false;
   let key=set[hash(x>>1,y>>1,15)%3];
   if(h%7===0)key=set[3+hash(x,y,21)%3];
   if(serviceWalk)key=['r4_2','r5_2','r2_3','r3_3'][hash(x,y,44)%4];
   const cell=textures.get(key);if(!cell)return false;
-  ctx.save();ctx.globalAlpha=serviceWalk?0.9:0.68;
+  ctx.save();ctx.globalAlpha=serviceWalk?0.9:theme==='bunker'?.48:.68;
   ctx.imageSmoothingEnabled=false;
   const flip=(hash(x,y,91)&3);
   ctx.translate(x*TILE+(flip&1?TILE:0),y*TILE+(flip&2?TILE:0));

@@ -35,11 +35,13 @@ function showTitle() {
   if (progress.done.m2 && !progress.unlocked.m3) { progress.unlocked.m3 = true; migrated = true; }
   if (progress.done.m3 && !progress.unlocked.m4) { progress.unlocked.m4 = true; migrated = true; }
   if (progress.done.m4 && !progress.unlocked.m5) { progress.unlocked.m5 = true; migrated = true; }
+  if (progress.done.m5 && !progress.unlocked.m6) { progress.unlocked.m6 = true; migrated = true; }
   if (migrated) store.saveProgress(progress);
   ui.show('btn-m2', !!progress.unlocked.m2);
   ui.show('btn-m3', !!progress.unlocked.m3);
   ui.show('btn-m4', !!progress.unlocked.m4);
   ui.show('btn-m5', !!progress.unlocked.m5);
+  ui.show('btn-m6', !!progress.unlocked.m6);
   refreshTouch();
 }
 function titleSprite(now) {
@@ -79,6 +81,7 @@ $('btn-m2').onclick = () => begin(null, 'm2');
 $('btn-m3').onclick = () => begin(null, 'm3');
 $('btn-m4').onclick = () => begin(null, 'm4');
 $('btn-m5').onclick = () => begin(null, 'm5');
+$('btn-m6').onclick = () => begin(null, 'm6');
 $('btn-next').onclick = () => begin(null, game.m.next);
 $('btn-case').onclick = () => game.openCase();
 $('btn-pause-case').onclick = () => game.openCase();

@@ -31,6 +31,7 @@ jobs:
           node --check frontend/public/js/missions/mission3.js
           node --check frontend/public/js/missions/mission4.js
           node --check frontend/public/js/missions/mission5.js
+          node --check frontend/public/js/missions/mission6.js
       - name: Install and run upgraded Sprite Studio renderer tests
         run: |
           npm install --prefix frontend/character-tools --no-audit --no-fund
@@ -38,7 +39,7 @@ jobs:
           node --test frontend/character-tools/tests/ghost-signal-expedition.test.mjs frontend/character-tools/tests/character-generator.test.mjs
       - name: Verify complete static build
         run: npm run build --prefix frontend
-      - run: node --test frontend/tests/ghost-signal-expansion.test.mjs frontend/tests/ghost-signal-rescue.test.mjs frontend/tests/ghost-signal-relay.test.mjs
+      - run: node --test frontend/tests/ghost-signal-expansion.test.mjs frontend/tests/ghost-signal-rescue.test.mjs frontend/tests/ghost-signal-relay.test.mjs frontend/tests/ghost-signal-bunker.test.mjs
   chromium-smoke:
     runs-on: ubuntu-24.04
     steps:
@@ -66,4 +67,5 @@ jobs:
             frontend/test_reports/ghost-signal-m04-chromium.png
             frontend/test_reports/ghost-signal-m05-chromium.png
             frontend/test_reports/ghost-signal-m05-gate-chromium.png
+            frontend/test_reports/ghost-signal-m06-chromium.png
           if-no-files-found: ignore

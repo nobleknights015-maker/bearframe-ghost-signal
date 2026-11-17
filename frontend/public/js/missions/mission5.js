@@ -42,7 +42,7 @@ function buildMap(){
  return {w:W,h:H,grid};
 }
 export const mission5={
- id:'m5',title:'THE BROKEN RELAY',visualTheme:'storm',ambient:'dusk',
+ id:'m5',title:'THE BROKEN RELAY',next:'m6',visualTheme:'storm',ambient:'dusk',
  weather:'electrical',hideStealth:true,statusLabel:'RELAY SERVICE',
  logs:LOGS,evidence:EVIDENCE,
  start:{x:7.5*T,y:19*T,dir:'right'},

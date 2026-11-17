@@ -29,6 +29,26 @@ function stormFloor(c,x,y,shadow) {
   }
   if(shadow)R(c,'rgba(0,0,0,.24)',X,Y,T,4);
 }
+
+function bunkerFloor(c,x,y,shadow){
+  // Archival service bunker: engineered steel decking with worn seam masks.
+  // Genuine Lab and Robot Warfare cells are composited as rare worn panels
+  // by paintPackFloor, not substituted for the room's structural tile grid.
+  const X=x*T,Y=y*T,v=hsh(x,y,813),base=v>.74?'#25353b':v<.22?'#1c282e':'#202e34';
+  R(c,base,X,Y,T,T);
+  R(c,'#43545a',X,Y,T,1);R(c,'#111a20',X,Y+T-2,T,2);
+  R(c,'#354b50',X,Y,1,T);R(c,'#111a1f',X+T-2,Y,2,T);
+  if((x+y)%5===0){
+    R(c,'#4b5652',X+5,Y+7,22,2);R(c,'#2a3d40',X+5,Y+9,22,7);
+    for(let i=0;i<4;i++)R(c,'#5c6a62',X+7+i*5,Y+12,2,1);
+  }else if(v>.55){
+    R(c,'#2e4145',X+7,Y+6,18,18);
+    R(c,'#415459',X+7,Y+6,18,1);
+    R(c,'#17262a',X+7,Y+23,18,1);
+  }
+  for(const [px,py]of [[3,3],[27,3],[3,27],[27,27]])R(c,'#56655e',X+px,Y+py,2,2);
+  if(shadow)R(c,'rgba(0,0,0,.26)',X,Y,T,4);
+}
 function ruinFloor(c,x,y,shadow) {
   const X=x*T,Y=y*T,v=hsh(x,y,427);
   R(c,v>.5?'#252e30':'#283130',X,Y,T,T);
@@ -196,7 +216,7 @@ export function bakeMap(map, mission) {
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const g = at(x, y);
-    if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'ruins') ruinFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'storm') stormFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); paintPackFloor(c,mission.visualTheme,x,y); }
+    if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'ruins') ruinFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'storm') stormFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'bunker') bunkerFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); paintPackFloor(c,mission.visualTheme,x,y); }
     else if (g === 1) { if (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins' || mission.visualTheme === 'storm') surfaceEdge(c, x, y, at); else if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
   }
   paintPackMarkers(c,mission,(x,y)=>at(x,y)===2);

@@ -44,7 +44,7 @@ test('Chromium renders original title and isolated surface expansion', { timeout
     await page.evaluate(()=>{
       // Preserve the original save namespace; only authorize M03 in a simulated completed profile.
       const key='bearframe_ghost_signal_progress_v1';
-      localStorage.setItem(key,JSON.stringify({unlocked:{m2:true,m3:true,m4:true,m5:true},done:{m1:true,m2:true},case:{ev:[],logs:[]}}));
+      localStorage.setItem(key,JSON.stringify({unlocked:{m2:true,m3:true,m4:true,m5:true,m6:true},done:{m1:true,m2:true},case:{ev:[],logs:[]}}));
     });
     await page.reload({waitUntil:'domcontentloaded'});
     await page.locator('#btn-m3').waitFor({state:'visible'});
@@ -133,6 +133,28 @@ test('Chromium renders original title and isolated surface expansion', { timeout
     assert.equal(door.opened,1);
     assert.equal(door.status,'RELAY SERVICE');
     await page.screenshot({path:resolve(screenshots,'ghost-signal-m05-gate-chromium.png')});
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.locator('#btn-m6').waitFor({state:'visible'});
+    await page.locator('#btn-m6').click();
+    await page.waitForFunction(()=>window.__gs?.m?.id==='m6');
+    const shelter=await page.evaluate(()=>{
+      const g=window.__gs;g.render();
+      const doors=['airlockDoor','observatoryDoor','archiveDoor','lowerDoor','returnDoor'];
+      const before=doors.map(id=>{const e=g.ent(id);return !!e&&g.solidAt(e.tx*32+16,e.ty*32+16)});
+      for(const key of ['airlock','powerRouted','registerRead'])g.flags[key]=true;
+      g.updateWorld(.45);
+      const after=doors.map(id=>{const e=g.ent(id);return g.solidAt(e.tx*32+16,e.ty*32+16)});
+      g.render();
+      return {id:g.m.id,theme:g.m.visualTheme,status:g.stealth()[0],
+        rooms:g.map.w*g.map.h,before,after};
+    });
+    assert.equal(shelter.id,'m6');
+    assert.equal(shelter.theme,'bunker');
+    assert.equal(shelter.status,'BUNKER SURVEY');
+    assert.equal(shelter.rooms,64*42);
+    assert.deepEqual(shelter.before,[true,true,true,true,true]);
+    assert.deepEqual(shelter.after,[false,false,false,false,false]);
+    await page.screenshot({path:resolve(screenshots,'ghost-signal-m06-chromium.png')});
     assert.deepEqual(exceptions,[]);
   } finally {
     await browser?.close();
