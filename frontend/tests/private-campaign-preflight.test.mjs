@@ -80,7 +80,7 @@ test('Source-safe report approves complete synthetic art/scene contract without 
   assert.equal(r.pass,true,JSON.stringify(r.problems));
   assert.deepEqual(r.problems,[]);
   assert.deepEqual(r.counts,{characters:42,portraits:4,areas:1,sourceAreas:0,reachableAreas:1,
-    scenes:1,stagedScenes:1,encounters:0,combatEncounters:0,mandatoryBattles:0});
+    scenes:1,stagedScenes:1,encounters:0,combatEncounters:0,mandatoryBattles:0,quests:0,stagedQuests:0});
   assert.equal(JSON.stringify(r).includes('SC_OPEN'),false,'No private scene identifiers in report');
  }finally{await f.cleanup();}
 });
