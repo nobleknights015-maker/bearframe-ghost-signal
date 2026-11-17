@@ -22,14 +22,16 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
   panel.style.cssText='padding:calc(var(--u) * 6);gap:calc(var(--u) * 3)';
   root.append(panel);$('stage').append(root);
   let session=null,encounter=null,sideView=null,busy=false,pending=null,lastOutcome=null;
+  let targetSelection=false,stopped=false;
   const present=()=>{game.mode='battle';root.classList.remove('hidden');ui.show('touch',false);};
   const clearView=()=>{sideView?.stop();sideView=null;};
   const close=()=>{
-    if(journal.readJournal()?.battle)return false;
+    if(stopped||journal.readJournal()?.battle)return false;
     root.classList.add('hidden');game.mode='play';ui.show('touch',!!touchMode?.());
-    clearView();session=null;encounter=null;lastOutcome=null;return true;
+    clearView();session=null;encounter=null;lastOutcome=null;targetSelection=false;return true;
   };
   function attach(loaded){
+    if(stopped)throw new Error('Campaign battle host has been disposed');
     encounter=staging.encounter(loaded.handoff.encounter.id);
     if(!encounter)throw new Error('Encounter staging changed during saved battle');
     sideView?.stop();
@@ -38,7 +40,7 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
     present();draw();
   }
   function start(id){
-    if(busy||game.mode!=='play'||journal.readJournal()?.battle)return false;
+    if(stopped||busy||game.mode!=='play'||journal.readJournal()?.battle)return false;
     const spec=staging.encounter(id),world=journal.readWorld();
     if(!spec||!world||game.m?.id!==spec.mapId||
        (spec.requiresFlag&&world.flags?.[spec.requiresFlag]!==true)||
@@ -62,7 +64,7 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
   }
   function resume(){
     const saved=journal.readJournal()?.battle;
-    if(!saved||game.mode!=='play')return false;
+    if(stopped||!saved||game.mode!=='play')return false;
     try{attach(saved.session);runEnemyOpening();return true;}
     catch(error){console.error('Saved battle could not resume',error);
       ui.toast('SAVED ENCOUNTER REQUIRES REVIEW',4);return false;}
@@ -76,7 +78,8 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
     return true;
   }
   function showSaveRetry(candidate,visual,actions){
-    pending={candidate,visual,actions};
+    if(stopped)return;
+    targetSelection=false;pending={candidate,visual,actions};
     panel.replaceChildren();
     panel.append(make('h2','CAMPAIGN RECORD NOT SAVED'));
     panel.append(make('p','Your previous turn remains protected. Retry the field record before continuing.','fine'));
@@ -90,12 +93,14 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
     }));
   }
   function afterSaved(visual,actions){
+    if(stopped)return;
     sideView.playActions(actions);
     sideView.setBattle(visual,currentCombatant(visual));
     if(session.phase==='battle')draw();
     else panel.replaceChildren(make('h2','ENCOUNTER RESULT PENDING'),sideView.canvas);
     busy=true;
     const finish=()=>{
+      if(stopped)return;
       if(sideView.isPresenting){requestAnimationFrame(finish);return;}
       busy=false;
       if(session.phase==='battle')draw();
@@ -104,7 +109,7 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
     requestAnimationFrame(finish);
   }
   function take(command){
-    if(busy||pending||session?.phase!=='battle')return;
+    if(stopped||busy||pending||session?.phase!=='battle')return;
     busy=true;
     try{
       let candidate=session,visual=session.battle;
@@ -122,7 +127,7 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
     }
   }
   function runEnemyOpening(){
-    if(session?.phase!=='battle'||!currentCombatant(session.battle)?.startsWith('enemy:'))return;
+    if(stopped||session?.phase!=='battle'||!currentCombatant(session.battle)?.startsWith('enemy:'))return;
     let candidate=session,visual=session.battle;
     const actions=[];
     try{
@@ -137,6 +142,8 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
       ui.toast('ENCOUNTER RESTORE HELD — REVIEW REQUIRED',4);}
   }
   function chooseTarget(command,which){
+    if(stopped)return;
+    targetSelection=true;
     const units=which==='enemy'?session.battle.enemies:session.battle.party;
     panel.replaceChildren(make('h2',which==='enemy'?'SELECT HOSTILE':'SELECT ALLY'),sideView.canvas);
     const row=make('div',undefined,'btn-row');row.style.flexWrap='wrap';
@@ -144,9 +151,15 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
       const key=which+':'+unit.id;
       row.append(button(unit.name+' · HP '+unit.hp+'/'+unit.maxHp,()=>take({...command,target:key})));
     }
-    row.append(button('BACK',draw));panel.append(row);row.querySelector('button')?.focus();
+    const back=button('BACK',draw);
+    // The existing Ghost Signal controller bridge uses this semantic marker
+    // to make the B button cancel targets, never the entire active battle.
+    back.dataset.campaignBattleBack='1';
+    row.append(back);panel.append(row);row.querySelector('button')?.focus();
   }
   function draw(){
+    if(stopped)return;
+    targetSelection=false;
     panel.replaceChildren();
     if(!session||session.phase!=='battle')return;
     const state=session.battle,actor=currentCombatant(state);
@@ -187,6 +200,8 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
     row.querySelector('button:not(:disabled)')?.focus();
   }
   function showResult(){
+    if(stopped)return;
+    targetSelection=false;
     panel.replaceChildren();
     const outcome=lastOutcome||'defeat';
     panel.append(make('h2','ENCOUNTER // '+outcome.toUpperCase()));
@@ -201,8 +216,22 @@ export function mountCampaignBattle({game,ui,journal,staging,manifest,starterId,
     });
     panel.append(b);b.focus();
   }
+  const onKey=event=>{
+    if(!stopped&&game.mode==='battle'&&targetSelection&&event.code==='Escape'){
+      event.preventDefault();
+      draw();
+    }
+  };
+  document.addEventListener('keydown',onKey);
+  const stop=()=>{
+    if(stopped)return;
+    stopped=true;
+    document.removeEventListener('keydown',onKey);
+    clearView();root.remove();
+    session=null;encounter=null;pending=null;lastOutcome=null;targetSelection=false;
+  };
   return Object.freeze({
-    start,startForTrigger,resume,
+    start,startForTrigger,resume,stop,
     inspect:()=>({phase:session?.phase||null,encounterId:encounter?.id||null,
       outcome:lastOutcome,busy,pendingSave:!!pending})
   });
