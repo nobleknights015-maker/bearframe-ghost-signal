@@ -94,11 +94,21 @@ function rack(c, p) {
 export function bakeMap(map, mission) {
   const cv = document.createElement('canvas'); cv.width = map.w * T; cv.height = map.h * T;
   const c = cv.getContext('2d');
+  c.imageSmoothingEnabled=false;
+  const palette=mission.environmentArt||null;
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const g = at(x, y);
-    if (g === 2) floor(c, x, y, at(x, y - 1) === 1);
-    else if (g === 1) { if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
+    // ONLY an owner-private selected 32x32 map palette replaces a default
+    // schematic tile. Original Ghost Signal missions retain their renderer.
+    if (g === 2) {
+      if(palette?.floor)c.drawImage(palette.floor,x*T,y*T);
+      else floor(c, x, y, at(x, y - 1) === 1);
+    }else if (g === 1) {
+      if(palette?.wall)c.drawImage(palette.wall,x*T,y*T);
+      else if (at(x, y + 1) === 2) wallFace(c, x, y);
+      else wallTop(c, x, y, at);
+    }
   }
   // soft ambient occlusion where floor meets side / lower walls
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) if (at(x, y) === 2) {
@@ -160,6 +170,17 @@ export function drawLamp(c, l, on, k) {
 
 export function drawEntity(c, e, g) {
   const X = e.tx * T, Y = e.ty * T, W = (e.w || 1) * T, H = (e.h || 1) * T, t = g.time, f = g.flags;
+  // Native original owner artwork (32x64 / 64x64 / 96x64 etc.) is anchored
+  // at the source portal feet, never stretched or replaced by a generic icon.
+  if(e.portalId&&e.artImages){
+    const img=e.open>.5?e.artImages.open:e.artImages.closed;
+    const w=img?.naturalWidth??img?.width,h=img?.naturalHeight??img?.height;
+    if(w>0&&h>0){
+      c.imageSmoothingEnabled=false;
+      c.drawImage(img,Math.round(X+16-w/2),Math.round(Y+32-h));
+      return;
+    }
+  }
   switch (e.type) {
     case 'terminal': {
       R(c, '#15170f', X + 2, Y + 1, 28, 30); R(c, '#3b3f2c', X + 3, Y + 2, 26, 18); R(c, '#2a2d20', X + 3, Y + 20, 26, 10);
