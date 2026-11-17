@@ -25,6 +25,11 @@ export class Game {
 
   start(mission, snap, carry) {
     this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission); this.over = bakeOver(this.map, mission); this.cam = null;
+    // Opt-in real owner PNG terrain continues beyond outdoor map bounds.
+    // The original Ghost Signal industrial deep parallax remains unchanged
+    // for every mission without an explicitly private terrain backdrop.
+    this.ownerTerrainPattern = mission.environmentArt?.backdrop==='terrain'?
+      this.ctx.createPattern(mission.environmentArt.floor,'repeat'):null;
     this.ents = mission.entities().map(e => ({ w: 1, h: 1, open: 0, ...e }));
     this.flags = {}; this.inv = {}; this.stats = { scans: 0, hits: 0, restores: 0, logs: 0, ev: 0 };
     this.caseFile = carry ? clone(carry) : { ev: [], logs: [] };
@@ -359,8 +364,18 @@ export class Game {
     const cx = Math.round(this.cam.x), cy = Math.round(this.cam.y), fx = !this.lowFx;
     const vis = (x, y, r) => x > cx - r && y > cy - r && x < cx + VW + r && y < cy + VH + r;
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-    const ox = -((cx * .45) % 256), oy = -((cy * .45) % 256);
-    for (let y = oy; y < VH; y += 256) for (let x = ox; x < VW; x += 256) c.drawImage(this.deep, Math.round(x), Math.round(y));
+    if(this.ownerTerrainPattern){
+      c.save();
+      c.imageSmoothingEnabled=false;
+      // Keep the owner PNG's original 32px pixel grid aligned as camera pans.
+      c.translate(-((cx*.45)%T),-((cy*.45)%T));
+      c.fillStyle=this.ownerTerrainPattern;
+      c.fillRect(-T,-T,VW+2*T,VH+2*T);
+      c.restore();
+    }else{
+      const ox = -((cx * .45) % 256), oy = -((cy * .45) % 256);
+      for (let y = oy; y < VH; y += 256) for (let x = ox; x < VW; x += 256) c.drawImage(this.deep, Math.round(x), Math.round(y));
+    }
     c.drawImage(this.base, cx, cy, VW, VH, 0, 0, VW, VH);
     c.save(); c.translate(-cx, -cy);
     const lampsOn = !!f.lights, lk = l => f.power ? 1 : flick ? (Math.sin(t * 7 + l.x * 3) > -.6 && Math.sin(t * 23 + l.y) > -.9 ? .75 + .25 * Math.sin(t * 3 + l.x) : .15) : .8;
