@@ -26,6 +26,17 @@ assert_foreground() {
   adb logcat -d -t 250 | grep -E 'FATAL EXCEPTION|ANR in|ghostsignal' | tail -60 >&2 || true
   return 1
 }
+# Android's activity manager may report a timeout even after delivering the
+# launch intent. Treat am output as diagnostic; the resumed-activity and PID
+# assertions below are the actual acceptance gates.
+start_activity() {
+  local output
+  if output="$(adb shell am start -W -n "$PACKAGE/$LAUNCH_ACTIVITY" 2>&1)"; then
+    echo "$output"
+  else
+    echo "Activity manager returned nonzero; verifying actual foreground state: $output" >&2
+  fi
+}
 echo "Installing $APK ($PACKAGE; launch $LAUNCH_ACTIVITY)"
 # A boot-completed signal may precede package-manager readiness on CI emulators.
 # Wait for the package service, then retry transient transport failures. A failed
@@ -60,7 +71,7 @@ install_apk() {
 }
 install_apk
 adb shell am force-stop "$PACKAGE" || true
-adb shell am start -W -n "$PACKAGE/$LAUNCH_ACTIVITY"
+start_activity
 sleep 15
 adb shell pidof "$PACKAGE" | tee /tmp/ghost-signal-emulator-pid
 test -s /tmp/ghost-signal-emulator-pid
@@ -84,7 +95,7 @@ test -s ghost-signal-emulator-launch.png
 BACKGROUND_PID="$(adb shell pidof "$PACKAGE" | tr -d '\r')"
 adb shell input keyevent KEYCODE_HOME
 sleep 2
-adb shell am start -W -n "$PACKAGE/$LAUNCH_ACTIVITY"
+start_activity
 assert_foreground "Background resume"
 RESUMED_PID="$(adb shell pidof "$PACKAGE" | tr -d '\r')"
 if [[ "$RESUMED_PID" != "$BACKGROUND_PID" ]]; then
@@ -99,7 +110,7 @@ adb shell am force-stop "$PACKAGE"
 if adb shell pidof "$PACKAGE" >/dev/null 2>&1; then
   echo "App process survived force-stop" >&2; exit 1
 fi
-adb shell am start -W -n "$PACKAGE/$LAUNCH_ACTIVITY"
+start_activity
 sleep 10
 RESTART_PID="$(adb shell pidof "$PACKAGE" | tr -d '\r')"
 if [[ -z "$RESTART_PID" ]]; then
