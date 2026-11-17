@@ -116,6 +116,7 @@ function navigateControllerOverlay(pad) {
     else if (root.id === 'terminal') ui.closeTerminal();
     else if (root.id === 'pause') game.onResume();
     else if (root.id === 'rpg-lab-menu') game.onResume(); // gamepad B backs out of RPG menu, matching keyboard Escape
+    else if (root.id === 'rpg-lab-battle') root.querySelector('[data-campaign-battle-back]')?.click(); // cancel target only
   }
 }
 
