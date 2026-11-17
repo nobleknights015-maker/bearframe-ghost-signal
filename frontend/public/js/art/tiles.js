@@ -1,3 +1,4 @@
+import {paintPackFloor,paintPackProp} from './pack-textures.js';
 // Procedural environment art: baked 32x32 tile map + dynamic entity / drone drawing.
 const T = 32;
 const hsh = (x, y, s = 0) => { const n = Math.sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453; return n - Math.floor(n); };
@@ -195,7 +196,7 @@ export function bakeMap(map, mission) {
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const g = at(x, y);
-    if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'ruins') ruinFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'storm') stormFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); }
+    if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'ruins') ruinFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'storm') stormFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); paintPackFloor(c,mission.visualTheme,x,y); }
     else if (g === 1) { if (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins' || mission.visualTheme === 'storm') surfaceEdge(c, x, y, at); else if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
   }
   // soft ambient occlusion where floor meets side / lower walls
@@ -207,7 +208,7 @@ export function bakeMap(map, mission) {
   }
   const draw = { machine, crate, debris, cable, hazard, rack };
   for (const p of mission.props) if (p.solid) { R(c, 'rgba(0,0,0,.34)', p.x * T + 5, (p.y + (p.h || 1)) * T - 1, (p.w || 1) * T - 2, 5); R(c, 'rgba(0,0,0,.2)', (p.x + (p.w || 1)) * T - 1, p.y * T + 8, 4, (p.h || 1) * T - 6); }
-  for (const p of mission.props) draw[p.t](c, p);
+  for (const p of mission.props) { draw[p.t](c, p); paintPackProp(c,p,mission.visualTheme); }
   return cv;
 }
 

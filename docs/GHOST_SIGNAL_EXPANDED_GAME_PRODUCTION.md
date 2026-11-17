@@ -1,3 +1,15 @@
+## Licensed native source art integrated into M03–M05 (asset pass 1)
+
+The user-provided outer `Bearframe assets.zip` was inspected down to its nested license files. **Two source packs explicitly permit redistribution**, and selected **native 32x32 pixels** are embedded losslessly as a small indexed/deflate atlas in `frontend/public/js/art/pack-textures.js`. The renderer now paints these real source textures on all M03–M05 surface maps and overlays Lab panels on selected machinery/racks, preserving the world collision topology and the original M01/M02 look.
+
+- **Top Down Lab**, Luis Zuno / Ansimuz: `top_down_lab_2_files.zip/Top Down Lab files/public-license.txt` says the files may be redistributed and modified for commercial projects. Selected lab floor/circuitry panels are used only as environment art.
+- **Robot Warfare**, mattwalkden: `Robot Warfare Asset Pack 24-11-21.zip/.../License.txt` explicitly dedicates the pack to CC0. Selected terrain and damaged-tech floor tiles appear in the new outdoor chapters.
+- The atlas is made from exact user-uploaded pixels, not newly approximated AI artwork. Each selected cell remains 32×32; it is **never resampled from 16×16**.
+- The original restricted Starship v4.1 and Station Mega Kit licenses allow game use but not standalone asset redistribution; no copies of those packs' pixels are in this public source. The large terrain archives have no confirmed licenses; they remain private and out of public CI.
+- Browser QA checks that the imported artwork actually decompresses and is painted. If old WebView versions lack `DecompressionStream`, the existing procedural floor remains available as a compatibility fallback; current target Moto G WebView should support it but needs physical verification.
+
+This is a **real asset integration increment**, not a claim that the entire owned art catalog or all ruined bunkers have been mapped. Authentic larger facilities, doors, wall layering, and private-licensed art bundling are future polish gates.
+
 # Ghost Signal: expanded game production / canon gate
 
 Status: **isolated candidate, not approved lore or production release**. This document contains no private screenplay and no licensed art. The original **Bearframe: Ghost Signal** is a separate game from **Aeon Circuit: The Silent Wake**.

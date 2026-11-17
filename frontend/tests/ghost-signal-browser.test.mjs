@@ -67,6 +67,22 @@ test('Chromium renders original title and isolated surface expansion', { timeout
     const screenshots=resolve(frontend,'test_reports');
     await mkdir(screenshots,{recursive:true});
     await page.screenshot({path:resolve(screenshots,'ghost-signal-m03-chromium.png')});
+    // Verify actual pixel bytes from the user's cleared asset packs loaded inside
+    // Chromium, rather than accepting procedural fallback alone.
+    const art = await page.evaluate(async () => {
+      const pack=await import('/js/art/pack-textures.js');
+      const cv=document.createElement('canvas');cv.width=32;cv.height=32;
+      const ctx=cv.getContext('2d');
+      const painted=pack.paintPackFloor(ctx,'ruins',0,0);
+      const rgba=ctx.getImageData(0,0,32,32).data;
+      const colored=Array.from({length:1024},(_,i)=>rgba[i*4+3]).filter(a=>a>0).length;
+      return {...pack.packAudit(),painted,colored};
+    });
+    assert.equal(art.loaded,true,'Native user asset pack missing or failed to decompress');
+    assert.equal(art.cells,24);
+    assert.equal(art.size,32);
+    assert.equal(art.painted,true);
+    assert.ok(art.colored>700,'Real 32x32 source terrain did not actually render');
     // Check the second expansion chapter without changing the original playthrough.
     await page.reload({waitUntil:'domcontentloaded'});
     await page.locator('#btn-m4').waitFor({state:'visible'});
