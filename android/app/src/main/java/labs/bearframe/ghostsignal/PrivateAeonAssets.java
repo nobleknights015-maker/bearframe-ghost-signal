@@ -295,6 +295,12 @@ final class PrivateAeonAssets {
                     zip.closeEntry(); // Checks ZIP CRC even for ignored executable files.
                 }
             }
+            // The owner phone package has exactly three JSON records, four
+            // starter portraits and 42 pairs of original world/battle PNGs.
+            // Reject partial or unexpected allowlisted inventories before
+            // touching the currently installed private campaign.
+            if (seen.size() != 91)
+                throw new IOException("Incomplete owner content inventory");
             int mapCount = validate(stage);
             // Same filesystem rename: never erase a usable previous package
             // until every new source/PNG has been staged and validated.
