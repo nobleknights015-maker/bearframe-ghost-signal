@@ -1,4 +1,5 @@
-// Procedural environment art: baked 32x32 tile map + dynamic entity / drone drawing.
+// Procedural fallback art: native authored tiles/atlases take precedence only in private campaign.
+import {paintCampaignEnvironmentDetails} from '../engine/campaign-environment-details.js';
 const T = 32;
 const hsh = (x, y, s = 0) => { const n = Math.sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453; return n - Math.floor(n); };
 const R = (c, col, x, y, w, h) => { c.fillStyle = col; c.fillRect(x | 0, y | 0, w, h); };
@@ -110,6 +111,7 @@ export function bakeMap(map, mission) {
       else wallTop(c, x, y, at);
     }
   }
+  paintCampaignEnvironmentDetails(c,mission.environmentDetails,'ground');
   // soft ambient occlusion where floor meets side / lower walls
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) if (at(x, y) === 2) {
     const X = x * T, Y = y * T;
@@ -117,6 +119,7 @@ export function bakeMap(map, mission) {
     if (at(x + 1, y) !== 2) { R(c, 'rgba(0,0,0,.32)', X + T - 3, Y, 3, T); R(c, 'rgba(0,0,0,.15)', X + T - 7, Y, 4, T); }
     if (at(x, y + 1) !== 2) { R(c, 'rgba(0,0,0,.3)', X, Y + T - 3, T, 3); R(c, 'rgba(0,0,0,.14)', X, Y + T - 7, T, 4); }
   }
+  paintCampaignEnvironmentDetails(c,mission.environmentDetails,'background');
   const draw = { machine, crate, debris, cable, hazard, rack };
   for (const p of mission.props) if (p.solid) { R(c, 'rgba(0,0,0,.34)', p.x * T + 5, (p.y + (p.h || 1)) * T - 1, (p.w || 1) * T - 2, 5); R(c, 'rgba(0,0,0,.2)', (p.x + (p.w || 1)) * T - 1, p.y * T + 8, 4, (p.h || 1) * T - 6); }
   for (const p of mission.props) draw[p.t](c, p);
@@ -124,7 +127,7 @@ export function bakeMap(map, mission) {
 }
 
 // Foreground layer drawn above characters: overhead conduits and hanging cables (depth / layered scenery).
-export function bakeOver(map) {
+export function bakeOver(map, mission=null) {
   const cv = document.createElement('canvas'); cv.width = map.w * T; cv.height = map.h * T; const c = cv.getContext('2d');
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
@@ -140,6 +143,7 @@ export function bakeOver(map) {
     }
     if (at(x, y) === 1 && at(x, y - 1) === 2) R(c, 'rgba(0,0,0,.28)', X, Y - 4, T, 4); // lower wall lip shades the floor above it
   }
+  paintCampaignEnvironmentDetails(c,mission?.environmentDetails,'foreground');
   return cv;
 }
 // Parallax under-structure seen through the void around rooms.
