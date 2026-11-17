@@ -4,6 +4,7 @@
 import {createRpgSaveStore} from './rpg-save.js';
 import {createNarrativeState} from './narrative-runtime.js';
 import {compileCampaignWorld} from './campaign-world.js';
+import {compileCampaignEncounterGates} from './campaign-encounter-gates.js';
 const copy=x=>structuredClone(x);
 const starterOK=x=>typeof x==='string'&&/^sleeper_[ABCD]$/.test(x);
 const idOK=x=>typeof x==='string'&&/^[A-Za-z][A-Za-z0-9_-]{0,95}$/.test(x);
@@ -11,6 +12,7 @@ const idOK=x=>typeof x==='string'&&/^[A-Za-z][A-Za-z0-9_-]{0,95}$/.test(x);
 export function createCampaignJournal({storage,starterId,content,worldSpec,bootstrap={}}){
   if(!starterOK(starterId))throw new TypeError('Campaign starter must be an approved A-D identity');
   const graph=compileCampaignWorld(worldSpec);
+  const combatGates=compileCampaignEncounterGates(worldSpec,content);
   if(content?.schemaVersion!==1||!Array.isArray(content.scenes)||content.revision!==worldSpec.campaignRevision)
     throw new TypeError('Campaign and layout revisions disagree');
   const db=createRpgSaveStore(storage,'bearframe_aeon_campaign_'+starterId+'_v1');
@@ -75,11 +77,8 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
     updated.encounters[encounterId]={outcome};
     return commitWorld(updated);
   };
-  const canComplete=(sceneId,world=readWorld())=>{
-    const mandatory=worldSpec.mandatoryCombat;
-    return !mandatory||mandatory.sceneId!==sceneId||
-      world?.encounters?.[mandatory.encounterId]?.outcome===mandatory.saveOutcomeRequired;
-  };
+  const canComplete=(sceneId,world=readWorld())=>combatGates.canComplete(sceneId,world);
+  const pendingCombat=(sceneId,world=readWorld())=>combatGates.pendingForScene(sceneId,world);
   return Object.freeze({
     get starterId(){return starterId;},
     get graph(){return graph;},
@@ -94,7 +93,7 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
     },
     load(){const saved=db.load();if(!saved||!accept(saved))return false;
       record=copy(saved);return true;},
-    readWorld,commitWorld,readJournal:current,
+    readWorld,commitWorld,readJournal:current,pendingCombat,
     writeJournal:next=>{
       if(!record||record.battle||!next||!graph.get(next.mapId))return false;
       const world=copy(next.world);

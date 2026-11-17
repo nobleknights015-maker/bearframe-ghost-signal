@@ -34,11 +34,42 @@ Inside the private `opening-world-review-candidate.json` object:
 **The numbers and names in the example above are synthetic schema illustrations, NOT campaign-approved character stats, enemy rosters, rewards or battle order. Do not copy them into the real package without author review.** Existing `campaignRevision` and `layoutDigest` must match. Every `encounters[].id` must appear in `campaign.json`; every map ID must appear in the private map graph; every art ID must exist in the installed 42-character v5 library with complete 6×9 animation rows.
 
 - The source-approved starter portrait identity is preserved across field and side-view art. Party rosters may contain 1–4 members; at most the first three are active, the fourth is reserve.
-- `encounters[].trigger` is optional. When present, the exact private map object/area trigger can start the battle, optionally guarded by `requiresFlag`. The mandatory story encounter uses `worldSpec.mandatoryCombat.encounterId` and begins after staged dialogue has been acknowledged but before the scene can complete.
+- `encounters[].trigger` is optional. When present, the exact private map object/area trigger can start the battle, optionally guarded by `requiresFlag`. A **combat-only** rectangle trigger may omit `sceneId`; it must still supply an exact, source-approved trigger name and match its staged encounter. An area `entryTrigger` may similarly start a source-approved encounter after durable travel. A legacy `mandatoryCombat` (or the new ordered `mandatoryCombats`) triggers only after staged dialogue is acknowledged and before its scene can complete.
 - Battle actions use the existing deterministic hybrid engine (attack, Pulse, guard, repair, kit, flee and authored enemy behavior). No enemy stats, random encounters, rewards, placement or screenplay are inferred from prose.
 - The campaign journal saves the first battle turn, each confirmed action and the final outcome. On interruption, Continue restores the same encounter instead of erasing the storyline or granting loot twice.
 - A final victory atomically updates persistent party HP/EP, inventory, experience, encounter gate and any existing authored flags. Defeat uses the engine's established half-HP field recovery, and flee keeps the encounter available for a later attempt; neither grants victory loot.
 - Original Ghost Signal and Aeon laboratory save namespaces are never touched. Story-only saves can migrate to a staged starter roster without erasing already completed scenes, maps, dialogue or inventory.
+
+## Campaign-wide ordered combat gates
+
+For a full approved screenplay with several mandatory fights, use an ordered
+`mandatoryCombats` array at the top level of the **private** world layout.
+This replaces (do not specify together with) the legacy singular
+`mandatoryCombat` field. Example below is schema only, **not actual story**:
+
+```json
+{
+  "mandatoryCombats": [
+    {"sceneId":"APPROVED_SCENE_1","encounterId":"APPROVED_BATTLE_A","saveOutcomeRequired":"victory"},
+    {"sceneId":"APPROVED_SCENE_1","encounterId":"APPROVED_BATTLE_B","saveOutcomeRequired":"victory"},
+    {"sceneId":"APPROVED_SCENE_2","encounterId":"APPROVED_BATTLE_C","saveOutcomeRequired":"victory"}
+  ]
+}
+```
+
+Each encounter must exist in the authored private narrative's encounter table
+**and** private combat-staging roster, with its actual approved map, enemies,
+stats and art. The runtime processes the array in author-supplied order;
+victories (not fled/defeated outcomes) are committed atomically to the existing
+corruption-checked journal. Once an encounter is won it cannot award loot a
+second time. A scene is held until **all** its own mandatory encounters have
+saved victories. Reloading between battles resumes the pending encounter
+without replaying earlier rewards or skipping narrative.
+
+Older single-encounter story packages and saves remain supported. Missing,
+duplicate, contradictory or invalid source identifiers cause a validation
+failure instead of guessed encounters. This is the reusable engine capability;
+it does not author or approve actual campaign encounters.
 
 ## Verification and release gate
 

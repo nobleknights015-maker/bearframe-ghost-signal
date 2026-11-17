@@ -1,6 +1,7 @@
 // Source-authorized PRIVATE campaign combat bindings. This module defines the
 // contract, never enemy placements, unapproved stats, story, or art.
 import {mapV5Art} from './aeon-v5-bridge.js';
+import {compileCampaignEncounterGates} from './campaign-encounter-gates.js';
 const clone=x=>structuredClone(x);
 const ids=['sleeper_A','sleeper_B','sleeper_C','sleeper_D'];
 const validId=x=>typeof x==='string'&&/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(x);
@@ -59,10 +60,10 @@ export function compileCampaignCombatStaging(spec,{worldSpec,content,manifest}){
     }
     entries.set(encounter.id,clone(encounter));
   }
-  const mandatory=worldSpec.mandatoryCombat;
-  if(mandatory&&(!entries.has(mandatory.encounterId)||
-      !content.scenes?.some(s=>s.id===mandatory.sceneId)||
-      mandatory.saveOutcomeRequired!=='victory'))fail('mandatory campaign battle not staged');
+  const gates=compileCampaignEncounterGates(worldSpec,content);
+  for(const gate of gates.ordered){
+    if(!entries.has(gate.encounterId))fail('mandatory campaign battle not staged');
+  }
   return Object.freeze({
     roster:id=>partyByStarter[id]?clone(partyByStarter[id]):null,
     encounter:id=>entries.has(id)?clone(entries.get(id)):null,

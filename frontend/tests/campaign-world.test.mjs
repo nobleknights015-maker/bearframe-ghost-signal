@@ -51,6 +51,23 @@ test('Binds exact triggers and private field entities without auto-completing sc
  assert.equal(calls.filter(x=>x[0]==='portal').length,1,'portal is edge-driven');
  g.ents[0].gone=false;m.migrate(g);assert.equal(g.ents[0].gone,true);
 });
+test('Authored encounter-only area triggers do not require a synthetic story scene',()=>{
+  const c=content();
+  c.maps[0].triggers.push({id:'encounter_zone',x:5*32,y:3*32,width:32,height:32,
+    trigger:'SOURCE_HOSTILE_START'});
+  const calls=[];
+  const graph=compileCampaignWorld(c);
+  assert.ok(graph.get('A00').triggers.some(t=>t.id==='encounter_zone'));
+  const adapter=createCampaignMissionFactory(c,{onTrigger:t=>calls.push([t.trigger,t.sceneId])});
+  const mission=adapter.missionForSync('A00');
+  const g={mode:'play',player:{x:176,y:112,hidden:null},ents:[]};
+  mission.update(g,.016);
+  assert.deepEqual(calls,[['SOURCE_HOSTILE_START',undefined]]);
+  const invalid=content();
+  invalid.maps[0].triggers.push({id:'bad_zone',x:5*32,y:3*32,width:32,height:32,
+    trigger:'SOURCE_HOSTILE_START',sceneId:'__proto__'});
+  assert.throws(()=>compileCampaignWorld(invalid),/invalid trigger/);
+});
 test('Rejects duplicate areas, nonreciprocal portals, unsafe collision, and overlapping portal tiles',()=>{
  const invalid=content();invalid.maps[1].id='A00';
  assert.throws(()=>compileCampaignWorld(invalid),/duplicate\/invalid area id/);

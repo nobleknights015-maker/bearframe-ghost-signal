@@ -27,7 +27,8 @@ const validateObjects=(m,objs,label)=>{
       if(!['terminal','cell','note','npc','crate','door'].includes(o.type))fail('unknown entity type '+o.id);
       if(o.trigger!==undefined&&!idOk(o.trigger))fail('invalid entity trigger '+o.id);
     } else {
-      if(!bounds(m,o.x,o.y,o.width,o.height)||!idOk(o.trigger)||!idOk(o.sceneId))fail('invalid trigger '+o.id);
+      if(!bounds(m,o.x,o.y,o.width,o.height)||!idOk(o.trigger)||
+         (o.sceneId!==undefined&&!idOk(o.sceneId)))fail('invalid trigger '+o.id);
       if(o.requiresFlag!==undefined&&!idOk(o.requiresFlag))fail('invalid trigger prerequisite '+o.id);
       if(o.requiresNotFlag!==undefined&&!idOk(o.requiresNotFlag))fail('invalid negative prerequisite '+o.id);
     }
