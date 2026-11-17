@@ -29,7 +29,15 @@ function refreshTouch() { ui.show('touch', touchMode() && game.mode !== 'title' 
 function showTitle() {
   game.mode = 'title'; ['pause', 'settings', 'ending', 'hud', 'dialog', 'terminal'].forEach(id => ui.show(id, false));
   ['casefile'].forEach(id => ui.show(id, false));
-  ui.show('title', true); $('btn-continue').disabled = !store.load(); ui.show('btn-m2', !!store.loadProgress().unlocked.m2); ui.show('btn-m3', !!store.loadProgress().unlocked.m3); refreshTouch();
+  ui.show('title', true); $('btn-continue').disabled = !store.load(); const progress = store.loadProgress();
+  // Pre-expansion owners may already have completed M02 before M03 was introduced.
+  if (progress.done.m2 && !progress.unlocked.m3) {
+    progress.unlocked.m3 = true;
+    store.saveProgress(progress);
+  }
+  ui.show('btn-m2', !!progress.unlocked.m2);
+  ui.show('btn-m3', !!progress.unlocked.m3);
+  refreshTouch();
 }
 function titleSprite(now) {
   const c = $('title-sprite').getContext('2d'), f = IDLE0 + (Math.floor(now / 320) % IDLEN); c.clearRect(0, 0, FW, FH); c.drawImage(game.sheet, f * FW, 0, FW, FH, 0, 0, FW, FH);
@@ -85,7 +93,14 @@ $('set-touch').onclick = () => { settings.touch = { auto: 'on', on: 'off', off: 
 
 input.bindPad($('dpad'));
 input.bindButton($('t-act'), 'interact'); input.bindButton($('t-light'), 'light'); input.bindButton($('t-scan'), 'scan');
-document.addEventListener('visibilitychange', () => { if (document.hidden && game.mode === 'play') game.onPause(); });
+function safeBackgroundPause() {
+  if (game.mode !== 'play') return;
+  game.checkpoint(true);
+  game.onPause();
+  input.release();
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) safeBackgroundPause(); });
+addEventListener('ghost-signal-host-pause', safeBackgroundPause);
 
 let last = performance.now(), slow = 0, frames = 0;
 function loop(now) {
