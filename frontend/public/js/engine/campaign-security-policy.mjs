@@ -25,8 +25,14 @@ export function securityAt(zones, x, y) {
   if(!Number.isFinite(x)||!Number.isFinite(y)) return null;
   return zones.find(z=>x>=z.x && x<z.x+z.w && y>=z.y && y<z.y+z.h) ?? null;
 }
-export function resolveDetection(zone, {detected=false, encounterEnabled=false}={}) {
+// A boolean opt-in alone does not authorize an arbitrary battle. The encounter
+// must also be present in the owner-private, source-bound encounter registry.
+export function resolveDetection(zone, {detected=false, encounterEnabled=false, authorizedEncounterIds}={}) {
   if(!detected || !zone || zone.mode !== 'stealth') return Object.freeze({kind:'none'});
-  if(zone.consequence === 'encounter' && !encounterEnabled) return Object.freeze({kind:'alarm'});
-  return Object.freeze({kind:zone.consequence,...(zone.consequence==='encounter'?{encounterId:zone.encounterId}:{})});
+  if(zone.consequence === 'encounter') {
+    const authorized = authorizedEncounterIds instanceof Set && authorizedEncounterIds.has(zone.encounterId);
+    if(!encounterEnabled || !validId(zone.encounterId) || !authorized) return Object.freeze({kind:'alarm'});
+    return Object.freeze({kind:'encounter',encounterId:zone.encounterId});
+  }
+  return Object.freeze({kind:consequences.has(zone.consequence) ? zone.consequence : 'alarm'});
 }
