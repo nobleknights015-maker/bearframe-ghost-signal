@@ -22,6 +22,12 @@ try{
   assert.match(await page.locator('#campaign-install-status').innerText(),/REQUIRE OWNER-INSTALLED/);
   assert.equal(await page.locator('a[href="index.html"]').isVisible(),true,
     'Original Ghost Signal must stay reachable');
+  assert.equal(await page.locator('#owner-aeon-zip').getAttribute('type'),'file',
+    'Debug APK must expose a user-initiated local private ZIP picker');
+  assert.match(await page.locator('#owner-aeon-zip').getAttribute('accept'),/zip/,
+    'Only owner-provided archive format is offered');
+  assert.equal(await page.locator('#owner-aeon-import label').isVisible(),true,
+    'The importer must remain available even before private art exists');
 
   await page.route('**/assets/aeon/**',async route=>{
     const name=new URL(route.request().url()).pathname.split('/').at(-1);
@@ -55,6 +61,13 @@ try{
   });
   await page.waitForFunction(()=>window.__padAccepted===true);
   await page.evaluate(()=>window.__launcherPad.buttons[0].pressed=false);
+  await page.waitForTimeout(60);
+  await page.evaluate(()=>{
+    document.querySelector('a[href="studio/"]').focus();
+    window.__launcherPad.buttons[15].pressed=true;
+  });
+  await page.waitForFunction(()=>document.activeElement?.htmlFor==='owner-aeon-zip');
+  await page.evaluate(()=>window.__launcherPad.buttons[15].pressed=false);
   assert.equal(await page.locator('#campaign-review').getAttribute('href'),'campaign.html');
   assert.match(await page.locator('#campaign-install-status').innerText(),/NOT FINAL/);
 
