@@ -26,6 +26,10 @@ const validateObjects=(m,objs,label)=>{
         o.tx>=m.width-1||o.ty>=m.height-1||!walkable(m,o.tx*32+16,o.ty*32+16))fail('unsafe entity '+o.id);
       if(!['terminal','cell','note','npc','crate','door'].includes(o.type))fail('unknown entity type '+o.id);
       if(o.trigger!==undefined&&!idOk(o.trigger))fail('invalid entity trigger '+o.id);
+      for(const key of ['requiresFlag','requiresNotFlag','hideAfterFlag'])
+        if(o[key]!==undefined&&!idOk(o[key]))fail('invalid entity '+key+' '+o.id);
+      if(o.requiresFlag&&o.requiresNotFlag&&o.requiresFlag===o.requiresNotFlag)
+        fail('contradictory entity gate '+o.id);
     } else {
       if(!bounds(m,o.x,o.y,o.width,o.height)||!idOk(o.trigger)||
          (o.sceneId!==undefined&&!idOk(o.sceneId)))fail('invalid trigger '+o.id);
