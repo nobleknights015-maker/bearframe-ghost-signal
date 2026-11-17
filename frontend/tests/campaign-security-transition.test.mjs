@@ -28,3 +28,17 @@ test('alert does not bleed into a different stealth zone',()=>{
  const a=transitionSecurity({zoneId:'corridor',alert:true},{id:'vault',mode:'stealth'});
  assert.equal(a.alert,false);assert.equal(a.entered,true);
 });
+
+test('escape and checkpoint resolve an existing alert in the same stealth zone',()=>{
+ for(const kind of ['escape','checkpoint']){
+  const result=transitionSecurity({zoneId:'corridor',alert:true},stealth,{kind});
+  assert.equal(result.alert,false);
+  assert.equal(result.consequence,kind);
+  assert.equal(result.entered,false);
+ }
+});
+test('reserved property names cannot become security zone IDs',()=>{
+ for(const id of ['constructor','prototype','__proto__']){
+  assert.throws(()=>transitionSecurity({}, {id,mode:'stealth'}),TypeError);
+ }
+});
