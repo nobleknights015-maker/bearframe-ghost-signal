@@ -91,7 +91,7 @@ try{
   await page.locator('#rpg-lab-menu').getByRole('button',{name:'QUESTS',exact:true}).click();
   assert.match(await page.locator('#rpg-lab-menu h2').first().innerText(),/FIELD RECORD/);
   await page.locator('#rpg-lab-menu .case-body button').first().click();
-  assert.match(await page.locator('#rpg-lab-menu .case-body pre').innerText(),/ACTIVE — Investigate the synthetic console/,
+  assert.match(await page.locator('#rpg-lab-menu .case-body pre').innerText(),/ACTIVE — INVESTIGATE THE SYNTHETIC CONSOLE/,
     'The source quest must appear only after the introduction sets its authored start flag');
   await page.locator('#rpg-lab-menu').getByRole('button',{name:'SAVE',exact:true}).click();
   await page.locator('#rpg-lab-menu').getByRole('button',{name:'SAVE CAMPAIGN RECORD'}).click();
@@ -187,7 +187,7 @@ try{
   await page.locator('#rpg-lab-menu').waitFor({state:'visible'});
   await page.locator('#rpg-lab-menu').getByRole('button',{name:'QUESTS',exact:true}).click();
   await page.locator('#rpg-lab-menu .case-body button').first().click();
-  assert.match(await page.locator('#rpg-lab-menu .case-body pre').innerText(),/COMPLETE — Investigate the synthetic console/,
+  assert.match(await page.locator('#rpg-lab-menu .case-body pre').innerText(),/COMPLETE — INVESTIGATE THE SYNTHETIC CONSOLE/,
     'The source quest must resolve from its already-saved completion flag without modifying save schema');
   await page.keyboard.press('Escape');
 
