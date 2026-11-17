@@ -1,6 +1,12 @@
 package labs.bearframe.ghostsignal;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.net.Uri;
+import android.widget.Toast;
+import android.webkit.ValueCallback;
+import java.io.File;
 import android.os.Bundle;
 import android.os.Build;
 import android.graphics.Insets;
@@ -24,6 +30,9 @@ import androidx.webkit.WebViewClientCompat;
  */
 public final class MainActivity extends Activity {
     private WebView webView;
+    private static final int IMPORT_PRIVATE_AEON = 8019;
+    private ValueCallback<Uri[]> pendingPrivatePicker;
+    private boolean privateImportBusy = false;
     private static final String APP_URL = "https://appassets.androidplatform.net/index.html";
 
     @Override public void onCreate(Bundle savedInstanceState) {
@@ -67,18 +76,101 @@ public final class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
+        // Only the trusted debug test bay can load user-installed PRIVATE
+        // JSON/PNG art. Never add those files to the public APK or expose the
+        // app's shared_prefs/databases. The original Ghost Signal resources
+        // remain served from the signed APK, unchanged.
+        File ownerContent = PrivateAeonAssets.activeDirectory(this);
+        if (!ownerContent.exists() && !ownerContent.mkdirs())
+            throw new IllegalStateException("Cannot prepare owner asset directory");
+        final WebViewAssetLoader.PathHandler installedPrivate =
+            new WebViewAssetLoader.InternalStoragePathHandler(this, ownerContent);
+        final WebViewAssetLoader.PathHandler packagedPublic =
+            new WebViewAssetLoader.AssetsPathHandler(this);
         final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
             .setDomain("appassets.androidplatform.net")
-            .addPathHandler("/", new WebViewAssetLoader.AssetsPathHandler(this))
+            .addPathHandler("/", path -> {
+                if (BuildConfig.DEBUG && path.startsWith("assets/aeon/"))
+                    return installedPrivate.handle(path.substring("assets/aeon/".length()));
+                return packagedPublic.handle(path);
+            })
             .build();
         webView.setWebViewClient(new WebViewClientCompat() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return loader.shouldInterceptRequest(request.getUrl());
             }
         });
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onShowFileChooser(WebView from,
+                    ValueCallback<Uri[]> callback, FileChooserParams options) {
+                // This is an owner action initiated by the debug-only local
+                // test bay file input. Never pass arbitrary content:// URIs
+                // into WebView's JS or allow a remote page to request files.
+                if (!BuildConfig.DEBUG ||
+                    !("https://appassets.androidplatform.net/engine-lab.html").equals(from.getUrl()) ||
+                    options.getMode() != FileChooserParams.MODE_OPEN)
+                    return false;
+                if (privateImportBusy) { callback.onReceiveValue(null); return true; }
+                if (pendingPrivatePicker != null) pendingPrivatePicker.onReceiveValue(null);
+                pendingPrivatePicker = callback;
+                Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                picker.addCategory(Intent.CATEGORY_OPENABLE);
+                picker.setType("*/*");
+                picker.putExtra(Intent.EXTRA_MIME_TYPES,
+                    new String[]{"application/zip","application/x-zip-compressed","application/octet-stream"});
+                try {
+                    startActivityForResult(picker, IMPORT_PRIVATE_AEON);
+                } catch (ActivityNotFoundException noPicker) {
+                    pendingPrivatePicker.onReceiveValue(null);
+                    pendingPrivatePicker = null;
+                    Toast.makeText(MainActivity.this,
+                        "No Android document picker available", Toast.LENGTH_LONG).show();
+                }
+                return true;
+            }
+        });
         // Development APK offers both opt-in labs; production still launches untouched Ghost Signal.
         webView.loadUrl(BuildConfig.DEBUG ? "https://appassets.androidplatform.net/engine-lab.html" : APP_URL);
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != IMPORT_PRIVATE_AEON) return;
+        if (pendingPrivatePicker != null) {
+            // The archive is installed by native code, never handed to JS.
+            pendingPrivatePicker.onReceiveValue(null);
+            pendingPrivatePicker = null;
+        }
+        if (resultCode != RESULT_OK || data == null || data.getData() == null ||
+                privateImportBusy || !BuildConfig.DEBUG) return;
+        final Uri selected = data.getData();
+        privateImportBusy = true;
+        Toast.makeText(this, "Checking owner campaign ZIP…", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            int maps = 0;
+            String error = null;
+            try {
+                maps = PrivateAeonAssets.install(MainActivity.this, selected);
+            } catch (Exception failed) {
+                // Never print private source paths, scene identifiers or ZIP
+                // contents into logcat or public issue comments.
+                error = "PRIVATE ZIP REJECTED — CHECK OWNER PACKAGE";
+            }
+            final int installedMaps = maps;
+            final String failure = error;
+            runOnUiThread(() -> {
+                privateImportBusy = false;
+                if (failure == null) {
+                    Toast.makeText(MainActivity.this,
+                        "Private campaign verified: " + installedMaps + " staged areas",
+                        Toast.LENGTH_LONG).show();
+                    if (webView != null) webView.loadUrl(
+                        "https://appassets.androidplatform.net/engine-lab.html");
+                } else {
+                    Toast.makeText(MainActivity.this, failure, Toast.LENGTH_LONG).show();
+                }
+            });
+        }, "aeon-private-archive-import").start();
     }
 
     private void hideSystemBars() {
@@ -121,6 +213,10 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if (pendingPrivatePicker != null) {
+            pendingPrivatePicker.onReceiveValue(null);
+            pendingPrivatePicker = null;
+        }
         if (webView != null) {
             webView.destroy();
             webView = null;
