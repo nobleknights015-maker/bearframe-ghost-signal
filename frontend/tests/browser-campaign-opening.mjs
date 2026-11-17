@@ -31,12 +31,21 @@ const world={schemaVersion:1,campaignRevision:2,status:'authored-blockout-review
   maps:[area('A00','A01','east','west',6),area('A01','A00','west','east',1)],choiceGates:{}};
 // Synthetic CI author review opts in only A00; real source maps stay private.
 world.maps[0].environmentPalette='station_abandoned';
+world.maps[0].environmentDetails=[
+ {id:'rubble',atlas:'wasteland_terrain',layer:'ground',
+  tx:3,ty:4,sx:32,sy:0,sw:32,sh:32},
+ {id:'wall_fragment',atlas:'wasteland_terrain',layer:'background',
+  tx:0,ty:2,sx:32,sy:0,sw:32,sh:32},
+ {id:'foreground_fragment',atlas:'wasteland_terrain',layer:'foreground',
+  tx:7,ty:5,sx:32,sy:0,sw:32,sh:32}
+];
 const environmentManifest={schema:'aeon.private-environment-art.v1',tileSize:32,
  doorways:{service:{closed:'assets/aeon/environment/doors/service_closed.png',
   open:'assets/aeon/environment/doors/service_open.png'}},
  palettes:{station_abandoned:{
   floor:'assets/aeon/environment/terrain/station_rust.png',
-  wall:'assets/aeon/environment/terrain/station_wall.png'}}};
+  wall:'assets/aeon/environment/terrain/station_wall.png'}},
+ objects:{wasteland_terrain:'assets/aeon/environment/atlases/wasteland_terrain.png'}};
 const content={schemaVersion:1,revision:2,
   flagSchema:{gameplay_flags:['game_started','door_open'],exclusive_enums:{},relationships:{}},
   scenes:[{id:'opening',trigger:'NEW_GAME',dialogue:['line-opening'],sets:'game_started'},
@@ -76,6 +85,8 @@ try{
     if(path.endsWith('/environment/doors/service_closed.png')||
        path.endsWith('/environment/doors/service_open.png'))
       return route.fulfill({status:200,contentType:'image/png',body:png(32,64,32,64)});
+    if(path.endsWith('/environment/atlases/wasteland_terrain.png'))
+      return route.fulfill({status:200,contentType:'image/png',body:png(64,64,32,32)});
     if(path.endsWith('/environment/terrain/station_rust.png')||
        path.endsWith('/environment/terrain/station_wall.png'))
       return route.fulfill({status:200,contentType:'image/png',body:png(32,32,32,32)});
@@ -118,6 +129,17 @@ try{
       terrainId:window.__gs.m.environmentArt?.id};
   }),{width:32,height:64,terrainId:'station_abandoned'},
   'Native owner-authored 32px environment assets must bind in the live field');
+  assert.equal(await page.evaluate(()=>window.__gs.m.environmentDetails.count),3);
+  assert.deepEqual(await page.evaluate(()=>{
+    const g=window.__gs;
+    const sample=(canvas,x,y)=>[...canvas.getContext('2d').getImageData(x,y,1,1).data].slice(0,3);
+    return {
+      ground:sample(g.base,3*32+16,4*32+16),
+      wall:sample(g.base,0*32+16,2*32+16),
+      foreground:sample(g.over,7*32+16,5*32+16)
+    };
+  }),{ground:[140,55,180],wall:[140,55,180],foreground:[140,55,180]},
+  'The actual field must crop original atlas pixels into all three source layers');
   // An actual campaign (not the noncanonical lab) must expose the same Ghost
   // Signal field-record tabs and a durable on-screen save without replacing
   // the original overlay styles.
