@@ -10,6 +10,7 @@ import {compileCampaignCombatStaging} from './campaign-combat-staging.js';
 import {mountCampaignBattle} from './campaign-battle.js';
 import {mountCampaignFieldMenu} from './campaign-field-menu.js';
 import {compileCampaignQuestJournal} from './campaign-quest-journal.js';
+import {loadCampaignEnvironmentArt} from './campaign-environment-art.js';
 import {mountCampaignBackupUI} from './campaign-backup-ui.js';
 const ROOT=new URL('../../assets/aeon/',import.meta.url);
 const STARTERS=Object.freeze(['sleeper_A','sleeper_B','sleeper_C','sleeper_D']);
@@ -59,6 +60,12 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
   // Read-only source-driven journal: no invented quest objectives, rewards or
   // new save fields. Unstaged future quests stay hidden until author review.
   const questJournal=compileCampaignQuestJournal(content,worldSpec);
+  // Owner-private 32px terrain and actual door PNGs; not public Git content.
+  // A reviewed production layout can explicitly REQUIRE this import so
+  // missing files cannot quietly ship as schematic pixel placeholders.
+  const environmentArt=await loadCampaignEnvironmentArt({
+    requireInstalled:worldSpec.requiresEnvironmentArt===true
+  });
   // Describe actual installed capabilities rather than claiming battles are
   // missing after the campaign-combat bridge was merged.
   title.querySelector('.sub').textContent=combatStaging?
@@ -145,6 +152,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
           manifest,starterId,touchMode,onSavedVictory:()=>narrative.resume()});
       }
       const factory=createCampaignMissionFactory(worldSpec,{
+        environmentArt,
         getWorld:journal.readWorld,
         onInteract(e){
           if(!campaignEntityAvailable(e,journal.readWorld()?.flags)){
