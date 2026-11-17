@@ -49,6 +49,17 @@ test('Loads real native door art with authored source IDs, without regenerating 
  assert.equal(art.door('exit').id,'elevator');
  assert.equal(art.door('bulkhead','service').closed,sourceImages.get(path('doors/service_closed')));
 });
+test('Source palettes can require real owner terrain backdrop without inventing a sky texture',()=>{
+ const owner=manifest();
+ owner.palettes.station_abandoned.backdrop='terrain';
+ const loaded=compileCampaignEnvironmentArt(owner,images());
+ assert.equal(loaded.palette('station_abandoned').backdrop,'terrain');
+ assert.equal(compileCampaignEnvironmentArt(manifest(),images()).palette('station_abandoned').backdrop,null,
+  'Default original Ghost Signal backdrop stays untouched');
+ const bad=manifest();
+ bad.palettes.station_abandoned.backdrop='procedural-space';
+ assert.throws(()=>compileCampaignEnvironmentArt(bad,images()),/invalid private terrain palette/);
+});
 test('Rejects missing native sprites, non-32 terrain, unauthorized paths, or nonexistent source palettes',()=>{
  const a=manifest(),i=images();
  i.delete(path('doors/service_open'));
