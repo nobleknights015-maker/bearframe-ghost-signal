@@ -10,6 +10,7 @@ import {compileCampaignCombatStaging} from './campaign-combat-staging.js';
 import {mountCampaignBattle} from './campaign-battle.js';
 import {mountCampaignFieldMenu} from './campaign-field-menu.js';
 import {mountCampaignBackupUI} from './campaign-backup-ui.js';
+import {createCampaignSecurityRuntime} from './campaign-security-runtime.js';
 const ROOT=new URL('../../assets/aeon/',import.meta.url);
 const STARTERS=Object.freeze(['sleeper_A','sleeper_B','sleeper_C','sleeper_D']);
 const $=id=>document.getElementById(id);
@@ -140,6 +141,21 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
         combat=mountCampaignBattle({game,ui,journal,staging:combatStaging,
           manifest,starterId,touchMode,onSavedVictory:()=>narrative.resume()});
       }
+      // Opt-in only: read real Ghost Signal drone visibility, persist the
+      // owner-authored zone state, and authorize battles from private staging.
+      // Ordinary maps and the original stealth demo remain unchanged.
+      const security=createCampaignSecurityRuntime({
+        worldSpec,readWorld:journal.readWorld,commitWorld,
+        encounterFor:(id,mapId)=>{
+          const staged=combatStaging?.encounter(id);
+          return staged?.mapId===mapId?staged:null;
+        },
+        onEncounter:id=>{
+          if(!combat?.start(id))
+            ui.toast('SECURITY ENCOUNTER REQUIRES AUTHOR REVIEW',2);
+        },
+        onSaveFailure:()=>ui.toast('SECURITY RECORD NOT SAVED — RETRY',3)
+      });
       const factory=createCampaignMissionFactory(worldSpec,{
         getWorld:journal.readWorld,
         onInteract(e){
@@ -149,6 +165,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
           invoke(e.trigger,e.sceneId);
         },
         onTrigger(t){invoke(t.trigger,t.sceneId);},
+        onUpdate(g){security.tick(g);},
         onEnter(m){
           if(!m.entryTrigger)return;
           // Game.start runs during travel. Trigger ONLY after travel is durably saved.
@@ -184,7 +201,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
       const previousSnapshot=current.maps?.[area]||current.field;
       game.start(factory.missionForSync(area),previousSnapshot?.mission===area?previousSnapshot:null);
       ui.show('title',false);ui.show('ending',false);refreshTouch();
-      active={journal,narrative,combat,factory,traveler,starterId};
+      active={journal,narrative,combat,factory,traveler,starterId,security};
       if(!continuing){
         if(!journal.saveField(area,game.snapshot()))throw new Error('Fresh field position could not be saved');
         // The only automatic scene trigger is the source-authorized NEW GAME event.
