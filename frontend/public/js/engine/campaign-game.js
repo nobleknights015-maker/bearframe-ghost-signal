@@ -204,11 +204,22 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
   }
   $('btn-new').onclick=()=>begin(false);
   $('btn-continue').onclick=()=>begin(true);
-  addEventListener('ghost-signal-host-pause',()=>{
-    if(active&&game.mode==='play')active.journal.saveField(game.m.id,game.snapshot());
-  });
+  // Main Ghost Signal registers its host-pause and visibility handlers before
+  // this adapter. Those handlers change mode from 'play' to 'pause' first, so
+  // checking ONLY 'play' silently skipped the campaign save on Android HOME.
+  const saveFieldOnLifecycle=()=>{
+    if(!active||!game.m||!['play','pause'].includes(game.mode)||
+       active.journal.readJournal()?.battle)return false;
+    return active.journal.saveField(game.m.id,game.snapshot());
+  };
+  addEventListener('ghost-signal-host-pause',saveFieldOnLifecycle);
   document.addEventListener('visibilitychange',()=>{
-    if(active&&document.hidden&&game.mode==='play')active.journal.saveField(game.m.id,game.snapshot());
+    if(document.hidden)saveFieldOnLifecycle();
+  });
+  // An explicit pause is another durable field checkpoint, even when a
+  // subsequent Android lifecycle event never arrives.
+  $('btn-pause').addEventListener('click',()=>{
+    if(game.mode==='pause')saveFieldOnLifecycle();
   });
   return {get active(){return !!active;}};
 }
