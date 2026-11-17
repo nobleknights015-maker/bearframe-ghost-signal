@@ -36,7 +36,7 @@ export class Game {
       image.onerror = () => { item.ready = false; };
       image.src = spec.src;
     }
-    this.flags = {}; this.inv = {}; this.stats = { scans: 0, hits: 0, restores: 0, logs: 0, ev: 0 };
+    this._escortTrail = null; this.flags = {}; this.inv = {}; this.stats = { scans: 0, hits: 0, restores: 0, logs: 0, ev: 0 };
     this.caseFile = carry ? clone(carry) : { ev: [], logs: [] };
     this.player = { x: mission.start.x, y: mission.start.y, dir: mission.start.dir, energy: 100, light: false, moving: false, anim: 0, hurt: 0, scanT: 0, hidden: null };
     this.time = 0; this.hist = []; this.scan = null; this.scanCd = 0; this.plateT = 0; this.onPad = null; this.echo = null; this.detectFx = 0; this.onGrate = null;
@@ -99,7 +99,7 @@ export class Game {
     this.caseFile = s.case ? clone(s.case) : { ev: [], logs: [] };
     Object.assign(this.player, s.player, { energy: Math.max(s.player.energy, minEnergy), hurt: 0, moving: false, hidden: null, scanT: 0 });
     for (const e of this.ents) { e.pingT = 0; e.offT = 0; if (s.es && s.es[e.id]) Object.assign(e, s.es[e.id]); if (e.type === 'door') e.open = this.m.doorOpen(e.id, this) ? 1 : 0; }
-    this.hist = []; this.scan = null; this.plateT = 0; this.drones = this.makeDrones(); this.onPad = null; this.echo = null; this.detectFx = 0; this.cam = null;
+    this._escortTrail = null; this.hist = []; this.scan = null; this.plateT = 0; this.drones = this.makeDrones(); this.onPad = null; this.echo = null; this.detectFx = 0; this.cam = null;
     if (this.m.migrate) this.m.migrate(this);
   }
   restore() {

@@ -31,10 +31,10 @@ function showTitle() {
   ['casefile'].forEach(id => ui.show(id, false));
   ui.show('title', true); $('btn-continue').disabled = !store.load(); const progress = store.loadProgress();
   // Pre-expansion owners may already have completed M02 before M03 was introduced.
-  if (progress.done.m2 && !progress.unlocked.m3) {
-    progress.unlocked.m3 = true;
-    store.saveProgress(progress);
-  }
+  let migrated = false;
+  if (progress.done.m2 && !progress.unlocked.m3) { progress.unlocked.m3 = true; migrated = true; }
+  if (progress.done.m3 && !progress.unlocked.m4) { progress.unlocked.m4 = true; migrated = true; }
+  if (migrated) store.saveProgress(progress);
   ui.show('btn-m2', !!progress.unlocked.m2);
   ui.show('btn-m3', !!progress.unlocked.m3);
   ui.show('btn-m4', !!progress.unlocked.m4);

@@ -53,6 +53,10 @@ For owner's purchased and free ZIP packs:
 
 Do not use paid packs as unreviewed placeholder bundles or assume a generic NPC represents a canon portrait.
 
+## Follow-up after the M04 rescue slice
+
+M04 now includes a second weathered surface environment, a missing surveyor, a real path-following escort, field regulator repair, search evidence, and two extraction methods. Wraith does not commandeer Exploration's rescue operation. Later missions listed below remain proposals, not implemented.
+
 ## Next expansion targets (proposed only)
 
 1. **Missing Survey**: investigate an overdue field team with search-and-rescue, environmental threats and multiple routes, **not** another long alarm corridor.
