@@ -79,6 +79,20 @@ try{
   assert.equal((await inspect()).story,null);
   assert.equal(await page.evaluate(()=>window.__gs.sheet.width),448);
   assert.equal((await inspect()).starterId,'sleeper_D');
+  // An actual campaign (not the noncanonical lab) must expose the same Ghost
+  // Signal field-record tabs and a durable on-screen save without replacing
+  // the original overlay styles.
+  await page.keyboard.press('KeyM');
+  await page.locator('#rpg-lab-menu').waitFor({state:'visible'});
+  assert.equal((await inspect()).mode,'rpgmenu');
+  await page.locator('#rpg-lab-menu').getByRole('button',{name:'QUESTS',exact:true}).click();
+  assert.match(await page.locator('#rpg-lab-menu h2').first().innerText(),/FIELD RECORD/);
+  await page.locator('#rpg-lab-menu').getByRole('button',{name:'SAVE',exact:true}).click();
+  await page.locator('#rpg-lab-menu').getByRole('button',{name:'SAVE CAMPAIGN RECORD'}).click();
+  assert.equal((await inspect()).saved.hasSave,true);
+  await page.keyboard.press('Escape');
+  await page.locator('#rpg-lab-menu').waitFor({state:'hidden'});
+  assert.equal((await inspect()).mode,'play');
   await page.keyboard.press('KeyE'); // No object yet adjacent: no accidental scene.
   assert.equal((await inspect()).story,null);
   await page.locator('#btn-pause').click();
