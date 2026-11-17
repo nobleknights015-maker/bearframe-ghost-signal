@@ -55,3 +55,22 @@ test('same-id detection uses current authorized encounter rather than stale payl
   assert.equal(result.consequence,'encounter');
   assert.equal(result.alert,false);
 });
+
+test('malformed detection source is rejected before consequence resolution', () => {
+  for (const source of [
+    undefined, {}, [], {id:'__proto__',mode:'stealth'},
+    {id:'gate',mode:'unknown'}, {id:'gate',mode:undefined},
+    {id:'gate/other',mode:'stealth'}, {id:'gate',mode:'stealth',length:0,0:1}
+  ]) {
+    if (source && source.id === 'gate' && source.mode === 'stealth') continue;
+    assert.throws(() => applySecurityDetection(
+      {zoneId:'gate',mode:'stealth',alert:false},gate,source,permitted
+    ), TypeError);
+  }
+});
+
+test('null detection source still permits a no-detection transition', () => {
+  const result=applySecurityDetection({zoneId:'gate',mode:'stealth',alert:true},null,null,{detected:false});
+  assert.equal(result.consequence,'none');
+  assert.equal(result.alert,false);
+});
