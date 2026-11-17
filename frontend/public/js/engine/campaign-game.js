@@ -9,6 +9,7 @@ import {createConnectedFieldTravel} from './connected-field-travel.js';
 import {compileCampaignCombatStaging} from './campaign-combat-staging.js';
 import {mountCampaignBattle} from './campaign-battle.js';
 import {mountCampaignFieldMenu} from './campaign-field-menu.js';
+import {compileCampaignQuestJournal} from './campaign-quest-journal.js';
 import {mountCampaignBackupUI} from './campaign-backup-ui.js';
 const ROOT=new URL('../../assets/aeon/',import.meta.url);
 const STARTERS=Object.freeze(['sleeper_A','sleeper_B','sleeper_C','sleeper_D']);
@@ -55,6 +56,9 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
   // Optional owner-authored combat staging lives inside the ignored private layout
   // package. Without it the existing story/exploration review remains available.
   const combatStaging=compileCampaignCombatStaging(worldSpec.combat,{worldSpec,content,manifest});
+  // Read-only source-driven journal: no invented quest objectives, rewards or
+  // new save fields. Unstaged future quests stay hidden until author review.
+  const questJournal=compileCampaignQuestJournal(content,worldSpec);
   // Describe actual installed capabilities rather than claiming battles are
   // missing after the campaign-combat bridge was merged.
   title.querySelector('.sub').textContent=combatStaging?
@@ -207,7 +211,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
       // Additive in-campaign party / inventory / quest / save record: uses
       // existing Ghost Signal colors, panels, controller overlay and RPG model.
       // Never starts in narrative/dialogue/battle mode or touches main saves.
-      active.fieldMenu=mountCampaignFieldMenu({game,ui,journal,touchMode});
+      active.fieldMenu=mountCampaignFieldMenu({game,ui,journal,touchMode,questJournal});
     }catch(error){
       console.error('Private campaign preview failed',error);
       game.mode='title';ui.show('title',true);
