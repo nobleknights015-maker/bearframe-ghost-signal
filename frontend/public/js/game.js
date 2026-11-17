@@ -24,7 +24,7 @@ export class Game {
   }
 
   start(mission, snap, carry) {
-    this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission); this.over = bakeOver(this.map); this.cam = null;
+    this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission); this.over = bakeOver(this.map, mission); this.cam = null;
     this.ents = mission.entities().map(e => ({ w: 1, h: 1, open: 0, ...e }));
     this.flags = {}; this.inv = {}; this.stats = { scans: 0, hits: 0, restores: 0, logs: 0, ev: 0 };
     this.caseFile = carry ? clone(carry) : { ev: [], logs: [] };
