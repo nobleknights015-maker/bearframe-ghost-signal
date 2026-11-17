@@ -9,6 +9,7 @@ import {createConnectedFieldTravel} from './connected-field-travel.js';
 import {compileCampaignCombatStaging} from './campaign-combat-staging.js';
 import {mountCampaignBattle} from './campaign-battle.js';
 import {mountCampaignFieldMenu} from './campaign-field-menu.js';
+import {mountCampaignBackupUI} from './campaign-backup-ui.js';
 const ROOT=new URL('../../assets/aeon/',import.meta.url);
 const STARTERS=Object.freeze(['sleeper_A','sleeper_B','sleeper_C','sleeper_D']);
 const $=id=>document.getElementById(id);
@@ -63,9 +64,14 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
   const hasSave=id=>{try{return localStorage.getItem(saveFor(id)+':A')!==null||
     localStorage.getItem(saveFor(id)+':B')!==null;}catch{return false;}};
   $('btn-continue').disabled=!STARTERS.some(hasSave);
+  const backupUI=mountCampaignBackupUI({title,storage:localStorage,content,worldSpec,
+    confirmReplacement,hasSave,
+    onImported:()=>{$('btn-continue').disabled=!STARTERS.some(hasSave);}
+  });
   let busy=false,active=null;
   async function begin(continuing){
     if(busy)return;busy=true;
+    backupUI.close();
     try{
       sfx.init();game.mode='rpgmenu';
       const starterId=await chooseStarter(manifest,{cancel:true,
