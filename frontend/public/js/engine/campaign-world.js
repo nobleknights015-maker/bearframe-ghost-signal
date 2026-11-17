@@ -15,6 +15,16 @@ const walkable=(m,x,y)=>{
 };
 const feetSafe=(m,x,y)=>[[x-6,y-8],[x+6,y-8],[x-6,y+2],[x+6,y+2]].every(([a,b])=>walkable(m,a,b));
 const portalAt=(m,id)=>m.layers.find(l=>l.name==='portals').objects.find(p=>p.name===id);
+// A source-authored entity can depend on a positive prerequisite, a negative
+// prerequisite, and/or a one-time hide flag. Recheck current durable campaign
+// flags on each interaction; stale field snapshots must never bypass a gate.
+export function campaignEntityAvailable(entity,flags={}){
+  if(!entity||typeof entity!=='object'||Array.isArray(entity))return false;
+  const current=flags&&typeof flags==='object'&&!Array.isArray(flags)?flags:{};
+  return (!entity.requiresFlag||current[entity.requiresFlag]===true)&&
+    (!entity.requiresNotFlag||current[entity.requiresNotFlag]!==true)&&
+    (!entity.hideAfterFlag||current[entity.hideAfterFlag]!==true);
+}
 const validateObjects=(m,objs,label)=>{
   if(!Array.isArray(objs))fail('invalid '+label+' '+m.id);
   const ids=new Set();
@@ -174,7 +184,7 @@ export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=(
         for(const e of g.ents)if(e.hideAfterFlag&&flags[e.hideAfterFlag])e.gone=true;
       },
       doorOpen(id){const e=(source.entities||[]).find(e=>e.id===id);
-        return !e?.requiresFlag||getWorld()?.flags?.[e.requiresFlag]===true;},
+        return !e||campaignEntityAvailable(e,getWorld()?.flags);},
       blocked(){return false;},
       label(e){if(e.hideAfterFlag&&getWorld()?.flags?.[e.hideAfterFlag])return null;
         return e.label||e.id.toUpperCase().replaceAll('_',' ');},
