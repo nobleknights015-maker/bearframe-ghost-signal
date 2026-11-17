@@ -19,7 +19,7 @@ map geometry. On an updated development build, the existing Ghost Signal
    the content under `frontend/public/assets/aeon/`).
 4. The native host reads and validates the archive *locally*. It accepts
    only `asset-manifest.json`, the two approved story-layout JSONs,
-   42 world PNGs, 42 battle PNGs and four Sleeper portraits. It ignores
+   42 world PNGs, 42 battle PNGs and four Sleeper portraits. The importer also verifies each of the 84 sprite PNG SHA-256 hashes against its approved manifest entry, rejects reused placeholder image paths, and checks the recovered source story digest when provided. It ignores
    all other source code, scripts, executable, HTML, and files in the ZIP.
    No arbitrary JavaScript from the archive is installed or executed.
 5. Once validation succeeds, the test bay reloads and the Aeon unified
