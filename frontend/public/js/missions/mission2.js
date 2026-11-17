@@ -70,6 +70,7 @@ const EVIDENCE = {
 
 export const mission2 = {
   id: 'm2', title: 'BELOW THE SILENCE', next: 'm3', logs: LOGS, evidence: EVIDENCE,
+  outcome(g) { return { tookRecord: !!g.flags.took, source: 'player-choice' }; },
   start: { x: 3.5 * T, y: 15 * T, dir: 'right' },
 
   buildMap() {
