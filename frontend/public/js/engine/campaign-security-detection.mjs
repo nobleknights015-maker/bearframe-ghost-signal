@@ -7,7 +7,11 @@ export function applySecurityDetection(previous, activeZone, detectedZone, optio
   if (detectedZone !== null && (!detectedZone || typeof detectedZone.id !== 'string')) {
     throw new TypeError('invalid detection source zone');
   }
-  const outcome = resolveDetection(detectedZone, options);
+  // Use the currently active zone as the authoritative policy. A stale or
+  // reconstructed detection payload must not substitute another encounter
+  // configuration merely because its zone ID and mode happen to match.
+  const sameZone = detectedZone && activeZone && detectedZone.id === activeZone.id && detectedZone.mode === activeZone.mode;
+  const outcome = resolveDetection(sameZone ? activeZone : null, options);
   return transitionSecurity(previous, activeZone, {
     ...outcome,
     zoneId: detectedZone?.id ?? null,
