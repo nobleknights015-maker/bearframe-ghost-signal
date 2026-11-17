@@ -21,9 +21,9 @@ const map=()=>({id:'A00',name:'Synthetic area',width:8,height:7,orientation:'ort
     {type:'tilelayer',name:'collision',data:Array.from({length:56},(_,i)=>
       i<8||i>=48||i%8===0||i%8===7?1:0)},
     {type:'objectgroup',name:'portals',objects:[]}],entities:[],triggers:[]});
-const content=()=>({schemaVersion:1,revision:2,flagSchema:{gameplay_flags:['complete'],exclusive_enums:{},relationships:{}},
+const content=()=>({schemaVersion:1,revision:2,flagSchema:{gameplay_flags:['complete','boss_done'],exclusive_enums:{},relationships:{}},
   scenes:[{id:'SC-008',trigger:'TRIAL',dialogue:[],sets:'complete'}],dialogue:[],insertions:[],choices:[],
-  encounters:[{id:'EN-005'}]});
+  encounters:[{id:'EN-005',kind:'boss',area:'A00',set_flag:'boss_done'}]});
 const worldSpec=()=>({schemaVersion:1,status:'authored-blockout-review-candidate',
   campaignRevision:2,layoutDigest:'synthetic-v2',startArea:'A00',maps:[map()],
   mandatoryCombat:{sceneId:'SC-008',encounterId:'EN-005',saveOutcomeRequired:'victory'}});
@@ -59,6 +59,15 @@ test('Source-approved roster, exact encounter IDs and art bindings reject invent
   assert.throws(()=>compileCampaignCombatStaging(wrong,{worldSpec:w,content:c,manifest}),/selected portrait/);
   const missing=stage(w);delete missing.encounters[0].id;
   assert.throws(()=>compileCampaignCombatStaging(missing,{worldSpec:w,content:c,manifest}));
+  const puzzle=content();puzzle.encounters[0].kind='puzzle';
+  assert.throws(()=>compileCampaignCombatStaging(stage(w),{worldSpec:w,content:puzzle,manifest}),
+    /not a turn-based battle/,'Authored puzzles must never be converted into combat');
+  const wrongArea=content();wrongArea.encounters[0].area='A03';
+  assert.throws(()=>compileCampaignCombatStaging(stage(w),{worldSpec:w,content:wrongArea,manifest}),
+    /belongs to another area/,'No source encounter may migrate to another planet region');
+  const undeclared=content();undeclared.encounters[0].set_flag='unapproved_milestone';
+  assert.throws(()=>compileCampaignCombatStaging(stage(w),{worldSpec:w,content:undeclared,manifest}),
+    /victory flag is not declared/,'No invented story flags');
 });
 test('Durable battle starts, survives reload, saves result and awards exactly once',()=>{
   const store=empty(),{journal:j,compiler}=create(store);
@@ -89,11 +98,15 @@ test('Durable battle starts, survives reload, saves result and awards exactly on
   assert.equal(reloaded.readJournal().battle,undefined);
   assert.equal(reloaded.readWorld().progression.xp,12);
   assert.equal(reloaded.readWorld().inventory.ancient_scrap,1);
+  assert.equal(reloaded.readWorld().flags.boss_done,true,
+    'Winning the exact source boss sets its authored victory flag atomically');
   assert.equal(reloaded.canComplete('SC-008'),true);
   assert.equal(reloaded.beginBattle(spec.id,initial,field),false,'No duplicate victory rewards');
   const final=create(store).journal;assert.equal(final.load(),true);
   assert.equal(final.readWorld().encounters['EN-005'].outcome,'victory');
   assert.equal(final.readWorld().inventory.ancient_scrap,1);
+  assert.equal(final.readWorld().flags.boss_done,true,
+    'A loaded victory retains its authored quest milestone');
 });
 test('Failed battle write keeps previous battle and rewards exactly zero until retry',()=>{
   const store=empty(),{journal:j,compiler}=create(store);j.newGame();
@@ -105,8 +118,11 @@ test('Failed battle write keeps previous battle and rewards exactly zero until r
   assert.equal(j.finishBattle(resolved),false);
   assert.equal(j.readJournal().battle.session.phase,'battle');
   assert.equal(j.readWorld().inventory.ancient_scrap,undefined);
+  assert.equal(j.readWorld().flags.boss_done,undefined,
+    'A failed battle save may not grant the boss milestone');
   store.setItem=set;
   assert.equal(j.finishBattle(resolved),true);
   assert.equal(j.finishBattle(resolved),false);
   assert.equal(j.readWorld().inventory.ancient_scrap,1);
+  assert.equal(j.readWorld().flags.boss_done,true);
 });
