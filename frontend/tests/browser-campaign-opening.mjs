@@ -27,6 +27,14 @@ const area=(id,next,portal,back,x)=>({id,name:'SYNTHETIC AREA',orientation:'orth
 const world={schemaVersion:1,campaignRevision:2,status:'authored-blockout-review-candidate',startArea:'A00',
   openingScene:{sceneId:'opening',trigger:'NEW_GAME'},layoutDigest:'synthetic-contract-v2',
   maps:[area('A00','A01','east','west',6),area('A01','A00','west','east',1)],choiceGates:{}};
+// Synthetic CI author review opts in just A00; real source maps remain PRIVATE.
+world.maps[0].environmentPalette='station_abandoned';
+const environmentManifest={schema:'aeon.private-environment-art.v1',tileSize:32,
+ doorways:{service:{closed:'assets/aeon/environment/doors/service_closed.png',
+  open:'assets/aeon/environment/doors/service_open.png'}},
+ palettes:{station_abandoned:{
+  floor:'assets/aeon/environment/terrain/station_rust.png',
+  wall:'assets/aeon/environment/terrain/station_wall.png'}}};
 const content={schemaVersion:1,revision:2,
   flagSchema:{gameplay_flags:['game_started','door_open'],exclusive_enums:{},relationships:{}},
   scenes:[{id:'opening',trigger:'NEW_GAME',dialogue:['line-opening'],sets:'game_started'},
@@ -61,6 +69,14 @@ try{
   await page.route('**/assets/aeon/**',async route=>{
     const path=new URL(route.request().url()).pathname;
     if(path.endsWith('/asset-manifest.json'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(manifest)});
+    if(path.endsWith('/environment/environment-art.json'))
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(environmentManifest)});
+    if(path.endsWith('/environment/doors/service_closed.png')||
+       path.endsWith('/environment/doors/service_open.png'))
+      return route.fulfill({status:200,contentType:'image/png',body:png(32,64,32,64)});
+    if(path.endsWith('/environment/terrain/station_rust.png')||
+       path.endsWith('/environment/terrain/station_wall.png'))
+      return route.fulfill({status:200,contentType:'image/png',body:png(32,32,32,32)});
     if(path.endsWith('/story/campaign.json'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(content)});
     if(path.endsWith('/story/opening-world-review-candidate.json'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(world)});
     if(/\/portraits\/sleeper_[ABCD]\.png$/.test(path))return route.fulfill({status:200,contentType:'image/png',body:png(96,96,96,96)});
@@ -88,6 +104,13 @@ try{
     return e?{type:e.type,tx:e.tx,ty:e.ty,prompt:window.__gs.label(e)}:null;
   });
   assert.deepEqual(initialDoor,{type:'bulkhead',tx:6,ty:3,prompt:'SEALED BULKHEAD'});
+  assert.deepEqual(await page.evaluate(()=>{
+    const door=window.__gs.ents.find(e=>e.portalId==='east');
+    return {width:door.artImages?.closed?.naturalWidth,
+      height:door.artImages?.closed?.naturalHeight,
+      terrainId:window.__gs.m.environmentArt?.id};
+  }),{width:32,height:64,terrainId:'station_abandoned'},
+  'The ACTUAL campaign renderer must bind decoded owner-private native artwork');
   // An actual campaign (not the noncanonical lab) must expose the same Ghost
   // Signal field-record tabs and a durable on-screen save without replacing
   // the original overlay styles.
