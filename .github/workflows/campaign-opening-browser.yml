@@ -7,7 +7,6 @@ on:
       - 'frontend/public/campaign.html'
       - 'frontend/tests/browser-campaign-opening.mjs'
       - 'frontend/tests/browser-campaign-combat.mjs'
-      - 'frontend/tests/browser-campaign-combat.mjs'
       - '.github/workflows/campaign-opening-browser.yml'
   pull_request:
     branches: [ghost-signal-engine]
@@ -15,6 +14,7 @@ on:
       - 'frontend/public/js/engine/campaign-*.js'
       - 'frontend/public/campaign.html'
       - 'frontend/tests/browser-campaign-opening.mjs'
+      - 'frontend/tests/browser-campaign-combat.mjs'
       - '.github/workflows/campaign-opening-browser.yml'
   workflow_dispatch:
 concurrency:
