@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {compileCampaignTransmissionMarkers,createCampaignTransmissionPainter} from
   '../public/js/engine/campaign-transmission-markers.js';
-import {compileCampaignWorld} from '../public/js/engine/campaign-world.js';
+import {compileCampaignWorld,createCampaignMissionFactory} from '../public/js/engine/campaign-world.js';
 
 function fixture(){
   const map=(id,toId,portal,back,gate=false)=>{
@@ -82,4 +82,26 @@ test('Markers never mutate underlying portal gates or source map arrays',()=>{
   p.paint(g,{relay_active:true});
   p.paint(g,{relay_active:false});
   assert.equal(JSON.stringify(world),before);
+});
+
+test('Existing campaign mission loop paints gate indicators without changing travel',()=>{
+  const source=fixture();let flags={},updates=0,portals=0;
+  const factory=createCampaignMissionFactory(source,{
+    getWorld:()=>({flags}),onUpdate:()=>updates++,onPortal:()=>portals++
+  });
+  const base=canvas();
+  const g={m:{id:'A00'},base,mode:'dialog',player:{x:80,y:80,hidden:null}};
+  const mission=factory.missionForSync('A00');
+  mission.update(g,1/60);
+  assert.equal(base.calls.length,0,'Dialogue should not change field presentation');
+  g.mode='play';mission.update(g,1/60);
+  assert.equal(base.calls.some(x=>x[0]==='color'&&x[1]==='#c89a5e'),true);
+  assert.equal(updates,1,'Existing mission update callback still executes');
+  assert.equal(portals,1,'Existing portal proximity detection still executes');
+  flags={relay_active:true};
+  mission.update(g,1/60);
+  assert.equal(base.calls.some(x=>x[0]==='color'&&x[1]==='#91ccd0'),true,
+    'Quest milestone changes actual live transmission marker');
+  assert.equal(updates,2);
+  assert.equal(JSON.stringify(source),JSON.stringify(fixture()),'Source map remains unchanged');
 });
