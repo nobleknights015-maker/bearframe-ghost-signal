@@ -6,6 +6,8 @@ import {createCampaignMissionFactory} from './campaign-world.js';
 import {createCampaignJournal} from './campaign-journal.js';
 import {mountCampaignNarrative} from './campaign-narrative.js';
 import {createConnectedFieldTravel} from './connected-field-travel.js';
+import {compileCampaignCombatStaging} from './campaign-combat-staging.js';
+import {mountCampaignBattle} from './campaign-battle.js';
 const ROOT=new URL('../../assets/aeon/',import.meta.url);
 const STARTERS=Object.freeze(['sleeper_A','sleeper_B','sleeper_C','sleeper_D']);
 const $=id=>document.getElementById(id);
@@ -48,6 +50,9 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
   ]);
   if(worldSpec?.status!=='authored-blockout-review-candidate'||worldSpec.campaignRevision!==content.revision)
     throw new Error('Campaign layout is absent or does not match the approved story revision');
+  // Optional owner-authored combat staging lives inside the ignored private layout
+  // package. Without it the existing story/exploration review remains available.
+  const combatStaging=compileCampaignCombatStaging(worldSpec.combat,{worldSpec,content,manifest});
   const hasSave=id=>{try{return localStorage.getItem(saveFor(id)+':A')!==null||
     localStorage.getItem(saveFor(id)+':B')!==null;}catch{return false;}};
   $('btn-continue').disabled=!STARTERS.some(hasSave);
@@ -66,11 +71,26 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
       }
       const field=await buildV5WorldSheet(manifest,starterId);
       const journal=createCampaignJournal({storage:localStorage,starterId,content,worldSpec,
-        bootstrap:{party:[{id:'sleeper',artId:starterId}]}});
+        bootstrap:combatStaging?{party:combatStaging.roster(starterId),
+          progression:{xp:0}}:{party:[{id:'sleeper',artId:starterId}]}});
       if(continuing? !journal.load():!journal.newGame())throw new Error('Campaign journal could not be loaded/saved');
+      // Add combat stats only from approved staging when continuing a legacy
+      // story-only save. Keep its narrative, inventory, flags and map intact.
+      if(combatStaging){
+        const savedWorld=journal.readWorld();
+        if(savedWorld.party?.[0]?.artId!==starterId)
+          throw new Error('Saved campaign portrait differs from starter');
+        if(!savedWorld.party?.[0]?.maxHp){
+          if(savedWorld.party.length!==1||savedWorld.party[0].id!=='sleeper')
+            throw new Error('Old party needs reviewed combat migration');
+          savedWorld.party=combatStaging.roster(starterId);
+          savedWorld.progression??={xp:0};
+          if(!journal.commitWorld(savedWorld))throw new Error('Combat migration not saved');
+        }
+      }
       // Stop callbacks from previous previews before rebinding this Game.
       active?.narrative.stop();active=null;
-      let narrative=null,traveler=null,portalArmed=false,lastPortal=null;
+      let narrative=null,combat=null,traveler=null,portalArmed=false,lastPortal=null;
       const commitWorld=next=>{
         const prior=journal.readJournal();if(!prior)return false;
         if(!game.m||!journal.graph.get(game.m.id))return journal.commitWorld(next);
@@ -79,7 +99,11 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
         return journal.writeJournal({...prior,mapId:game.m.id,maps,field:snap,world:next});
       };
       const blocked=reason=>{
-        if(reason==='completion')ui.toast('PROGRESSION HELD — SAVED ENCOUNTER OUTCOME REQUIRED',4);
+        if(reason==='completion'){
+          const mandatory=worldSpec.mandatoryCombat,scene=journal.readWorld()?.narrative?.activeScene;
+          if(mandatory?.sceneId===scene&&combat?.start(mandatory.encounterId))return;
+          ui.toast('PROGRESSION HELD — SAVED ENCOUNTER OUTCOME REQUIRED',4);
+        }
         else if(reason==='save')ui.toast('CAMPAIGN SAVE FAILED — RETRY',3);
         else if(reason==='staging')ui.toast('SCENE STAGING REQUIRES AUTHOR REVIEW',3);
       };
@@ -88,8 +112,18 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
         onBlocked:blocked,onComplete:()=>ui.toast('FIELD RECORD UPDATED',2)});
       const invoke=(trigger,sceneId)=>{
         if(game.mode!=='play'||!trigger)return false;
+        if(combat?.startForTrigger(trigger,game.m?.id))return true;
+        const running=journal.readWorld()?.narrative?.activeScene;
+        if(running){
+          const staged=content.scenes.find(s=>s.id===running);
+          if(staged?.trigger===trigger)return narrative.resume();
+        }
         return narrative.trigger(trigger,{sceneId});
       };
+      if(combatStaging){
+        combat=mountCampaignBattle({game,ui,journal,staging:combatStaging,
+          manifest,starterId,touchMode,onSavedVictory:()=>narrative.resume()});
+      }
       const factory=createCampaignMissionFactory(worldSpec,{
         getWorld:journal.readWorld,
         onInteract(e){
@@ -134,15 +168,18 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
       const previousSnapshot=current.maps?.[area]||current.field;
       game.start(factory.missionForSync(area),previousSnapshot?.mission===area?previousSnapshot:null);
       ui.show('title',false);ui.show('ending',false);refreshTouch();
-      active={journal,narrative,factory,traveler,starterId};
+      active={journal,narrative,combat,factory,traveler,starterId};
       if(!continuing){
         if(!journal.saveField(area,game.snapshot()))throw new Error('Fresh field position could not be saved');
         // The only automatic scene trigger is the source-authorized NEW GAME event.
         invoke(worldSpec.openingScene.trigger,worldSpec.openingScene.sceneId);
+      }else if(journal.readJournal()?.battle){
+        if(!combat?.resume())throw new Error('Saved battle cannot be restored');
       }else if(journal.readWorld()?.narrative?.activeScene)narrative.resume();
       window.__campaign=Object.freeze({
         inspect:()=>({starterId,mapId:game.m?.id||null,mode:game.mode,
           story:journal.readWorld()?.narrative?.activeScene||null,
+          battle:combat?.inspect()||null,
           saved:journal.inspect(),areaCount:factory.graph.ids.length,
           status:'authored-blockout-review-candidate'}),
         save:()=>journal.saveField(game.m.id,game.snapshot())
