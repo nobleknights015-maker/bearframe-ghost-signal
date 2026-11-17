@@ -39,7 +39,7 @@ const content={schemaVersion:1,revision:2,
     {line_id:'line-machine',sequence:1,speaker:'SYSTEM',text:'Synthetic terminal.',condition:'',event_effects:''}],
   insertions:[],choices:[],encounters:[{id:'SYNTHETIC_ENCOUNTER'},{id:'SYNTHETIC_ENCOUNTER_2'}]};
 const soldier=id=>({id:'sleeper',artId:id,lineage:'sleeper',name:'Synthetic Sleeper',
-  hp:36,maxHp:36,ep:10,maxEp:10,attack:28,defense:4,speed:20,skills:['pulse','guard']});
+  hp:36,maxHp:36,ep:10,maxEp:10,attack:28,defense:4,speed:20,skills:['pulse','repair','guard']});
 world.mandatoryCombats=[
   {sceneId:'trial',encounterId:'SYNTHETIC_ENCOUNTER',saveOutcomeRequired:'victory'},
   {sceneId:'trial',encounterId:'SYNTHETIC_ENCOUNTER_2',saveOutcomeRequired:'victory'}
@@ -190,6 +190,24 @@ try{
   await page.locator('#aeon-v5-choose button[data-starter="sleeper_D"]').click();
   await page.waitForFunction(()=>window.__campaign?.inspect().battle?.encounterId==='SYNTHETIC_ENCOUNTER_2',
     null,{timeout:12000});
+  // Battle targets must cancel without fleeing, attacking or losing a
+  // durable turn, using the SAME B/Back controller input as other menus.
+  await page.evaluate(()=>{
+    const pad={connected:true,axes:[0,0],buttons:Array.from({length:16},()=>({pressed:false,value:0}))};
+    Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[pad]});
+    window.__campaignTestPad=pad;
+  });
+  await page.getByRole('button',{name:'REPAIR · 5 EP'}).click();
+  await page.waitForFunction(()=>document.querySelector('#rpg-lab-battle h2')?.textContent==='SELECT ALLY');
+  await page.evaluate(()=>window.__campaignTestPad.buttons[1].pressed=true);
+  await page.waitForFunction(()=>document.querySelector('#rpg-lab-battle h2')?.textContent?.startsWith('SIDE-VIEW ENCOUNTER'));
+  await page.evaluate(()=>window.__campaignTestPad.buttons[1].pressed=false);
+  assert.equal((await inspect()).battle.encounterId,'SYNTHETIC_ENCOUNTER_2');
+  await page.getByRole('button',{name:'REPAIR · 5 EP'}).click();
+  await page.waitForFunction(()=>document.querySelector('#rpg-lab-battle h2')?.textContent==='SELECT ALLY');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>document.querySelector('#rpg-lab-battle h2')?.textContent?.startsWith('SIDE-VIEW ENCOUNTER'));
+  assert.equal((await inspect()).battle.phase,'battle');
   await page.getByRole('button',{name:'ATTACK',exact:true}).click();
   await page.getByRole('button',{name:'RETURN TO FIELD'}).waitFor({timeout:15000});
   await page.getByRole('button',{name:'RETURN TO FIELD'}).click();
@@ -220,6 +238,14 @@ try{
   assert.equal((await inspect()).story,null,'Continue must not replay resolved narrative scenes');
   assert.equal(await page.evaluate(()=>window.__gs.player.x),48,
     'Continue must restore the saved destination position, not its area spawn');
+  // Even an in-page campaign remount must dispose stale side-view host,
+  // animation loop and controller DOM before installing the next one.
+  await page.evaluate(()=>document.getElementById('btn-new').click());
+  await page.locator('#aeon-v5-choose button[data-starter="sleeper_D"]').click();
+  await page.locator('#aeon-confirm').getByRole('button',{name:'REPLACE RECORD'}).click();
+  await page.waitForFunction(()=>window.__campaign?.inspect().story==='opening',null,{timeout:12000});
+  assert.equal(await page.locator('#rpg-lab-battle').count(),1,
+    'Only one battle overlay may survive an in-page campaign remount');
   assert.equal(errors.length,0,errors.join('\n'));
   await mkdir(artifacts,{recursive:true});
   await page.screenshot({path:join(artifacts,'campaign-battle-synthetic.png'),fullPage:true});
