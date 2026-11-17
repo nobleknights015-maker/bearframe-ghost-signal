@@ -2,6 +2,7 @@
 // PRIVATE campaign geometry/actors/story triggers are installed offline, never in source.
 // Preserves the original Game, UI, saves, and noncanonical engine test routes.
 import {compileCampaignDoorways} from './campaign-doorways.js';
+import {compileCampaignEnvironmentDetails} from './campaign-environment-details.js';
 const dir = new Set(['up','down','left','right']);
 const idOk = x => typeof x==='string' && /^[A-Za-z][A-Za-z0-9_-]{0,95}$/.test(x) &&
   !['__proto__','prototype','constructor'].includes(x);
@@ -152,6 +153,7 @@ export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=(
     const source=graph.get(id);
     if(!source)fail('unknown mission '+id);
     const visual=source.environmentPalette?environmentArt?.palette(source.environmentPalette):null;
+    const details=compileCampaignEnvironmentDetails(source,environmentArt);
     if(source.environmentPalette&&!visual)fail('missing source-approved environment art palette '+id);
     const doorSprites=doorways.forArea(id).map(e=>({
       ...e,...(environmentArt?{artImages:environmentArt.door(e.type,e.portalArt)}:{})
@@ -165,6 +167,7 @@ export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=(
       id:source.id,title:source.name,
       start:{...source.start},
       environmentArt:visual,
+      environmentDetails:details,
       buildMap(){return {w,h,grid:new Uint8Array(grid)};},
       props:source.props||[],lamps:source.lamps||[],drones:source.drones||[],
       entities(){return [...(source.entities||[]).map(x=>({...x})),...doorSprites.map(x=>({...x}))];},
