@@ -68,6 +68,18 @@ test('Authorized source-owned zone can enter battle only after saving detection'
   });
   assert.equal(reloaded.tick(g),false,'Resume same-zone detection does not retrigger encounter');
 });
+test('Ghost Signal hidden=false is visible; hidden object suppresses visual detection',()=>{
+  const h=harness([gate],{encounterFor:()=>({id:'EN_SOURCE',mapId:'A00'})});
+  const g=player();
+  g.player.hidden=false;
+  g.drones=[{state:'chase',vis:true}];
+  assert.equal(h.runtime.tick(g),true,'A visibly detected non-hidden player enters combat');
+  assert.equal(h.fights.length,1);
+  g.player.hidden={id:'locker'};
+  const h2=harness([gate],{encounterFor:()=>({id:'EN_SOURCE',mapId:'A00'})});
+  assert.equal(h2.runtime.tick(g),true,'The hidden player can still enter the zone');
+  assert.equal(h2.fights.length,0,'Hiding must prevent visual detection consequences');
+});
 test('Wrong map or unapproved private battle downgrades to saved alarm',()=>{
   for(const encounterFor of [()=>null,()=>({id:'EN_SOURCE',mapId:'A01'}),
     ()=>({id:'OTHER_ENCOUNTER',mapId:'A00'})]){
