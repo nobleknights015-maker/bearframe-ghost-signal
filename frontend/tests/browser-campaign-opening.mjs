@@ -138,8 +138,24 @@ try{
   const arrival=await page.evaluate(()=>({x:window.__gs.player.x,dir:window.__gs.player.dir}));
   assert.equal(arrival.x,48,'Arrival must use the reciprocal portal feet coordinate');
   assert.equal(arrival.dir,'right');
-  await page.locator('#btn-pause').click();
-  await page.locator('#btn-save').click();
+  // Move AWAY from the portal so the latest position was never saved by travel.
+  // Android dispatches the host-pause event; main.js switches to pause mode
+  // before this campaign adapter's event handler executes.
+  await page.keyboard.down('ArrowRight');
+  try{
+    await page.waitForFunction(()=>window.__gs?.player?.x>85,null,{timeout:8000});
+  }finally{await page.keyboard.up('ArrowRight');}
+  const beforePause=await page.evaluate(()=>window.__gs.player.x);
+  assert.ok(beforePause>arrival.x+30);
+  await page.evaluate(()=>window.dispatchEvent(new Event('ghost-signal-host-pause')));
+  await page.waitForFunction(()=>window.__campaign?.inspect().mode==='pause');
+  await page.waitForFunction(x=>{
+    const keys=['A','B'].map(slot=>localStorage.getItem('bearframe_aeon_campaign_sleeper_D_v1:'+slot));
+    return keys.filter(Boolean).some(raw=>{
+      const record=JSON.parse(JSON.parse(raw).body);
+      return record.mapId==='A01'&&record.field?.player?.x===x;
+    });
+  },beforePause,{timeout:6000});
   await page.locator('#btn-resume').click();
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#btn-continue')?.disabled===false);
@@ -148,8 +164,8 @@ try{
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
   assert.equal((await inspect()).mapId,'A01','Continue must preserve cross-area travel');
   assert.equal((await inspect()).story,null,'Continue must not replay resolved narrative scenes');
-  assert.equal(await page.evaluate(()=>window.__gs.player.x),48,
-    'Continue must restore the saved destination position, not its area spawn');
+  assert.equal(await page.evaluate(()=>window.__gs.player.x),beforePause,
+    'Continue must restore the last Android host-pause position without manually clicking SAVE');
   assert.equal(errors.length,0,errors.join('\n'));
   await mkdir(artifacts,{recursive:true});
   await page.screenshot({path:join(artifacts,'campaign-opening-synthetic.png'),fullPage:true});
