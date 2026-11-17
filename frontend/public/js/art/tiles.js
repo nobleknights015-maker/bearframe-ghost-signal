@@ -377,6 +377,12 @@ export function drawEntity(c, e, g) {
       break;
     }
     case 'npc': {
+      const actor = g.actorSheets && g.actorSheets[e.id];
+      if (actor && actor.ready) {
+        const frame = 6 + (Math.floor(t * 2) % 4);
+        c.drawImage(actor.image, frame * 32, 0, 32, 56, X, Y + 32 - 56, 32, 56);
+        break;
+      }
       if (e.role === 'mira' || e.role === 'nova' || e.role === 'kai') { expeditionFrame(c, e, t); break; }
       const sw = Math.round(Math.sin(t * 1.1) * 1), bx = X + 6 + sw, by = Y - 16, k = .55 + .45 * Math.sin(t * 1.7);
       R(c, 'rgba(0,0,0,.45)', X + 6, Y + 27, 20, 4);
