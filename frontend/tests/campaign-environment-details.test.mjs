@@ -95,8 +95,6 @@ test('Rejects unknown atlas, out-of-bounds crops and scenery obscuring story, ro
  assert.throws(()=>compileCampaignEnvironmentDetails(invalid({layer:'background',tx:4,ty:4}),env),/obscures critical source position/);
  assert.throws(()=>compileCampaignEnvironmentDetails(invalid({layer:'background',tx:5,ty:3}),env),/obscures critical source position/);
  assert.throws(()=>compileCampaignEnvironmentDetails(invalid({layer:'background',tx:2,ty:2}),env),/obscures critical source position/);
- assert.throws(()=>compileCampaignEnvironmentDetails(invalid({id:'dry_grass',layer:'ground'}),env),
-  /invalid|duplicate|unknown|obscures|mask|outside/); // same id is permitted in this edited single row; subsequent id collision test follows
  const duplicate=map('A00','A01','east','west');
  duplicate.environmentDetails[1].id='dry_grass';
  assert.throws(()=>compileCampaignEnvironmentDetails(duplicate,env),/invalid or duplicate/);
