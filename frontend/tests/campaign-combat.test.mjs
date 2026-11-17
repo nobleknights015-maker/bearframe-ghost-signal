@@ -118,8 +118,8 @@ test('Failed battle write keeps previous battle and rewards exactly zero until r
   assert.equal(j.finishBattle(resolved),false);
   assert.equal(j.readJournal().battle.session.phase,'battle');
   assert.equal(j.readWorld().inventory.ancient_scrap,undefined);
-  assert.equal(j.readWorld().flags.boss_done,undefined,
-    'A failed battle save may not grant the boss milestone');
+  assert.equal(j.readWorld().flags.boss_done,false,
+    'A failed battle save must preserve the declared false boss milestone');
   store.setItem=set;
   assert.equal(j.finishBattle(resolved),true);
   assert.equal(j.finishBattle(resolved),false);
