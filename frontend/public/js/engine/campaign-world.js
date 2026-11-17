@@ -1,7 +1,7 @@
 // Data-driven campaign map graph and Ghost Signal mission adapter.
 // PRIVATE campaign geometry/actors/story triggers are installed offline, never in source.
 // Preserves the original Game, UI, saves, and noncanonical engine test routes.
-import {createCampaignTransmissionPainter} from './campaign-transmission-markers.js';
+import {compileCampaignDoorways} from './campaign-doorways.js';
 const dir = new Set(['up','down','left','right']);
 const idOk = x => typeof x==='string' && /^[A-Za-z][A-Za-z0-9_-]{0,95}$/.test(x) &&
   !['__proto__','prototype','constructor'].includes(x);
@@ -145,7 +145,7 @@ export function auditCampaignPortalApproaches(world){
 
 export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=()=>{},onInteract=()=>{},
   onTrigger=()=>{},onEnter=()=>{},onUpdate=()=>{}}={}){
-  const graph=compileCampaignWorld(world),transmission=createCampaignTransmissionPainter(graph),missions=new Map();
+  const graph=compileCampaignWorld(world),doorways=compileCampaignDoorways(graph),missions=new Map();
   const missionForSync=id=>{
     if(missions.has(id))return missions.get(id);
     const source=graph.get(id);
@@ -154,14 +154,13 @@ export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=(
     const grid=Uint8Array.from(col,x=>x?0:2),w=source.width,h=source.height;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(!grid[y*w+x]&&
       [[x-1,y],[x+1,y],[x,y-1],[x,y+1]].some(([a,b])=>a>=0&&b>=0&&a<w&&b<h&&grid[b*w+a]===2))grid[y*w+x]=1;
-    const portals=source.layers.find(l=>l.name==='portals').objects;
-    let lastPortal=null,lastTrigger=null;
+    let lastTrigger=null;
     const mission={
       id:source.id,title:source.name,
       start:{...source.start},
       buildMap(){return {w,h,grid:new Uint8Array(grid)};},
       props:source.props||[],lamps:source.lamps||[],drones:source.drones||[],
-      entities(){return (source.entities||[]).map(x=>({...x}));},
+      entities(){return [...(source.entities||[]).map(x=>({...x})),...doorways.forArea(source.id)];},
       evidence:{},logs:{},
       objectives(){return (source.objectives||[]).map(x=>({t:x.text,done:!!getWorld()?.flags?.[x.doneFlag]}));},
       objective(){return source.objective||'Explore the area';},
@@ -169,19 +168,15 @@ export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=(
       update(g,dt){
         if(g.mode!=='play'||g.player.hidden)return;
         const x=g.player.x,y=g.player.y;
-        const entry=portals.find(p=>Math.hypot(x-(p.x+16),y-(p.y+16))<10);
-        if(!entry){lastPortal=null;onPortal(null,g);}
-        else if(entry.name!==lastPortal){lastPortal=entry.name;onPortal(entry.name,g);}
+        // Real map changes require the INTERACT input on a visible doorway.
+        // Standing on the source portal tile never triggers travel.
         if(g.mode!=='play')return;
         const hit=(source.triggers||[]).find(t=>x>=t.x&&x<t.x+t.width&&y>=t.y&&y<t.y+t.height&&
           (!t.requiresFlag||getWorld()?.flags?.[t.requiresFlag]===true)&&
           (!t.requiresNotFlag||getWorld()?.flags?.[t.requiresNotFlag]!==true));
         if(!hit)lastTrigger=null;
         else if(hit.id!==lastTrigger){lastTrigger=hit.id;onTrigger(hit,g);}
-        if(g.mode==='play'){
-          transmission.paint(g,getWorld()?.flags);
-          onUpdate(g,dt);
-        }
+        if(g.mode==='play')onUpdate(g,dt);
       },
       migrate(g){
         const flags=getWorld()?.flags||{};
@@ -190,9 +185,10 @@ export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=(
       doorOpen(id){const e=(source.entities||[]).find(e=>e.id===id);
         return !e||campaignEntityAvailable(e,getWorld()?.flags);},
       blocked(){return false;},
-      label(e){if(e.hideAfterFlag&&getWorld()?.flags?.[e.hideAfterFlag])return null;
+      label(e){if(e.portalId)return doorways.label(e,getWorld()?.flags);
+        if(e.hideAfterFlag&&getWorld()?.flags?.[e.hideAfterFlag])return null;
         return e.label||e.id.toUpperCase().replaceAll('_',' ');},
-      interact(e,g){onInteract(e,g);},
+      interact(e,g){if(e.portalId){onPortal(e.portalId,g);return;}onInteract(e,g);},
       onScan(){},onEvidence(){},onEcho(){},
       ending(){return {title:'FIELD RECORD',lines:[]}}};
     missions.set(id,mission);return mission;
