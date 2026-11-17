@@ -82,6 +82,18 @@ try{
   assert.equal((await inspect()).story,null);
   assert.equal(await page.evaluate(()=>window.__gs.sheet.width),448);
   assert.equal((await inspect()).starterId,'sleeper_D');
+  // Read a single native 32px portal glyph pixel directly from the actual
+  // Ghost Signal baked field canvas; no separate preview renderer is allowed.
+  const transmissionColor=()=>page.evaluate(()=>{
+    const data=window.__gs.base.getContext('2d').getImageData(205,112,1,1).data;
+    return [...data].slice(0,3);
+  });
+  await page.waitForFunction(()=>{
+    const d=window.__gs.base.getContext('2d').getImageData(205,112,1,1).data;
+    return d[0]===200&&d[1]===154&&d[2]===94;
+  });
+  assert.deepEqual(await transmissionColor(),[200,154,94],
+    'Source-gated transmission is visible as locked amber on the real field');
   // An actual campaign (not the noncanonical lab) must expose the same Ghost
   // Signal field-record tabs and a durable on-screen save without replacing
   // the original overlay styles.
@@ -183,6 +195,12 @@ try{
   await acknowledge();
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
   assert.equal((await inspect()).story,null,'Terminal dialogue must resolve before the route unlocks');
+  await page.waitForFunction(()=>{
+    const d=window.__gs.base.getContext('2d').getImageData(205,112,1,1).data;
+    return d[0]===145&&d[1]===204&&d[2]===208;
+  });
+  assert.deepEqual(await transmissionColor(),[145,204,208],
+    'Authored quest completion turns the SAME source portal teal without changing collision');
   await page.keyboard.press('KeyM');
   await page.locator('#rpg-lab-menu').waitFor({state:'visible'});
   await page.locator('#rpg-lab-menu').getByRole('button',{name:'QUESTS',exact:true}).click();
