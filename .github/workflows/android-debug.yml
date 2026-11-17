@@ -6,6 +6,12 @@ on:
       - 'android/**'
       - 'frontend/public/**'
       - '.github/workflows/android-debug.yml'
+  pull_request:
+    branches: [ghost-signal-engine]
+    paths:
+      - 'android/**'
+      - 'frontend/public/**'
+      - '.github/workflows/android-debug.yml'
   workflow_dispatch:
 concurrency:
   group: ghost-signal-android-${{ github.ref }}
