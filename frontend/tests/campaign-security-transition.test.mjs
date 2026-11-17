@@ -59,3 +59,13 @@ test('late alarms cannot follow a player into normal exploration',()=>{
  assert.equal(result.consequence,'none');
  assert.equal(result.alert,false);
 });
+
+test('switching security mode with the same zone id resets stale alert state',()=>{
+ const sameIdNormal={id:'corridor',mode:'normal'};
+ const normal=transitionSecurity({zoneId:'corridor',mode:'stealth',alert:true},sameIdNormal);
+ assert.equal(normal.entered,true);
+ assert.equal(normal.alert,false);
+ const resumed=transitionSecurity({...normal,alert:true},stealth);
+ assert.equal(resumed.entered,true);
+ assert.equal(resumed.alert,false);
+});
