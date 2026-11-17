@@ -208,3 +208,50 @@ test('Private review rejects reciprocal portal links that are blocked by static 
       'Public QA category cannot leak owner-specific portal names');
   }finally{await f.cleanup();}
 });
+
+test('Release requires explicit source-backed quest stages and leaks no private quest names',async()=>{
+ const f=await fixture();
+ try{
+  await f.edit('story/campaign.json',s=>{
+    s.flagSchema.gameplay_flags.push('quest_started','quest_done');
+    s.quests=[
+      {id:'quest_one',title:'Synthetic owner-only title',
+        player_objective:'Synthetic owner-only objective',
+        start_trigger:'quest_started',completion_flags:'quest_done'},
+      {id:'quest_two',title:'Another owner-only title',
+        player_objective:'Another owner-only objective',
+        start_trigger:'ambiguous;source requirement',completion_flags:'quest_done'}
+    ];
+  });
+  const review=await preflightPrivateCampaign({root:f.root,profile:'review'});
+  assert.equal(review.pass,true,JSON.stringify(review.problems));
+  assert.equal(review.counts.quests,2);
+  assert.equal(review.counts.stagedQuests,1);
+  const release=await preflightPrivateCampaign({root:f.root,profile:'release'});
+  assert.equal(has(release,'UNSTAGED_SOURCE_QUESTS'),true);
+  assert.equal(release.problems.find(p=>p.code==='UNSTAGED_SOURCE_QUESTS').count,1);
+  assert.equal(JSON.stringify(release).includes('Synthetic owner-only title'),false);
+  await f.edit('story/opening-world-review-candidate.json',w=>{
+    w.questBindings=[{questId:'quest_two',startFlag:'quest_started',completeFlag:'quest_done'}];
+  });
+  const completed=await preflightPrivateCampaign({root:f.root,profile:'release'});
+  assert.equal(completed.pass,true,JSON.stringify(completed.problems));
+  assert.equal(completed.counts.stagedQuests,2);
+ }finally{await f.cleanup();}
+});
+
+test('Malformed private quest flag references fail review rather than silently generating objectives',async()=>{
+ const f=await fixture();
+ try{
+  await f.edit('story/campaign.json',s=>{
+    s.quests=[{id:'quest_one',title:'Synthetic title',player_objective:'Synthetic objective',
+      start_trigger:'unreviewed',completion_flags:'unreviewed'}];
+  });
+  await f.edit('story/opening-world-review-candidate.json',w=>{
+    w.questBindings=[{questId:'quest_one',startFlag:'__proto__'}];
+  });
+  const review=await preflightPrivateCampaign({root:f.root,profile:'review'});
+  assert.equal(review.pass,false);
+  assert.equal(has(review,'INVALID_REVIEWED_QUEST_BINDINGS'),true);
+ }finally{await f.cleanup();}
+});
