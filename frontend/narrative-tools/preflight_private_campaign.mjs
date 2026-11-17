@@ -9,6 +9,7 @@ import {compileCampaignEncounterGates} from '../public/js/engine/campaign-encoun
 import {compileCampaignCombatStaging} from '../public/js/engine/campaign-combat-staging.js';
 import {worldSheetSpec,mapV5Art} from '../public/js/engine/aeon-v5-bridge.js';
 import {validateNarrativeStaging} from '../public/js/engine/campaign-narrative.js';
+import {compileCampaignQuestJournal} from '../public/js/engine/campaign-quest-journal.js';
 
 const STARTERS=['sleeper_A','sleeper_B','sleeper_C','sleeper_D'];
 const ACTIONS=['idle','attack','ranged','cast','guard','hit','down','victory','charge'];
@@ -70,7 +71,7 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
   root=resolve(root);
   const problems=[],report={profile,pass:false,
     counts:{characters:0,portraits:0,areas:0,sourceAreas:0,reachableAreas:0,scenes:0,
-      stagedScenes:0,encounters:0,combatEncounters:0,mandatoryBattles:0},
+      stagedScenes:0,encounters:0,combatEncounters:0,mandatoryBattles:0,quests:0,stagedQuests:0},
     problems};
   let manifest,content,world;
   for(const [name,path] of [
@@ -96,6 +97,15 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
     error(problems,'STORY_LAYOUT_REVISION_MISMATCH');
   report.counts.scenes=content.scenes?.length||0;
   report.counts.encounters=content.encounters?.length||0;
+  report.counts.quests=content.quests?.length||0;
+  try{
+    const quests=compileCampaignQuestJournal(content,world);
+    report.counts.stagedQuests=quests.stagedCount;
+    if(profile==='release')
+      error(problems,'UNSTAGED_SOURCE_QUESTS',quests.sourceCount-quests.stagedCount);
+  }catch{
+    error(problems,'INVALID_REVIEWED_QUEST_BINDINGS');
+  }
   report.counts.areas=world.maps?.length||0;
   report.counts.sourceAreas=content.areas?.length||0;
   // Source-authored areas not yet mapped are NOT unreachable: they are
