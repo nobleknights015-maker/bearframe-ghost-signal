@@ -79,6 +79,11 @@ export class Game {
   finish() {
     this.mode = 'ending'; const pr = this.store.loadProgress();
     pr.done[this.m.id] = true; if (this.m.next) pr.unlocked[this.m.next] = true; pr.case = clone(this.caseFile);
+    // Opt-in chapter outcome journal; original save keys and M01/M02 snapshots stay compatible.
+    if (typeof this.m.outcome === 'function') {
+      pr.outcomes = pr.outcomes || {};
+      pr.outcomes[this.m.id] = clone(this.m.outcome(this));
+    }
     this.store.saveProgress(pr); this.store.clear(); this.ui.show('hud', false); this.onEnd(this);
   }
 
