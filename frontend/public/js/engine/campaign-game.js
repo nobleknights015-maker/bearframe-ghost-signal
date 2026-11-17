@@ -41,7 +41,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
   const subtitle=document.createElement('span');subtitle.textContent='THE SILENT WAKE';h1.append(subtitle);
   title.querySelector('.kicker').textContent='AEON CIRCUIT // PRIVATE CAMPAIGN REVIEW';
   title.querySelector('.sub').textContent='REBUILT OPENING BLOCKOUT / NOT FINAL ART';
-  title.querySelector('.fine').textContent='Owner-approved story; reconstructed geometry pending review. Campaign combat not yet connected.';
+  title.querySelector('.fine').textContent='Approved campaign review. Story, geometry, and battle staging require owner-installed content.';
   title.querySelector('.motto').textContent='STORY / EXPLORATION / PERSISTENCE';
   title.querySelector('.title-art').classList.add('hidden');$('btn-m2').classList.add('hidden');
   $('btn-new').textContent='NEW CAMPAIGN';
@@ -53,6 +53,12 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
   // Optional owner-authored combat staging lives inside the ignored private layout
   // package. Without it the existing story/exploration review remains available.
   const combatStaging=compileCampaignCombatStaging(worldSpec.combat,{worldSpec,content,manifest});
+  // Describe actual installed capabilities rather than claiming battles are
+  // missing after the campaign-combat bridge was merged.
+  title.querySelector('.sub').textContent=combatStaging?
+    'PRIVATE CAMPAIGN // STORY + COMBAT REVIEW':'PRIVATE CAMPAIGN // STORY + FIELD REVIEW';
+  title.querySelector('.motto').textContent=combatStaging?
+    'STORY / EXPLORATION / SIDE-VIEW COMBAT':'STORY / EXPLORATION / PERSISTENCE';
   const hasSave=id=>{try{return localStorage.getItem(saveFor(id)+':A')!==null||
     localStorage.getItem(saveFor(id)+':B')!==null;}catch{return false;}};
   $('btn-continue').disabled=!STARTERS.some(hasSave);
