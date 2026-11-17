@@ -123,9 +123,14 @@ export const mission3 = {
   onStart(g) {
     g.flags.power = true;
     g.flags.lights = false;
+    const m2 = g.store.loadProgress().outcomes?.m2;
+    const recordReport = m2
+      ? (m2.tookRecord ? 'The resident offered an unlabelled record. I accepted it for your custody review.' : 'I left the unlabelled record with the resident. Consent and provenance remain unresolved.')
+      : 'The outcome of the earlier record offer is not retained in this legacy save. I will not invent what happened.';
     g.say([
       { s: 'MIRA', t: 'Wraith, welcome back above ground. Exploration has the perimeter. Sentinel has the security channel. Neither is changing hands.' },
       { s: 'WRAITH', t: 'The resident below is an individual, not a catalog entry. Their origin and the transmitter remain unverified.' },
+      { s: 'WRAITH', t: recordReport },
       { s: 'SENTINEL // COMMS', t: 'Report what you saw. Not what the site wants you to believe. I will keep the Watchtower channel clear.' },
       { s: 'MIRA', t: 'Nova is mapping the ridge; Kai is handling field research. Check the surface evidence, then speak with me before anyone crosses a new boundary.' },
     ], () => g.checkpoint(true));
@@ -224,6 +229,7 @@ export const mission3 = {
       });
     }
   },
+  outcome(g) { return { recommendation: g.flags.recommendation || 'unfiled', source: 'm3-field-report' }; },
   ending(g) {
     return {
       title: 'SURFACE SURVEY: FILED',
