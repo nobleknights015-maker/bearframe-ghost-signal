@@ -48,7 +48,7 @@ export function createCampaignSecurityRuntime({
     const previous=world.security?.mapId===mapId?world.security:EMPTY;
     // Real Ghost Signal detection signal only: chasing drone with visual.
     // No fake auto-alarms from simply crossing a marked tile.
-    const detected=!!zone&&zone.mode==='stealth'&&game.player.hidden==null&&
+    const detected=!!zone&&zone.mode==='stealth'&&!game.player.hidden&&
       Array.isArray(game.drones)&&game.drones.some(d=>d?.state==='chase'&&d.vis===true);
     // Double authorization: encounter is defined by the source-owned zone
     // AND available from validated private combat staging for THIS area.
