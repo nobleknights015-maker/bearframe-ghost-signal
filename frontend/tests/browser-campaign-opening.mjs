@@ -33,7 +33,10 @@ const content={schemaVersion:1,revision:2,
     {id:'door',trigger:'INSPECT_MACHINE',dialogue:['line-machine'],sets:'door_open'}],
   dialogue:[{line_id:'line-opening',sequence:1,speaker:'SYSTEM',text:'Synthetic opening.',condition:'',event_effects:''},
     {line_id:'line-machine',sequence:1,speaker:'SYSTEM',text:'Synthetic terminal.',condition:'',event_effects:''}],
-  insertions:[],choices:[],encounters:[]};
+  insertions:[],choices:[],encounters:[],
+  quests:[{id:'synthetic_relay_quest',title:'Restore the test relay',
+    player_objective:'Investigate the synthetic console',
+    start_trigger:'game_started',completion_flags:'door_open'}]};
 const crcTable=Array.from({length:256},(_,i)=>{let c=i;for(let j=0;j<8;j++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;return c>>>0;});
 const crc=data=>{let c=0xffffffff;for(const b of data)c=crcTable[(c^b)&255]^(c>>>8);return(c^0xffffffff)>>>0;};
 const chunk=(type,payload)=>{const name=Buffer.from(type),length=Buffer.alloc(4),sum=Buffer.alloc(4);
@@ -87,6 +90,9 @@ try{
   assert.equal((await inspect()).mode,'rpgmenu');
   await page.locator('#rpg-lab-menu').getByRole('button',{name:'QUESTS',exact:true}).click();
   assert.match(await page.locator('#rpg-lab-menu h2').first().innerText(),/FIELD RECORD/);
+  await page.locator('#rpg-lab-menu .case-body button').first().click();
+  assert.match(await page.locator('#rpg-lab-menu .case-body pre').innerText(),/ACTIVE — Investigate the synthetic console/,
+    'The source quest must appear only after the introduction sets its authored start flag');
   await page.locator('#rpg-lab-menu').getByRole('button',{name:'SAVE',exact:true}).click();
   await page.locator('#rpg-lab-menu').getByRole('button',{name:'SAVE CAMPAIGN RECORD'}).click();
   assert.equal((await inspect()).saved.hasSave,true);
@@ -177,6 +183,13 @@ try{
   await acknowledge();
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
   assert.equal((await inspect()).story,null,'Terminal dialogue must resolve before the route unlocks');
+  await page.keyboard.press('KeyM');
+  await page.locator('#rpg-lab-menu').waitFor({state:'visible'});
+  await page.locator('#rpg-lab-menu').getByRole('button',{name:'QUESTS',exact:true}).click();
+  await page.locator('#rpg-lab-menu .case-body button').first().click();
+  assert.match(await page.locator('#rpg-lab-menu .case-body pre').innerText(),/COMPLETE — Investigate the synthetic console/,
+    'The source quest must resolve from its already-saved completion flag without modifying save schema');
+  await page.keyboard.press('Escape');
 
   await page.keyboard.down('ArrowRight');
   try{
