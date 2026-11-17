@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {compileCampaignWorld,createCampaignMissionFactory} from '../public/js/engine/campaign-world.js';
+import {compileCampaignWorld,createCampaignMissionFactory,auditCampaignPortalApproaches} from '../public/js/engine/campaign-world.js';
 const collision=(w,h)=>Array.from({length:w*h},(_,i)=>{const x=i%w,y=Math.floor(i/w);return x===0||x===w-1||y===0||y===h-1?1:0;});
 function map(id,other,p,reverse,px=6,py=3){
   const w=10,h=8;
@@ -88,4 +88,50 @@ test('Gate metadata stays fail-closed and private world flags are not mutated',(
  const status=mission.missionForSync('A00').objectives();
  assert.equal(status[0].done,false);
  assert.deepEqual(prior,{flags:{power_restored:false}});
+});
+test('Portal QA catches a valid reciprocal doorway isolated behind interior collision',()=>{
+  const good=content(),clean=auditCampaignPortalApproaches(good);
+  assert.equal(clean.areaCount,2);
+  assert.equal(clean.portalCount,2);
+  assert.equal(clean.inaccessiblePortals,0);
+  const sealed=content(),col=sealed.maps[0].layers[0].data;
+  for(let y=1;y<sealed.maps[0].height-1;y++)col[y*10+5]=1;
+  assert.doesNotThrow(()=>compileCampaignWorld(sealed),
+    'Portal tile and topology remain valid, but walking route is blocked');
+  const qa=auditCampaignPortalApproaches(sealed);
+  assert.equal(qa.inaccessiblePortals,1);
+  assert.equal(qa.accessiblePortals,1);
+  assert.deepEqual(qa.blockedPortals,[{areaId:'A00',portalId:'east'}]);
+  assert.equal(auditCampaignPortalApproaches(good).inaccessiblePortals,0,
+    'Pure audit never mutates original collision or routes');
+});
+
+test('A 29-area synthetic world has reciprocal, physically accessible routes',()=>{
+  const count=29,ids=Array.from({length:count},(_,i)=>'A'+String(i).padStart(2,'0'));
+  const areas=ids.map((id,i)=>{
+    const w=10,h=8,portals=[];
+    if(i>0)portals.push({id:1,name:'west',x:32,y:96,width:32,height:32,
+      properties:{toMap:ids[i-1],toPortal:'east',facing:'left'}});
+    if(i<count-1)portals.push({id:2,name:'east',x:256,y:96,width:32,height:32,
+      properties:{toMap:ids[i+1],toPortal:'west',facing:'right'}});
+    return {id,name:'SYNTHETIC '+id,orientation:'orthogonal',
+      tilewidth:32,tileheight:32,width:w,height:h,
+      start:{x:80,y:112,dir:'right'},
+      layers:[{type:'tilelayer',name:'collision',data:collision(w,h)},
+        {type:'objectgroup',name:'portals',objects:portals}],
+      entities:[],triggers:[],props:[],lamps:[],drones:[]};
+  });
+  const spec={schemaVersion:1,campaignRevision:2,startArea:ids[0],maps:areas};
+  const checker=auditCampaignPortalApproaches(spec);
+  assert.deepEqual({areas:checker.areaCount,links:checker.portalCount,
+    walkable:checker.accessiblePortals,unreachable:checker.inaccessiblePortals},
+    {areas:29,links:56,walkable:56,unreachable:0});
+  const graph=compileCampaignWorld(spec);
+  let current=ids[0];
+  for(let i=1;i<count;i++){
+    const next=graph.destination(current,'east');
+    assert.equal(next.mapId,ids[i]);
+    current=next.mapId;
+  }
+  assert.equal(current,ids.at(-1));
 });

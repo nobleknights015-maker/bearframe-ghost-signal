@@ -181,3 +181,30 @@ test('Release detects source-authored areas absent from a fully connected review
      'Even a review map cannot claim a location absent from the approved area source');
  }finally{await f.cleanup();}
 });
+
+test('Private review rejects reciprocal portal links that are blocked by static walls',async()=>{
+  const f=await fixture();
+  try{
+    await f.edit('story/opening-world-review-candidate.json',spec=>{
+      const original=spec.maps[0],other=structuredClone(original);
+      other.id='A01';other.name='Second synthetic area';
+      const first={id:1,name:'east',x:6*32,y:3*32,width:32,height:32,
+        properties:{toMap:'A01',toPortal:'west',facing:'right'}};
+      const back={id:1,name:'west',x:32,y:3*32,width:32,height:32,
+        properties:{toMap:'A00',toPortal:'east',facing:'left'}};
+      original.layers[1].objects=[first];
+      other.layers[1].objects=[back];
+      for(let y=1;y<original.height-1;y++)
+        original.layers[0].data[y*original.width+4]=1;
+      spec.maps.push(other);
+    });
+    const r=await preflightPrivateCampaign({root:f.root,profile:'review'});
+    assert.equal(r.pass,false);
+    assert.equal(r.counts.reachableAreas,2,
+      'The topological graph is connected despite an impassable interior wall');
+    assert.equal(has(r,'UNWALKABLE_PORTAL_APPROACHES'),true);
+    assert.equal(r.problems.find(p=>p.code==='UNWALKABLE_PORTAL_APPROACHES').count,1);
+    assert.equal(JSON.stringify(r).includes('east'),false,
+      'Public QA category cannot leak owner-specific portal names');
+  }finally{await f.cleanup();}
+});
