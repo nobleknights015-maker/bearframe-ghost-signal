@@ -144,10 +144,79 @@ export function auditCampaignPortalApproaches(world){
   });
 }
 
+/**
+ * Private source review: prove that gameplay-relevant positions remain
+ * physically reachable AFTER collision/structure placement. The route graph
+ * being reciprocal does not guarantee the player can walk to a door, examine
+ * an NPC, or enter a authored trigger rectangle.
+ *
+ * This pure analysis does not modify collision, story, art or saves. Only
+ * private layouts that opt into `requiresNavigationQA` enforce it at startup;
+ * original Ghost Signal missions and earlier review saves remain unchanged.
+ */
+export function auditCampaignGameplayReachability(world){
+  const graph=compileCampaignWorld(world),blocked=[];
+  let checkCount=0,walkableCells=0;
+  for(const mapId of graph.ids){
+    const m=graph.get(mapId),w=m.width,h=m.height;
+    const grid=m.layers.find(l=>l.name==='collision').data;
+    const entryX=Math.floor(m.start.x/32),entryY=Math.floor(m.start.y/32);
+    const reached=new Uint8Array(w*h),queue=[entryY*w+entryX];
+    reached[queue[0]]=1;
+    for(let i=0;i<queue.length;i++){
+      const p=queue[i],x=p%w,y=Math.floor(p/w);
+      for(const q of [x>0?p-1:-1,x<w-1?p+1:-1,
+        y>0?p-w:-1,y<h-1?p+w:-1]){
+        if(q<0||reached[q]||grid[q]!==0)continue;
+        reached[q]=1;queue.push(q);
+      }
+    }
+    walkableCells+=queue.length;
+    const reachable=(x,y)=>x>=0&&y>=0&&x<w&&y<h&&reached[y*w+x]===1;
+    for(const portal of m.layers.find(l=>l.name==='portals').objects){
+      checkCount++;
+      if(!reachable(portal.x/32,portal.y/32))
+        blocked.push(Object.freeze({mapId,kind:'portal',id:portal.name}));
+    }
+    for(const entity of m.entities||[]){
+      checkCount++;
+      const x=entity.tx,y=entity.ty;
+      // The live Game.target() accepts interaction from an adjacent 32px
+      // tile (16px from the object's bounding-box edge).
+      if(![[0,0],[0,-1],[1,0],[0,1],[-1,0]]
+         .some(([dx,dy])=>reachable(x+dx,y+dy)))
+        blocked.push(Object.freeze({mapId,kind:'entity',id:entity.id}));
+    }
+    for(const trigger of m.triggers||[]){
+      checkCount++;
+      let accessible=false;
+      const left=Math.floor(trigger.x/32),top=Math.floor(trigger.y/32);
+      const right=Math.ceil((trigger.x+trigger.width)/32);
+      const bottom=Math.ceil((trigger.y+trigger.height)/32);
+      for(let y=top;y<bottom&&!accessible;y++)for(let x=left;x<right;x++){
+        // Any reachable tile/trigger overlap can be activated by walking
+        // to a point inside that tile's safe feet region.
+        const a=Math.max(x*32+7,trigger.x),b=Math.min(x*32+25,trigger.x+trigger.width-1);
+        const c=Math.max(y*32+7,trigger.y),d=Math.min(y*32+25,trigger.y+trigger.height-1);
+        if(a<=b&&c<=d&&reachable(x,y)){accessible=true;break;}
+      }
+      if(!accessible)blocked.push(Object.freeze({mapId,kind:'trigger',id:trigger.id}));
+    }
+  }
+  return Object.freeze({areaCount:graph.ids.length,checks:checkCount,
+    reachedWalkableCells:walkableCells,blockedCount:blocked.length,
+    blocked:Object.freeze(blocked)});
+}
+
 export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=()=>{},onInteract=()=>{},
   environmentArt=null,
   onTrigger=()=>{},onEnter=()=>{},onUpdate=()=>{}}={}){
   const graph=compileCampaignWorld(world),doorways=compileCampaignDoorways(graph),missions=new Map();
+  if(world.requiresNavigationQA===true){
+    const report=auditCampaignGameplayReachability(world);
+    if(report.blockedCount)fail('inaccessible authored gameplay position '
+      +report.blocked[0].mapId+'/'+report.blocked[0].kind+'/'+report.blocked[0].id);
+  }
   const missionForSync=id=>{
     if(missions.has(id))return missions.get(id);
     const source=graph.get(id);
