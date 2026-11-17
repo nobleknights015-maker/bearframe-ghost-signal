@@ -170,7 +170,7 @@ export class Game {
       } else if (e.type === 'pad') { if (this.onEnt(e, p)) pad = e; }
       else if (e.type === 'grate') { if (this.onEnt(e, p)) grate = e; }
       else if (e.type === 'jet') {
-        if (this.jetState(e) === 2 && p.hurt <= 0 && this.onEnt(e, p)) { p.hurt = 1; this.drain(8); this.sfx.spark(); this.toast('STEAM VENT — ENERGY −8', 1.5); }
+        if ((!this.m.hazardsEnabled || this.m.hazardsEnabled(this)) && this.jetState(e) === 2 && p.hurt <= 0 && this.onEnt(e, p)) { p.hurt = 1; this.drain(8); this.sfx.spark(); this.toast(this.m.weather === 'electrical' ? 'ARC DISCHARGE — ENERGY −8' : 'STEAM VENT — ENERGY −8', 1.5); }
       } else if (e.type === 'lens') {
         if (e.offT > this.time) continue;
         const ex = e.tx * T + 16, ey = e.ty * T + 16, a = e.base + Math.sin(this.time * .7 + e.tx) * e.sweep, dd = dist(ex, ey, p.x, p.y - 6); e.ang = a;
@@ -198,7 +198,7 @@ export class Game {
     }
   }
   stealth() {
-    if (this.m.hideStealth) return ['FIELD SURVEY', 'safe'];
+    if (this.m.hideStealth) return [this.m.statusLabel || 'FIELD SURVEY', 'safe'];
     const p = this.player;
     if (this.drones.some(d => d.state === 'chase')) return ['DETECTED', 'hot'];
     if (p.hidden) return ['HIDDEN', 'safe'];
@@ -208,7 +208,7 @@ export class Game {
   }
   refreshHud() {
     const p = this.player, e = this.mode === 'play' && !p.hidden ? this.target() : null, key = this.touchMode() ? '' : '<b>[E]</b> ';
-    const st = `LIGHT ${p.light ? '<b>ON</b>' : 'OFF'} &middot; SCAN ${this.scanCd > 0 ? '...' : p.energy > SCAN_COST ? '<b>READY</b>' : 'LOW'}${this.inv.cell ? ' &middot; <b>POWER CELL</b>' : ''}${this.inv.spindle ? ' &middot; <b>RECORD SPINDLE</b>' : ''}${this.inv.surveyCoupler ? ' &middot; <b>SURVEY COUPLER</b>' : ''}`;
+    const st = `LIGHT ${p.light ? '<b>ON</b>' : 'OFF'} &middot; SCAN ${this.scanCd > 0 ? '...' : p.energy > SCAN_COST ? '<b>READY</b>' : 'LOW'}${this.inv.cell ? ' &middot; <b>POWER CELL</b>' : ''}${this.inv.spindle ? ' &middot; <b>RECORD SPINDLE</b>' : ''}${this.inv.surveyCoupler ? ' &middot; <b>SURVEY COUPLER</b>' : ''}${this.inv.regulatorCell ? ' &middot; <b>REGULATOR CELL</b>' : ''}${this.inv.isolator ? ' &middot; <b>INSULATOR</b>' : ''}`;
     this.ui.hud(p.energy, this.m.objective(this), st, p.hidden ? key + 'LEAVE ALCOVE' : e ? key + this.label(e) : '', this.stealth());
   }
   frame() { const p = this.player; return p.scanT > 0 ? SCAN0 + (p.scanT > .3 ? 0 : 1) : p.moving ? Math.floor(p.anim) % WALK : IDLE0 + (Math.floor(this.time / .32) % IDLEN); }
@@ -402,6 +402,18 @@ export class Game {
     for (const d of this.drones) if (d.y >= p.y) drawDrone(c, d, t);
     c.restore();
     c.drawImage(this.over, cx, cy, VW, VH, 0, 0, VW, VH);
+    if (this.m.weather === 'electrical' && !this.lowFx) {
+      c.save(); c.fillStyle = 'rgba(100,155,180,.12)';
+      const shift=Math.floor(t*13);
+      for(let i=0;i<22;i++){
+        const rx=(i*83+shift*7)%VW,ry=(i*47+shift*11)%VH;
+        c.fillRect(rx,ry,1,4);
+      }
+      if (f.calibrated && flick && Math.sin(t*3.7)>.99) {
+        c.fillStyle='rgba(145,180,205,.1)'; c.fillRect(0,0,VW,VH);
+      }
+      c.restore();
+    }
 
     // darkness + light sources
     const lc = this.lc, sx = p.x - cx, sy = p.y - cy - 24;

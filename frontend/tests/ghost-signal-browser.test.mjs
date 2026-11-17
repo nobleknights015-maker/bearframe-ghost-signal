@@ -44,7 +44,7 @@ test('Chromium renders original title and isolated surface expansion', { timeout
     await page.evaluate(()=>{
       // Preserve the original save namespace; only authorize M03 in a simulated completed profile.
       const key='bearframe_ghost_signal_progress_v1';
-      localStorage.setItem(key,JSON.stringify({unlocked:{m2:true,m3:true,m4:true},done:{m1:true,m2:true},case:{ev:[],logs:[]}}));
+      localStorage.setItem(key,JSON.stringify({unlocked:{m2:true,m3:true,m4:true,m5:true},done:{m1:true,m2:true},case:{ev:[],logs:[]}}));
     });
     await page.reload({waitUntil:'domcontentloaded'});
     await page.locator('#btn-m3').waitFor({state:'visible'});
@@ -80,6 +80,17 @@ test('Chromium renders original title and isolated surface expansion', { timeout
     assert.deepEqual(rescue,{mission:'m4',theme:'ruins',stealth:'FIELD SURVEY',survivor:true});
     await page.waitForFunction(() => window.__gs?.actorSheets?.survivor?.ready === true);
     await page.screenshot({path:resolve(screenshots,'ghost-signal-m04-chromium.png')});
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.locator('#btn-m5').waitFor({state:'visible'});
+    await page.locator('#btn-m5').click();
+    await page.waitForFunction(()=>window.__gs?.m?.id==='m5');
+    const relay=await page.evaluate(()=>{
+      const g=window.__gs;g.render();
+      return {mission:g.m.id,status:g.stealth()[0],gateClosed:g.solidAt(31*32+16,18*32+16),
+        gateExists:!!g.ent('fieldGate'),weather:g.m.weather};
+    });
+    assert.deepEqual(relay,{mission:'m5',status:'RELAY SERVICE',gateClosed:true,gateExists:true,weather:'electrical'});
+    await page.screenshot({path:resolve(screenshots,'ghost-signal-m05-chromium.png')});
     assert.deepEqual(exceptions,[]);
   } finally {
     await browser?.close();

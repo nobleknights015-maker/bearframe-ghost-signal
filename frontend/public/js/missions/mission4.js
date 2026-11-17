@@ -38,7 +38,7 @@ function map(){
  return {w:W,h:H,grid};
 }
 export const mission4={
- id:'m4',title:'THE MISSING SURVEY',visualTheme:'ruins',ambient:'dusk',hideStealth:true,
+ id:'m4',title:'THE MISSING SURVEY',next:'m5',visualTheme:'ruins',ambient:'dusk',hideStealth:true,
  actorAssets:{survivor:{src:'assets/characters/gs_survivor_exp_draft.png'}},
  logs:LOGS,evidence:EVIDENCE,
  start:{x:7.5*T,y:19*T,dir:'right'},

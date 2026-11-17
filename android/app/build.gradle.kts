@@ -9,8 +9,8 @@ android {
     applicationId = "labs.bearframe.ghostsignal.expanded"
     minSdk = 26
     targetSdk = 35
-    versionCode = 2
-    versionName = "0.2.1-expansion-dev"
+    versionCode = 3
+    versionName = "0.2.2-expansion-dev"
   }
   buildTypes { getByName("release") { isMinifyEnabled = false } }
   compileOptions {

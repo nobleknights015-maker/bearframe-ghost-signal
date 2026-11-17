@@ -5,7 +5,7 @@ on:
     paths: ['android/**', 'frontend/public/**', 'frontend/character-tools/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
   pull_request:
     branches: [main]
-    paths: ['android/**', 'frontend/public/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
+    paths: ['android/**', 'frontend/public/**', 'frontend/character-tools/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
   workflow_dispatch:
 concurrency:
   group: ghost-signal-expanded-apk-${{ github.ref }}

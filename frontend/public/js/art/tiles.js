@@ -8,6 +8,26 @@ function rust(c, X, Y, x, y, s, n = 20, spread = 12) {
   for (let i = 0; i < n; i++) R(c, i % 3 ? '#4a2a1c' : '#6b3a22', X + cx + (hsh(x, y, s + 10 + i) - .5) * spread, Y + cy + (hsh(x, y, s + 40 + i) - .5) * spread * .7, 2, 1);
 }
 
+
+function stormFloor(c,x,y,shadow) {
+  const X=x*T,Y=y*T,v=hsh(x,y,716);
+  R(c,v>.55?'#1a2930':'#202e34',X,Y,T,T);
+  R(c,'#45515b',X,Y,T,1);
+  for(let i=0;i<18;i++){
+    const px=Math.floor(hsh(x,y,i+3200)*30),py=Math.floor(hsh(x,y,i+3900)*30);
+    R(c,i%3===0?'#58666b':i%3===1?'#344e52':'#122127',X+px,Y+py,i%4===0?3:1,1);
+  }
+  if(v<.12) {
+    R(c,'#121a20',X+4,Y+12,25,7);
+    R(c,'#677c7f',X+4,Y+12,25,1);
+    R(c,'#2e444b',X+7,Y+17,20,2);
+  }
+  if(v>.68) for(let i=0;i<5;i++){
+    const px=5+Math.floor(hsh(x,y,i+4400)*22),py=6+Math.floor(hsh(x,y,i+4700)*21);
+    R(c,'#475f56',X+px,Y+py,2,3);
+  }
+  if(shadow)R(c,'rgba(0,0,0,.24)',X,Y,T,4);
+}
 function ruinFloor(c,x,y,shadow) {
   const X=x*T,Y=y*T,v=hsh(x,y,427);
   R(c,v>.5?'#252e30':'#283130',X,Y,T,T);
@@ -175,8 +195,8 @@ export function bakeMap(map, mission) {
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const g = at(x, y);
-    if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'ruins') ruinFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); }
-    else if (g === 1) { if (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins') surfaceEdge(c, x, y, at); else if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
+    if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'ruins') ruinFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'storm') stormFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); }
+    else if (g === 1) { if (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins' || mission.visualTheme === 'storm') surfaceEdge(c, x, y, at); else if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
   }
   // soft ambient occlusion where floor meets side / lower walls
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) if (at(x, y) === 2) {
@@ -347,7 +367,7 @@ export function drawEntity(c, e, g) {
       break;
     }
     case 'jet': {
-      const s = g.jetState(e);
+      const s = (g.m.hazardsEnabled && !g.m.hazardsEnabled(g)) ? 0 : g.jetState(e);
       R(c, '#0c1012', X + 9, Y + 9, 14, 14); R(c, '#3b3f2c', X + 9, Y + 9, 14, 1); R(c, '#3b3f2c', X + 9, Y + 22, 14, 1); R(c, '#3b3f2c', X + 9, Y + 9, 1, 14); R(c, '#3b3f2c', X + 22, Y + 9, 1, 14);
       R(c, s ? '#85752c' : '#2a2d20', X + 14, Y + 14, 4, 4);
       if (s) for (let i = 0; i < (s === 2 ? 14 : 3); i++) { const q = (t * 12 | 0) + i * 7; R(c, `rgba(220,230,235,${s === 2 ? .25 + hsh(q, i) * .5 : .3})`, X + 4 + hsh(q, e.tx + i) * (s === 2 ? 22 : 12) + (s === 2 ? 0 : 6), Y + (s === 2 ? -6 : 8) + hsh(e.ty + i, q) * (s === 2 ? 30 : 10), 3 + (i % 3), 3 + (i % 2)); }
