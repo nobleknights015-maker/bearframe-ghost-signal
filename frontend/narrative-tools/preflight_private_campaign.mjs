@@ -69,7 +69,7 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
   if(!root||!['review','release'].includes(profile))throw new TypeError('Expected owner asset root and review or release profile');
   root=resolve(root);
   const problems=[],report={profile,pass:false,
-    counts:{characters:0,portraits:0,areas:0,reachableAreas:0,scenes:0,
+    counts:{characters:0,portraits:0,areas:0,sourceAreas:0,reachableAreas:0,scenes:0,
       stagedScenes:0,encounters:0,combatEncounters:0,mandatoryBattles:0},
     problems};
   let manifest,content,world;
@@ -97,6 +97,19 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
   report.counts.scenes=content.scenes?.length||0;
   report.counts.encounters=content.encounters?.length||0;
   report.counts.areas=world.maps?.length||0;
+  report.counts.sourceAreas=content.areas?.length||0;
+  // Source-authored areas not yet mapped are NOT unreachable: they are
+  // absent, and must have their own release blocker (29 vs 5 on recovered
+  // Director's Cut v2). Unknown candidate area IDs also fail closed.
+  if(Array.isArray(content.areas)&&content.areas.length){
+    const sourceIds=new Set(content.areas.map(a=>a.id));
+    const mappedIds=new Set((world.maps||[]).map(m=>m.id));
+    error(problems,'UNKNOWN_STAGED_SOURCE_AREAS',
+      [...mappedIds].filter(id=>!sourceIds.has(id)).length);
+    if(profile==='release')
+      error(problems,'UNSTAGED_SOURCE_AREAS',
+        [...sourceIds].filter(id=>!mappedIds.has(id)).length);
+  }
 
   const entries=Array.isArray(manifest.characters)?manifest.characters:[];
   let missingSheets=0,invalidSheets=0;
