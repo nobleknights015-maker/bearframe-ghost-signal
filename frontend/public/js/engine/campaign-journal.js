@@ -15,7 +15,7 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
     throw new TypeError('Campaign and layout revisions disagree');
   const db=createRpgSaveStore(storage,'bearframe_aeon_campaign_'+starterId+'_v1');
   const safeBoot=copy(bootstrap);
-  if(Object.keys(safeBoot).some(key=>!['party','inventory','quests','flags','equipment','stats'].includes(key)))
+  if(Object.keys(safeBoot).some(key=>!['party','inventory','quests','flags','equipment','stats','progression','activeParty'].includes(key)))
     throw new TypeError('Campaign bootstrap has unsupported fields');
   let record=null;
   const newWorld=()=>{
@@ -23,7 +23,10 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
     const world={story_schema:2,starterId,narrative,
       flags:{...narrative.flags,...(safeBoot.flags||{})},
       inventory:{...(safeBoot.inventory||{})},
-      party:copy(safeBoot.party||[]),equipment:copy(safeBoot.equipment||{}),
+      party:copy(safeBoot.party||[]),
+      ...(safeBoot.activeParty?{activeParty:copy(safeBoot.activeParty)}:{}),
+      ...(safeBoot.progression?{progression:copy(safeBoot.progression)}:{}),
+      equipment:copy(safeBoot.equipment||{}),
       quests:copy(safeBoot.quests||{}),stats:copy(safeBoot.stats||{}),
       encounters:{},events:{},location:{...graph.startLocation}};
     if(world.party.length&&world.party[0].artId!==starterId)
@@ -142,6 +145,10 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
          JSON.stringify(world.narrative)!==JSON.stringify(record.world.narrative)||
          record.world.encounters?.[encounterId]?.outcome==='victory')return false;
       world.encounters={...(record.world.encounters||{}),[encounterId]:{outcome:session.event.outcome}};
+      // Match the established RPG field-recovery contract: a defeated party
+      // can still move and recover rather than loading into a permanent softlock.
+      if(session.event.outcome==='defeat')for(const unit of world.party)
+        if(unit.hp===0)unit.hp=Math.max(1,Math.ceil(unit.maxHp/2));
       const next={...record,world};delete next.battle;
       // Outcome, HP, EP, XP, loot and encounter gate commit together.
       return persist(next);
