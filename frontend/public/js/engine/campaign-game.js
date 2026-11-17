@@ -8,6 +8,7 @@ import {mountCampaignNarrative} from './campaign-narrative.js';
 import {createConnectedFieldTravel} from './connected-field-travel.js';
 import {compileCampaignCombatStaging} from './campaign-combat-staging.js';
 import {mountCampaignBattle} from './campaign-battle.js';
+import {mountCampaignFieldMenu} from './campaign-field-menu.js';
 const ROOT=new URL('../../assets/aeon/',import.meta.url);
 const STARTERS=Object.freeze(['sleeper_A','sleeper_B','sleeper_C','sleeper_D']);
 const $=id=>document.getElementById(id);
@@ -97,7 +98,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
         }
       }
       // Stop callbacks from previous previews before rebinding this Game.
-      active?.narrative.stop();active=null;
+      active?.fieldMenu?.stop();active?.narrative.stop();active=null;
       let narrative=null,combat=null,traveler=null,portalArmed=false,lastPortal=null;
       const commitWorld=next=>{
         const prior=journal.readJournal();if(!prior)return false;
@@ -196,6 +197,10 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
       $('btn-quit').onclick=()=>{
         if(window.__campaign.save())location.assign(new URL('campaign.html',location.href).href);
         else $('pause-note').textContent='CAMPAIGN SAVE FAILED — REMAIN HERE';};
+      // Additive in-campaign party / inventory / quest / save record: uses
+      // existing Ghost Signal colors, panels, controller overlay and RPG model.
+      // Never starts in narrative/dialogue/battle mode or touches main saves.
+      active.fieldMenu=mountCampaignFieldMenu({game,ui,journal,touchMode});
     }catch(error){
       console.error('Private campaign preview failed',error);
       game.mode='title';ui.show('title',true);

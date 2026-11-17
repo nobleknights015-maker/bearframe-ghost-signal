@@ -84,7 +84,8 @@ export function createCampaignJournal({storage,starterId,content,worldSpec,boots
     get starterId(){return starterId;},
     get graph(){return graph;},
     inspect(){return Object.freeze({hasSave:db.inspect().hasSave,loaded:!!record,
-      mapId:record?.mapId||null,revision:db.inspect().revision});},
+      mapId:record?.mapId||null,revision:db.inspect().revision,
+      redundant:db.inspect().redundant});},
     newGame(){
       const world=newWorld();
       return persist({version:1,phase:'exploration',starterId,storySchema:2,
