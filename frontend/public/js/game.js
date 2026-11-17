@@ -26,6 +26,16 @@ export class Game {
   start(mission, snap, carry) {
     this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission); this.over = bakeOver(this.map, mission); this.cam = null;
     this.ents = mission.entities().map(e => ({ w: 1, h: 1, open: 0, ...e }));
+    // Opt-in approved Sprite Studio exports; absence never affects original rendering.
+    this.actorSheets = {};
+    for (const [id, spec] of Object.entries(mission.actorAssets || {})) {
+      if (!spec || !/^assets\/characters\/[a-z0-9_-]+\.png$/i.test(spec.src)) continue;
+      const image = new Image(), item = { image, ready: false };
+      this.actorSheets[id] = item;
+      image.onload = () => { item.ready = image.naturalWidth >= 12 * 32 && image.naturalHeight >= 4 * 56; };
+      image.onerror = () => { item.ready = false; };
+      image.src = spec.src;
+    }
     this.flags = {}; this.inv = {}; this.stats = { scans: 0, hits: 0, restores: 0, logs: 0, ev: 0 };
     this.caseFile = carry ? clone(carry) : { ev: [], logs: [] };
     this.player = { x: mission.start.x, y: mission.start.y, dir: mission.start.dir, energy: 100, light: false, moving: false, anim: 0, hurt: 0, scanT: 0, hidden: null };
@@ -193,7 +203,7 @@ export class Game {
   }
   refreshHud() {
     const p = this.player, e = this.mode === 'play' && !p.hidden ? this.target() : null, key = this.touchMode() ? '' : '<b>[E]</b> ';
-    const st = `LIGHT ${p.light ? '<b>ON</b>' : 'OFF'} &middot; SCAN ${this.scanCd > 0 ? '...' : p.energy > SCAN_COST ? '<b>READY</b>' : 'LOW'}${this.inv.cell ? ' &middot; <b>POWER CELL</b>' : ''}${this.inv.spindle ? ' &middot; <b>RECORD SPINDLE</b>' : ''}`;
+    const st = `LIGHT ${p.light ? '<b>ON</b>' : 'OFF'} &middot; SCAN ${this.scanCd > 0 ? '...' : p.energy > SCAN_COST ? '<b>READY</b>' : 'LOW'}${this.inv.cell ? ' &middot; <b>POWER CELL</b>' : ''}${this.inv.spindle ? ' &middot; <b>RECORD SPINDLE</b>' : ''}${this.inv.surveyCoupler ? ' &middot; <b>SURVEY COUPLER</b>' : ''}`;
     this.ui.hud(p.energy, this.m.objective(this), st, p.hidden ? key + 'LEAVE ALCOVE' : e ? key + this.label(e) : '', this.stealth());
   }
   frame() { const p = this.player; return p.scanT > 0 ? SCAN0 + (p.scanT > .3 ? 0 : 1) : p.moving ? Math.floor(p.anim) % WALK : IDLE0 + (Math.floor(this.time / .32) % IDLEN); }
