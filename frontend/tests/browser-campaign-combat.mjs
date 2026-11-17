@@ -152,10 +152,16 @@ try{
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
   assert.equal((await inspect()).story,null,'Terminal dialogue must resolve before the route unlocks');
 
+  // The authored airlock is physically represented; walking over a tile
+  // cannot trigger an encounter or move the player to a second area.
   await page.keyboard.down('ArrowRight');
   try{
-    await page.waitForFunction(()=>window.__campaign?.inspect().mapId==='A01',null,{timeout:15000});
+    await page.waitForFunction(()=>window.__gs?.player?.x>=185,null,{timeout:15000});
   }finally{await page.keyboard.up('ArrowRight');}
+  assert.equal((await inspect()).mapId,'A00');
+  assert.equal(await page.evaluate(()=>window.__gs.target()?.portalId),'east');
+  await page.keyboard.press('KeyE');
+  await page.waitForFunction(()=>window.__campaign?.inspect().mapId==='A01',null,{timeout:15000});
   // Source-authored battle gate blocks scene completion until the encounter's
   // real combat outcome and loot are durably recorded in one journal write.
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='battle',null,{timeout:12000});
