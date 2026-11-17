@@ -12,7 +12,7 @@ export function transitionSecurity(previous, nextZone, detection = {kind:'none'}
   }
   const zoneId = nextZone?.id ?? null;
   const mode = nextZone?.mode ?? 'normal';
-  const entered = zoneId !== (previous.zoneId ?? null);
+  const entered = zoneId !== (previous.zoneId ?? null) || mode !== (previous.mode ?? (previous.zoneId ? 'stealth' : 'normal'));
   const priorAlert = previous.alert === true;
   const kind = mode === 'stealth' ? detection.kind : 'none';
   // Alarm/chase persists within a zone until resolved; leaving or changing
