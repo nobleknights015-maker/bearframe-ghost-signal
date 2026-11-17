@@ -3,7 +3,7 @@
 This APK launches the original standalone **Bearframe: Ghost Signal**, not Aeon Circuit, an engine editor, or engine-lab. It packs frontend/public into Android WebView assets during the Gradle build. The original HTML Canvas title, HUD, missions M01-M05, scanner, and saves are not replaced.
 
 - Package ID: `labs.bearframe.ghostsignal.expanded` (does **not** overwrite the original engine app).
-- Version: 0.2.2-expansion-dev, debug only, NOT a production signed release.
+- Version: 0.2.3-expansion-dev, debug only, NOT a production signed release.
 - Portrait locked out: landscape activity + insets-safe WebView, original 480×270 scaled game.
 - `WebViewAssetLoader` supplies a stable local HTTPS-like origin for module imports and browser-local saves.
 - Private, licensed, paid asset packs are NOT included in public CI unless explicitly cleared for redistribution. SVG/JS procedural art in the public game is packaged.

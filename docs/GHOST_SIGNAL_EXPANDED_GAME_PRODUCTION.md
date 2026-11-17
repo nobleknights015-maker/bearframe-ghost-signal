@@ -8,6 +8,8 @@ The user-provided outer `Bearframe assets.zip` was inspected down to its nested 
 - The original restricted Starship v4.1 and Station Mega Kit licenses allow game use but not standalone asset redistribution; no copies of those packs' pixels are in this public source. The large terrain archives have no confirmed licenses; they remain private and out of public CI.
 - Browser QA checks that the imported artwork actually decompresses and is painted. If old WebView versions lack `DecompressionStream`, the existing procedural floor remains available as a compatibility fallback; current target Moto G WebView should support it but needs physical verification.
 
+The latest v0.2.3 art revision also varies the real overlay density/orientation to avoid the obvious regular tile-border repetition, and places recognizable lab-panel markers by the **existing physical** extraction hatches, repair gate and relay benches. These markers do not teleport or change map location.
+
 This is a **real asset integration increment**, not a claim that the entire owned art catalog or all ruined bunkers have been mapped. Authentic larger facilities, doors, wall layering, and private-licensed art bundling are future polish gates.
 
 # Ghost Signal: expanded game production / canon gate
