@@ -59,6 +59,7 @@ export const mission3 = {
   id: 'm3', title: 'RETURN TO THE SURFACE', next: 'm4',
   visualTheme: 'surface', ambient: 'daylight', hideStealth: true,
   // Map actor IDs to local, approved 32x56 Sprite Studio compatibility PNGs after review.
+  markers:[{x:7,y:19,kind:'extraction'},{x:46,y:13,kind:'relay'}],
   // No licensed/private character art is distributed in the public source.
   actorAssets: {
     mira: {src:'assets/characters/gs_mira_exp_draft.png'},

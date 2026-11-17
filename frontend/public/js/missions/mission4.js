@@ -40,6 +40,7 @@ function map(){
 export const mission4={
  id:'m4',title:'THE MISSING SURVEY',next:'m5',visualTheme:'ruins',ambient:'dusk',hideStealth:true,
  actorAssets:{survivor:{src:'assets/characters/gs_survivor_exp_draft.png'}},
+ markers:[{x:8,y:19,kind:'extraction'},{x:38,y:13,kind:'relay'}],
  logs:LOGS,evidence:EVIDENCE,
  start:{x:7.5*T,y:19*T,dir:'right'},
  buildMap:map,

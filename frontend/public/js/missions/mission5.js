@@ -48,6 +48,7 @@ export const mission5={
  start:{x:7.5*T,y:19*T,dir:'right'},
  buildMap,
  actorAssets:{},
+ markers:[{x:7,y:20,kind:'extraction'},{x:30,y:19,kind:'gate'},{x:54,y:16,kind:'relay'}],
  props:[
   {t:'machine',x:8,y:10,w:4,h:2,solid:1},
   {t:'rack',x:12,y:10,w:1,h:3,solid:1},

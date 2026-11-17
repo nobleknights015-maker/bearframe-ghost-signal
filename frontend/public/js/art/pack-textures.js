@@ -42,13 +42,22 @@ export function packAudit(){return {loaded:available,cells:textures.size,size:32
 export function paintPackFloor(ctx,theme,x,y){
   if(!available || !Object.hasOwn(GROUND,theme))return false;
   const set=GROUND[theme];
+  const serviceWalk=theme==='storm'&&x>=28&&x<=49&&y>=17&&y<=20;
+  // The source atlas includes corners as well as seamless tiles: use natural
+  // patches and flipped native cells instead of a repetitive grid of borders.
+  const h=hash(x,y,31),coverage=theme==='surface'?48:theme==='ruins'?58:66;
+  if(!serviceWalk&&h%100>=coverage)return false;
   let key=set[hash(x>>1,y>>1,15)%3];
-  if(hash(x,y,31)%9===0)key=set[3+hash(x,y,21)%3];
-  if(theme==='storm'&&x>=30&&x<=49&&(y===18||y===19||y===20))
-    key=['r4_2','r5_2','r2_3','r3_3'][hash(x,y,44)%4];
+  if(h%7===0)key=set[3+hash(x,y,21)%3];
+  if(serviceWalk)key=['r4_2','r5_2','r2_3','r3_3'][hash(x,y,44)%4];
   const cell=textures.get(key);if(!cell)return false;
-  ctx.save();ctx.globalAlpha=theme==='storm'?0.94:0.88;
-  ctx.imageSmoothingEnabled=false;ctx.drawImage(cell,x*TILE,y*TILE);ctx.restore();
+  ctx.save();ctx.globalAlpha=serviceWalk?0.9:0.68;
+  ctx.imageSmoothingEnabled=false;
+  const flip=(hash(x,y,91)&3);
+  ctx.translate(x*TILE+(flip&1?TILE:0),y*TILE+(flip&2?TILE:0));
+  ctx.scale(flip&1?-1:1,flip&2?-1:1);
+  ctx.drawImage(cell,0,0);
+  ctx.restore();
   return true;
 }
 export function paintPackProp(ctx,p,theme){
@@ -61,4 +70,30 @@ export function paintPackProp(ctx,p,theme){
     ctx.drawImage(tile,(p.x+ix)*TILE,(p.y+iy)*TILE);
   }
   ctx.restore();return true;
+}
+
+/** Mark physical locations; these tiles are not teleport or map-change triggers. */
+export function paintPackMarkers(ctx,mission,walkable){
+  if(!available || !mission?.markers)return 0;
+  let count=0;
+  for(const {x,y,kind} of mission.markers){
+    if(!walkable(x,y))continue;
+    const tile=textures.get(kind==='extraction'?'l5_5':kind==='gate'?'r2_3':'l4_5');
+    ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=.92;
+    ctx.drawImage(tile,x*TILE,y*TILE);
+    const col=kind==='extraction'?'#c4d984':kind==='gate'?'#e6c45c':'#79d6df';
+    ctx.strokeStyle=col;ctx.lineWidth=1;
+    ctx.strokeRect(x*TILE+3,y*TILE+3,TILE-6,TILE-6);
+    if(kind==='extraction'){
+      ctx.fillStyle=col;ctx.fillRect(x*TILE+9,y*TILE+13,14,2);
+      ctx.fillRect(x*TILE+12,y*TILE+10,8,2);ctx.fillRect(x*TILE+15,y*TILE+7,2,4);
+    }else if(kind==='gate'){
+      ctx.fillStyle=col;ctx.fillRect(x*TILE+14,y*TILE+9,4,16);
+    }else{
+      ctx.fillStyle=col;ctx.fillRect(x*TILE+10,y*TILE+10,12,3);
+      ctx.fillRect(x*TILE+14,y*TILE+14,4,9);
+    }
+    ctx.restore();count++;
+  }
+  return count;
 }
