@@ -105,7 +105,8 @@ test('Opt-in source decorative layers are baked exactly once, without per-frame 
  const mission=f.missionForSync('A00');
  assert.equal(mission.environmentDetails.count,3);
  const calls=[],ctx={
-  drawImage(...args){calls.push(args);},fillRect:()=>{},set fillStyle(_){},
+  fills:0,
+  drawImage(...args){calls.push(args);},fillRect(){this.fills++},set fillStyle(_){},
   imageSmoothingEnabled:true
  };
  const previous=globalThis.document;
@@ -117,6 +118,8 @@ test('Opt-in source decorative layers are baked exactly once, without per-frame 
   assert.equal(over.height,288);
   const real=calls.filter(c=>c[0]===env.atlas('wasteland_terrain'));
   assert.equal(real.length,3);
+  assert.equal(ctx.fills,0,
+    'No generic Ghost Signal overhead/industrial machinery should paint over owner wasteland');
   assert.deepEqual(real.map(c=>[c[1],c[2],c[5],c[6]]),
    [[0,64,96,160],[32,64,0,160],[64,64,256,192]]);
  }finally{globalThis.document=previous;}
