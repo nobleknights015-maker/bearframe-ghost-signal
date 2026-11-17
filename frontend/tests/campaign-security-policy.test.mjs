@@ -13,8 +13,16 @@ test('overlapping zones use explicit priority and preserve input',()=>{
 test('optional encounter cannot start without opt-in',()=>{
  const z=compileSecurityZones([{id:'gate',x:0,y:0,w:32,h:32,mode:'stealth',consequence:'encounter',encounterId:'SourceEncounter'}],6,6)[0];
  assert.deepEqual(resolveDetection(z,{detected:true}),{kind:'alarm'});
- assert.deepEqual(resolveDetection(z,{detected:true,encounterEnabled:true}),{kind:'encounter',encounterId:'SourceEncounter'});
+ assert.deepEqual(resolveDetection(z,{detected:true,encounterEnabled:true}),{kind:'alarm'});
+ assert.deepEqual(resolveDetection(z,{detected:true,encounterEnabled:true,authorizedEncounterIds:new Set(['WrongEncounter'])}),{kind:'alarm'});
+ assert.deepEqual(resolveDetection(z,{detected:true,encounterEnabled:false,authorizedEncounterIds:new Set(['SourceEncounter'])}),{kind:'alarm'});
+ assert.deepEqual(resolveDetection(z,{detected:true,encounterEnabled:true,authorizedEncounterIds:new Set(['SourceEncounter'])}),{kind:'encounter',encounterId:'SourceEncounter'});
 });
 test('reject malformed bounds, identifiers and forced unsourced battle',()=>{
  for(const bad of [{id:'__proto__',x:0,y:0,w:32,h:32,mode:'stealth'},{id:'z',x:190,y:0,w:32,h:32,mode:'normal'},{id:'z',x:0,y:0,w:32,h:32,mode:'stealth',consequence:'encounter'}]) assert.throws(()=>compileSecurityZones([bad],6,6));
+});
+
+test('malformed runtime zone cannot force encounter or unknown consequence',()=>{
+ assert.deepEqual(resolveDetection({mode:'stealth',consequence:'encounter',encounterId:'__proto__'}, {detected:true,encounterEnabled:true,authorizedEncounterIds:new Set(['__proto__'])}),{kind:'alarm'});
+ assert.deepEqual(resolveDetection({mode:'stealth',consequence:'unknown'}, {detected:true}),{kind:'alarm'});
 });
