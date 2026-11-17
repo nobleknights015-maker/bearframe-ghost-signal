@@ -24,7 +24,7 @@ export class Game {
   }
 
   start(mission, snap, carry) {
-    this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission); this.over = bakeOver(this.map); this.cam = null;
+    this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission); this.over = bakeOver(this.map, mission); this.cam = null;
     this.ents = mission.entities().map(e => ({ w: 1, h: 1, open: 0, ...e }));
     this.flags = {}; this.inv = {}; this.stats = { scans: 0, hits: 0, restores: 0, logs: 0, ev: 0 };
     this.caseFile = carry ? clone(carry) : { ev: [], logs: [] };
@@ -183,6 +183,7 @@ export class Game {
     }
   }
   stealth() {
+    if (this.m.hideStealth) return ['FIELD SURVEY', 'safe'];
     const p = this.player;
     if (this.drones.some(d => d.state === 'chase')) return ['DETECTED', 'hot'];
     if (p.hidden) return ['HIDDEN', 'safe'];
@@ -389,7 +390,7 @@ export class Game {
 
     // darkness + light sources
     const lc = this.lc, sx = p.x - cx, sy = p.y - cy - 24;
-    lc.globalCompositeOperation = 'source-over'; lc.clearRect(0, 0, VW, VH); lc.fillStyle = `rgba(2,4,7,${f.power ? .45 : .9})`; lc.fillRect(0, 0, VW, VH);
+    lc.globalCompositeOperation = 'source-over'; lc.clearRect(0, 0, VW, VH); lc.fillStyle = `rgba(2,4,7,${this.m.ambient === 'daylight' ? .12 : f.power ? .45 : .9})`; lc.fillRect(0, 0, VW, VH);
     lc.globalCompositeOperation = 'destination-out';
     const hole = (x, y, r, a) => { if (x < -r || y < -r || x > VW + r || y > VH + r) return; const gr = lc.createRadialGradient(x, y, 2, x, y, r); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); lc.fillStyle = gr; lc.fillRect(x - r, y - r, r * 2, r * 2); };
     hole(sx, sy, p.hidden ? 40 : 62, .9);
