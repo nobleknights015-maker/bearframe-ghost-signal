@@ -44,7 +44,7 @@ const environmentManifest={schema:'aeon.private-environment-art.v1',tileSize:32,
   open:'assets/aeon/environment/doors/service_open.png'}},
  palettes:{station_abandoned:{
   floor:'assets/aeon/environment/terrain/station_rust.png',
-  wall:'assets/aeon/environment/terrain/station_wall.png'}},
+  wall:'assets/aeon/environment/terrain/station_wall.png',backdrop:'terrain'}},
  objects:{wasteland_terrain:'assets/aeon/environment/atlases/wasteland_terrain.png'}};
 const content={schemaVersion:1,revision:2,
   flagSchema:{gameplay_flags:['game_started','door_open'],exclusive_enums:{},relationships:{}},
@@ -130,6 +130,8 @@ try{
   }),{width:32,height:64,terrainId:'station_abandoned'},
   'Native owner-authored 32px environment assets must bind in the live field');
   assert.equal(await page.evaluate(()=>window.__gs.m.environmentDetails.count),3);
+  assert.equal(await page.evaluate(()=>Boolean(window.__gs.ownerTerrainPattern)),true,
+    'Real live campaign creates a native owner-asset outdoor backdrop pattern');
   assert.deepEqual(await page.evaluate(()=>{
     const g=window.__gs;
     const sample=(canvas,x,y)=>[...canvas.getContext('2d').getImageData(x,y,1,1).data].slice(0,3);
