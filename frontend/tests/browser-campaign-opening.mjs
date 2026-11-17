@@ -89,18 +89,12 @@ try{
     'Entering a source stealth zone must not fabricate drone detection');
   assert.equal(await page.evaluate(()=>window.__gs.sheet.width),448);
   assert.equal((await inspect()).starterId,'sleeper_D');
-  // Read a single native 32px portal glyph pixel directly from the actual
-  // Ghost Signal baked field canvas; no separate preview renderer is allowed.
-  const transmissionColor=()=>page.evaluate(()=>{
-    const data=window.__gs.base.getContext('2d').getImageData(205,112,1,1).data;
-    return [...data].slice(0,3);
+  // These are physical Ghost Signal bulkhead objects, not floor tiles.
+  const initialDoor=await page.evaluate(()=>{
+    const e=window.__gs.ents.find(e=>e.portalId==='east');
+    return e?{type:e.type,tx:e.tx,ty:e.ty,prompt:window.__gs.label(e)}:null;
   });
-  await page.waitForFunction(()=>{
-    const d=window.__gs.base.getContext('2d').getImageData(205,112,1,1).data;
-    return d[0]===200&&d[1]===154&&d[2]===94;
-  });
-  assert.deepEqual(await transmissionColor(),[200,154,94],
-    'Source-gated transmission is visible as locked amber on the real field');
+  assert.deepEqual(initialDoor,{type:'bulkhead',tx:6,ty:3,prompt:'SEALED BULKHEAD'});
   // An actual campaign (not the noncanonical lab) must expose the same Ghost
   // Signal field-record tabs and a durable on-screen save without replacing
   // the original overlay styles.
@@ -202,12 +196,11 @@ try{
   await acknowledge();
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
   assert.equal((await inspect()).story,null,'Terminal dialogue must resolve before the route unlocks');
-  await page.waitForFunction(()=>{
-    const d=window.__gs.base.getContext('2d').getImageData(205,112,1,1).data;
-    return d[0]===145&&d[1]===204&&d[2]===208;
-  });
-  assert.deepEqual(await transmissionColor(),[145,204,208],
-    'Authored quest completion turns the SAME source portal teal without changing collision');
+  assert.equal(await page.evaluate(()=>{
+    const door=window.__gs.ents.find(e=>e.portalId==='east');
+    return window.__gs.label(door);
+  }),'OPEN BULKHEAD',
+  'The same rendered door unlocks when the story authorizes its flag');
   await page.keyboard.press('KeyM');
   await page.locator('#rpg-lab-menu').waitFor({state:'visible'});
   await page.locator('#rpg-lab-menu').getByRole('button',{name:'QUESTS',exact:true}).click();
@@ -216,10 +209,18 @@ try{
     'The source quest must resolve from its already-saved completion flag without modifying save schema');
   await page.keyboard.press('Escape');
 
+  // Walking onto a portal is no longer a map transition.
+  // Approach the rendered bulkhead and intentionally press INTERACT.
   await page.keyboard.down('ArrowRight');
   try{
-    await page.waitForFunction(()=>window.__campaign?.inspect().mapId==='A01',null,{timeout:15000});
+    await page.waitForFunction(()=>window.__gs?.player?.x>=185,null,{timeout:15000});
   }finally{await page.keyboard.up('ArrowRight');}
+  assert.equal((await inspect()).mapId,'A00',
+    'Walking near a bulkhead cannot cause invisible auto-teleportation');
+  assert.equal(await page.evaluate(()=>window.__gs.target()?.portalId),'east',
+    'The original field targeting must find the visible bulkhead');
+  await page.keyboard.press('KeyE');
+  await page.waitForFunction(()=>window.__campaign?.inspect().mapId==='A01',null,{timeout:15000});
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
   assert.equal((await inspect()).areaCount,2);
   assert.equal((await inspect()).security?.alert,false,
