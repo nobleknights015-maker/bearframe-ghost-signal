@@ -2,7 +2,7 @@
 // UI, native four-way starter art, and the saved PR #5 narrative adapter.
 // This is NOT a completed campaign/battle/Android release. No private story here.
 import {loadAeonV5,chooseStarter,buildV5WorldSheet,bindV5WorldSheet} from './aeon-v5-bridge.js';
-import {createCampaignMissionFactory} from './campaign-world.js';
+import {createCampaignMissionFactory,campaignEntityAvailable} from './campaign-world.js';
 import {createCampaignJournal} from './campaign-journal.js';
 import {mountCampaignNarrative} from './campaign-narrative.js';
 import {createConnectedFieldTravel} from './connected-field-travel.js';
@@ -143,9 +143,9 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
       const factory=createCampaignMissionFactory(worldSpec,{
         getWorld:journal.readWorld,
         onInteract(e){
+          if(!campaignEntityAvailable(e,journal.readWorld()?.flags)){
+            ui.toast('ACCESS SEALED — SOURCE MILESTONE REQUIRED',2);return;}
           if(!e.trigger){ui.toast('OBJECT AWAITS AUTHOR REVIEW',2);return;}
-          if(e.requiresFlag&&journal.readWorld()?.flags?.[e.requiresFlag]!==true){
-            ui.toast('ACCESS REQUIRES PREVIOUS MILESTONE',2);return;}
           invoke(e.trigger,e.sceneId);
         },
         onTrigger(t){invoke(t.trigger,t.sceneId);},
