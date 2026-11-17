@@ -40,14 +40,14 @@ function source(){
   maps:[map('A00','A01','east','west'),map('A01','A00','west','east')]};
 }
 test('Loads real native door art with authored source IDs, without regenerating pixel sprites',()=>{
- const art=compileCampaignEnvironmentArt(manifest(),images());
+ const sourceImages=images(),art=compileCampaignEnvironmentArt(manifest(),sourceImages);
  assert.equal(art.doorIds.length,3);
  assert.equal(art.paletteIds.length,1);
  assert.equal(art.imageCount,7);
  assert.equal(art.door('bulkhead').id,'service');
  assert.equal(art.door('hatch').id,'overgrown');
  assert.equal(art.door('exit').id,'elevator');
- assert.equal(art.door('bulkhead','service').closed,images().get(path('doors/service_closed')));
+ assert.equal(art.door('bulkhead','service').closed,sourceImages.get(path('doors/service_closed')));
 });
 test('Rejects missing native sprites, non-32 terrain, unauthorized paths, or nonexistent source palettes',()=>{
  const a=manifest(),i=images();
