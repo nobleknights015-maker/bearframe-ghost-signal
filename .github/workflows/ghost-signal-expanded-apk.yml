@@ -7,6 +7,9 @@ on:
     branches: [main]
     paths: ['android/**', 'frontend/public/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
   workflow_dispatch:
+concurrency:
+  group: ghost-signal-expanded-apk-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   assemble:
     runs-on: ubuntu-24.04

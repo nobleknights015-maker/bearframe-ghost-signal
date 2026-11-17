@@ -113,13 +113,22 @@ export const mission4={
   const s=g.ent('survivor'),p=g.player;
   if(!s)return;
   s.interact=false;
-  const sx=(s.tx+.5)*T,sy=(s.ty+.75)*T;
-  const targetX=p.x-28,targetY=p.y-5;
-  const dx=targetX-sx,dy=targetY-sy,dist=Math.hypot(dx,dy);
-  if(dist>7){
-   const step=Math.min(dist-7,Math.min(dt,.05)*100);
-   s.tx=(sx+(dx/dist)*step)/T-.5;
-   s.ty=(sy+(dy/dist)*step)/T-.75;
+  // Follow the ACTUAL path walked by Wraith, not a direct wall-clipping line.
+  // On Continue, restart the short trail beside Wraith; the rescue choice persists.
+  if(!g._escortTrail){
+   s.tx=p.x/T-1; s.ty=p.y/T-.75;
+   g._escortTrail=[{x:p.x,y:p.y}];
+  }
+  const trail=g._escortTrail,last=trail[trail.length-1];
+  if(Math.hypot(p.x-last.x,p.y-last.y)>=7)trail.push({x:p.x,y:p.y});
+  if(trail.length>600)trail.splice(0,trail.length-600);
+  const goal=trail[0],sx=(s.tx+.5)*T,sy=(s.ty+.75)*T;
+  const dx=goal.x-sx,dy=goal.y-sy,dist=Math.hypot(dx,dy);
+  if(dist<9&&trail.length>1)trail.shift();
+  else if(dist>9) {
+   const step=Math.min(dist-9,Math.min(dt,.05)*100);
+   const nx=sx+(dx/dist)*step,ny=sy+(dy/dist)*step;
+   if(g.free ? g.free(nx,ny) : true){s.tx=nx/T-.5;s.ty=ny/T-.75;}
   }
  },
  doorOpen(){return true;},

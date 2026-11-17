@@ -8,6 +8,9 @@ on:
       - 'frontend/public/**'
       - 'frontend/tests/**'
       - '.github/workflows/ghost-signal-expansion.yml'
+concurrency:
+  group: ghost-signal-expanded-regression-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   surface-regression:
     runs-on: ubuntu-latest
@@ -25,9 +28,10 @@ jobs:
           node --check frontend/public/js/missions/index.js
           node --check frontend/public/js/missions/mission2.js
           node --check frontend/public/js/missions/mission3.js
+          node --check frontend/public/js/missions/mission4.js
       - name: Verify complete static build
         run: npm run build --prefix frontend
-      - run: node --test frontend/tests/ghost-signal-expansion.test.mjs
+      - run: node --test frontend/tests/ghost-signal-expansion.test.mjs frontend/tests/ghost-signal-rescue.test.mjs
   chromium-smoke:
     runs-on: ubuntu-24.04
     steps:
@@ -46,5 +50,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ghost-signal-surface-chromium
-          path: frontend/test_reports/ghost-signal-m03-chromium.png
+          path: |
+            frontend/test_reports/ghost-signal-m03-chromium.png
+            frontend/test_reports/ghost-signal-m04-chromium.png
           if-no-files-found: ignore

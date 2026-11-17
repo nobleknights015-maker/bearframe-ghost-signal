@@ -44,7 +44,7 @@ test('Chromium renders original title and isolated surface expansion', { timeout
     await page.evaluate(()=>{
       // Preserve the original save namespace; only authorize M03 in a simulated completed profile.
       const key='bearframe_ghost_signal_progress_v1';
-      localStorage.setItem(key,JSON.stringify({unlocked:{m2:true,m3:true},done:{m1:true,m2:true},case:{ev:[],logs:[]}}));
+      localStorage.setItem(key,JSON.stringify({unlocked:{m2:true,m3:true,m4:true},done:{m1:true,m2:true},case:{ev:[],logs:[]}}));
     });
     await page.reload({waitUntil:'domcontentloaded'});
     await page.locator('#btn-m3').waitFor({state:'visible'});
@@ -64,6 +64,18 @@ test('Chromium renders original title and isolated surface expansion', { timeout
     const screenshots=resolve(frontend,'test_reports');
     await mkdir(screenshots,{recursive:true});
     await page.screenshot({path:resolve(screenshots,'ghost-signal-m03-chromium.png')});
+    // Check the second expansion chapter without changing the original playthrough.
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.locator('#btn-m4').waitFor({state:'visible'});
+    await page.locator('#btn-m4').click();
+    await page.waitForFunction(()=>window.__gs?.m?.id==='m4');
+    const rescue = await page.evaluate(()=>{
+      const g=window.__gs;
+      g.render();
+      return {mission:g.m.id,theme:g.m.visualTheme,stealth:g.stealth()[0],survivor:!!g.ent('survivor')};
+    });
+    assert.deepEqual(rescue,{mission:'m4',theme:'ruins',stealth:'FIELD SURVEY',survivor:true});
+    await page.screenshot({path:resolve(screenshots,'ghost-signal-m04-chromium.png')});
     assert.deepEqual(exceptions,[]);
   } finally {
     await browser?.close();
