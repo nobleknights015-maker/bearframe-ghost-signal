@@ -71,18 +71,20 @@ test('Chromium renders original title and isolated surface expansion', { timeout
     // Chromium, rather than accepting procedural fallback alone.
     const art = await page.evaluate(async () => {
       const pack=await import('/js/art/pack-textures.js');
-      const cv=document.createElement('canvas');cv.width=32;cv.height=32;
+      const cv=document.createElement('canvas');cv.width=256;cv.height=256;
       const ctx=cv.getContext('2d');
-      const painted=pack.paintPackFloor(ctx,'ruins',0,0);
-      const rgba=ctx.getImageData(0,0,32,32).data;
-      const colored=Array.from({length:1024},(_,i)=>rgba[i*4+3]).filter(a=>a>0).length;
+      let painted=0;
+      for(let y=0;y<8;y++)for(let x=0;x<8;x++)
+        if(pack.paintPackFloor(ctx,'ruins',x,y))painted++;
+      const rgba=ctx.getImageData(0,0,256,256).data;
+      const colored=Array.from({length:256*256},(_,i)=>rgba[i*4+3]).filter(a=>a>0).length;
       return {...pack.packAudit(),painted,colored};
     });
     assert.equal(art.loaded,true,'Native user asset pack missing or failed to decompress');
     assert.equal(art.cells,24);
     assert.equal(art.size,32);
-    assert.equal(art.painted,true);
-    assert.ok(art.colored>700,'Real 32x32 source terrain did not actually render');
+    assert.ok(art.painted>15,'Expected terrain overlays across several different cells');
+    assert.ok(art.colored>12000,'Real 32x32 source terrain did not actually render');
     // Check the second expansion chapter without changing the original playthrough.
     await page.reload({waitUntil:'domcontentloaded'});
     await page.locator('#btn-m4').waitFor({state:'visible'});
