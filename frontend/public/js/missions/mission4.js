@@ -39,7 +39,7 @@ function map(){
 }
 export const mission4={
  id:'m4',title:'THE MISSING SURVEY',visualTheme:'ruins',ambient:'dusk',hideStealth:true,
- actorAssets:{},
+ actorAssets:{survivor:{src:'assets/characters/gs_survivor_exp_draft.png'}},
  logs:LOGS,evidence:EVIDENCE,
  start:{x:7.5*T,y:19*T,dir:'right'},
  buildMap:map,
@@ -125,7 +125,9 @@ export const mission4={
   const goal=trail[0],sx=(s.tx+.5)*T,sy=(s.ty+.75)*T;
   const dx=goal.x-sx,dy=goal.y-sy,dist=Math.hypot(dx,dy);
   if(dist<9&&trail.length>1)trail.shift();
-  else if(dist>9) {
+  s.moving=dist>9;
+  if(s.moving)s.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+  if(dist>9) {
    const step=Math.min(dist-9,Math.min(dt,.05)*100);
    const nx=sx+(dx/dist)*step,ny=sy+(dy/dist)*step;
    if(g.free ? g.free(nx,ny) : true){s.tx=nx/T-.5;s.ty=ny/T-.75;}

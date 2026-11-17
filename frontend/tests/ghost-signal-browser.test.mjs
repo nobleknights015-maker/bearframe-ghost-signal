@@ -60,6 +60,9 @@ test('Chromium renders original title and isolated surface expansion', { timeout
     assert.equal(state.theme,'surface');
     assert.equal(state.stealth,'FIELD SURVEY');
     assert.equal(state.actorCount,3);
+    await page.waitForFunction(() => window.__gs?.actorSheets?.mira?.ready === true);
+    await page.waitForFunction(() => window.__gs?.actorSheets?.nova?.ready === true);
+    await page.waitForFunction(() => window.__gs?.actorSheets?.kai?.ready === true);
     assert.ok(state.width>40 && state.height>25);
     const screenshots=resolve(frontend,'test_reports');
     await mkdir(screenshots,{recursive:true});
@@ -75,6 +78,7 @@ test('Chromium renders original title and isolated surface expansion', { timeout
       return {mission:g.m.id,theme:g.m.visualTheme,stealth:g.stealth()[0],survivor:!!g.ent('survivor')};
     });
     assert.deepEqual(rescue,{mission:'m4',theme:'ruins',stealth:'FIELD SURVEY',survivor:true});
+    await page.waitForFunction(() => window.__gs?.actorSheets?.survivor?.ready === true);
     await page.screenshot({path:resolve(screenshots,'ghost-signal-m04-chromium.png')});
     assert.deepEqual(exceptions,[]);
   } finally {

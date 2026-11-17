@@ -396,8 +396,9 @@ export function drawEntity(c, e, g) {
     case 'npc': {
       const actor = g.actorSheets && g.actorSheets[e.id];
       if (actor && actor.ready) {
-        const frame = 6 + (Math.floor(t * 2) % 4);
-        c.drawImage(actor.image, frame * 32, 0, 32, 56, X, Y + 32 - 56, 32, 56);
+        const row = {down:0,up:1,right:2,left:3}[e.dir] ?? 0;
+        const frame = e.moving ? Math.floor(t * 8) % 6 : 6 + Math.floor(t * 3) % 4;
+        c.drawImage(actor.image, frame * 32, row * 56, 32, 56, X, Y + 32 - 56, 32, 56);
         break;
       }
       if (e.role === 'mira' || e.role === 'nova' || e.role === 'kai' || e.role === 'surveyor') { expeditionFrame(c, e, t); break; }

@@ -11,9 +11,9 @@ const toolsDir=path.dirname(fileURLToPath(import.meta.url));
 const frontend=path.resolve(toolsDir,'..');
 const source=path.resolve(process.env.BF_STUDIO_LIB || path.join(frontend,'public/studio/lib'));
 const load=name=>import(pathToFileURL(path.join(source,name)).href);
-const [{drawAndroid,poseFor,DEFAULT_CFG,PRESETS,DIRS},{renderRig},{MACHINE_PRESETS},SS]=
+const [{drawAndroid,poseFor,DEFAULT_CFG,PRESETS,DIRS},{renderRig},{MACHINE_PRESETS},SS,{CHARACTER_PRESETS}]=
   await Promise.all([load('sprite-rig.js'),load('machine-rig.js'),
-    load('machine-presets.js'),load('sprite-sheet.js')]);
+    load('machine-presets.js'),load('sprite-sheet.js'),load('android-catalog.js')]);
 if(!globalThis.document)globalThis.document={createElement(tag){
   if(tag!=='canvas')throw Error('Native generator requested unsupported DOM node '+tag);
   return createCanvas(1,1);
@@ -79,7 +79,7 @@ function chooseMachinePreset(spec) {
 function newState(spec,kind,root) {
   let project,warnings=[];
   if(kind==='humanoid'){
-    const original=clone(matchingPreset(spec.preset,PRESETS)||DEFAULT_CFG);
+    const original=clone(spec.catalogPreset ? matchingPreset(spec.catalogPreset,CHARACTER_PRESETS) : matchingPreset(spec.preset,PRESETS)||DEFAULT_CFG);
     const cfg={...original,...clone(spec.appearance||{}),...clone(spec.accessories||{}),
       colors:{...clone(original.colors),...clone(spec.colors||{})}};
     if(spec.damage!==undefined)cfg.damage=asInt(spec.damage,0,0,3);

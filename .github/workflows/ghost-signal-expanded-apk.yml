@@ -2,7 +2,7 @@ name: Ghost Signal Expanded standalone Android APK
 on:
   push:
     branches: [feature/ghost-signal-expanded-m03-surface-20261117]
-    paths: ['android/**', 'frontend/public/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
+    paths: ['android/**', 'frontend/public/**', 'frontend/character-tools/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
   pull_request:
     branches: [main]
     paths: ['android/**', 'frontend/public/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
@@ -22,6 +22,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install upgraded character generator
+        run: npm install --prefix frontend/character-tools --no-audit --no-fund
+      - name: Bake real upgraded Studio sprites for M03/M04
+        run: node frontend/character-tools/generate-ghost-signal-expedition.mjs
+      - name: Validate upgraded Sprite Studio art is embedded
+        run: node --test frontend/character-tools/tests/ghost-signal-expedition.test.mjs
       - name: Install supported Android SDK
         shell: bash
         run: |
@@ -38,6 +47,16 @@ jobs:
         run: gradle -p android :app:assembleDebug --no-daemon
       - name: Verify exact UI, source and missions are in the APK
         run: bash android/ci/verify-apk-assets.sh
+      - name: Upload upgraded generator editable sources and previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-upgraded-generator-drafts
+          path: |
+            frontend/character-output/ghost-signal-expedition/
+            frontend/public/assets/characters/gs_*_exp_draft.png
+            frontend/public/assets/characters/ghost-signal-expedition.json
+          retention-days: 30
+          if-no-files-found: error
       - name: Publish test APK build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -55,6 +74,16 @@ jobs:
         with:
           name: ghost-signal-expanded-android-apk
           path: android/app/build/outputs/apk/debug
+      - uses: actions/download-artifact@v4
+        with:
+          name: ghost-signal-upgraded-generator-drafts
+          path: frontend/expedition-draft-artifacts
+      - name: Restore generated comparison bytes for APK verification
+        shell: bash
+        run: |
+          mkdir -p frontend/public/assets/characters
+          cp frontend/expedition-draft-artifacts/frontend/public/assets/characters/gs_*_exp_draft.png frontend/public/assets/characters/
+          cp frontend/expedition-draft-artifacts/frontend/public/assets/characters/ghost-signal-expedition.json frontend/public/assets/characters/
       - name: Verify exact APK from assemble job
         run: bash android/ci/verify-apk-assets.sh
       - name: Android 35 emulator install and lifecycle smoke

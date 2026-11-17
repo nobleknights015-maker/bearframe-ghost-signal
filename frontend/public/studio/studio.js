@@ -16,6 +16,7 @@ import * as SS from './lib/sprite-sheet.js';
 import { initRefUI } from './ref-ui.js';
 
 const $ = id => document.getElementById(id), LS = 'bearframe_sprite_studio_sleek_copy_autosave_v1';
+const OLD_STUDIO_LS = 'bearframe_sprite_studio_autosave_v2'; // read-only migration; never delete old project
 const EXAMPLES = ['wraith-wtr07', 'heavy-sentinel', 'hexapod-cartography-engine', 'archive-sentinel', 'micro-drone'];
 let P, S, cur = { dir: 'down', a: 0, f: 0 }, tool = 'pencil', color = '#ff3b30', zoom = 8, clip = null, undo = [], ref = null, playing = true, busy = false, pivots = [], saveT = 0;
 let previewClip=null,previewTime=0,previewLast=null;
@@ -272,6 +273,12 @@ initRefUI({ SS, apply: async (rig, keep) => {
   while (busy) await new Promise(r => setTimeout(r, 20)); return S;
 } });
 (async () => {
-  let p = null; try { const t = localStorage.getItem(LS); if (t) p = await SS.deserialize(t); } catch (_) { p = null; }
+  let p = null;
+  // Prefer the upgraded Studio project. If absent, carry forward the original
+  // editor's autosave into this new namespace without erasing either copy.
+  for (const key of [LS, OLD_STUDIO_LS]) {
+    try { const saved = localStorage.getItem(key); if (saved) { p = await SS.deserialize(saved); break; } }
+    catch (_) { /* Keep legacy data intact for manual recovery/export. */ }
+  }
   await setProject(p || SS.humanoidProject('Wraith WTR-07', DEFAULT_CFG)); requestAnimationFrame(tick);
 })();
