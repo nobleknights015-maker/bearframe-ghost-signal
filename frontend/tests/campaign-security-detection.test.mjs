@@ -26,3 +26,18 @@ test('unapproved encounter remains an alarm', () => {
   const result=applySecurityDetection({zoneId:'gate',mode:'stealth',alert:false},gate,gate,{detected:true,encounterEnabled:true,authorizedEncounterIds:new Set()});
   assert.equal(result.consequence,'alarm');
 });
+
+test('stale detection cannot cross normal-to-stealth mode change with reused zone ID', () => {
+  const oldNormal={id:'gate',mode:'normal',consequence:'alarm'};
+  const result=applySecurityDetection({zoneId:'gate',mode:'normal',alert:false},gate,oldNormal,{detected:true});
+  assert.equal(result.consequence,'none');
+  assert.equal(result.mode,'stealth');
+  assert.equal(result.alert,false);
+});
+test('stale stealth detection cannot cross stealth-to-normal mode change with reused zone ID', () => {
+  const newNormal={id:'gate',mode:'normal',consequence:'alarm'};
+  const result=applySecurityDetection({zoneId:'gate',mode:'stealth',alert:true},newNormal,gate,permitted);
+  assert.equal(result.consequence,'none');
+  assert.equal(result.mode,'normal');
+  assert.equal(result.alert,false);
+});
