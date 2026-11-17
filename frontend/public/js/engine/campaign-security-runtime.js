@@ -2,8 +2,8 @@
 // stealth HUD, renderer and missions are NEVER patched. Only owner-authored
 // campaign security zones can opt into durable alerts or source-approved combat.
 import {compileCampaignWorld} from './campaign-world.js';
-import {compileSecurityZones,securityAt} from './campaign-security-policy.mjs';
-import {applySecurityDetection} from './campaign-security-detection.mjs';
+import {compileSecurityZones,securityAt} from './campaign-security-policy.js';
+import {applySecurityDetection} from './campaign-security-detection.js';
 
 const EMPTY=Object.freeze({zoneId:null,mode:'normal',alert:false,consequence:'none'});
 const same=(a,b)=>a?.mapId===b.mapId&&a.zoneId===b.zoneId&&
