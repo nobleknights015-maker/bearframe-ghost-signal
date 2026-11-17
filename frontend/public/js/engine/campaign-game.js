@@ -104,7 +104,7 @@ export async function mountCampaignGame({game,ui,sfx,touchMode,refreshTouch}){
         }
       }
       // Stop callbacks from previous previews before rebinding this Game.
-      active?.fieldMenu?.stop();active?.narrative.stop();active=null;
+      active?.fieldMenu?.stop();active?.combat?.stop();active?.narrative.stop();active=null;
       let narrative=null,combat=null,traveler=null,portalArmed=false,lastPortal=null;
       const commitWorld=next=>{
         const prior=journal.readJournal();if(!prior)return false;
