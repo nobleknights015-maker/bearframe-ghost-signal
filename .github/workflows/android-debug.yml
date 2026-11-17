@@ -100,19 +100,13 @@ jobs:
           path: android/app/build/outputs/apk/debug
       - name: Verify downloaded APK matches checkout
         run: bash android/ci/verify-apk-assets.sh
-      - name: Emulator install and launch smoke (not physical acceptance)
-        uses: reactivecircus/android-emulator-runner@v2
+      - uses: actions/setup-java@v4
         with:
-          api-level: 35
-          arch: x86_64
-          profile: pixel_2
-          # An earlier shared build/emulator job hit an ADB input-service
-          # broken pipe before the smoke script even started. Fresh runner,
-          # cold AVD, software GPU and no snapshots reduce infra instability.
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -camera-front none
-          disable-animations: false
-          emulator-boot-timeout: 900
-          script: bash android/ci/emulator-smoke.sh
+          distribution: temurin
+          java-version: '17'
+      - name: Cold emulator — verify Android input, package, activity services before app smoke
+        shell: bash
+        run: bash android/ci/run-emulator-when-ready.sh
       - name: Upload emulator lifecycle evidence
         if: always()
         uses: actions/upload-artifact@v4
