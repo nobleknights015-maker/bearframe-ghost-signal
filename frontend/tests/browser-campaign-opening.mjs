@@ -23,7 +23,9 @@ const area=(id,next,portal,back,x)=>({id,name:'SYNTHETIC AREA',orientation:'orth
        properties:{toMap:next,toPortal:back,facing:id==='A00'?'right':'left',...(id==='A00'?{requiresFlag:'door_open'}:{})}}]}],
   entities:id==='A00'?[{id:'door_console',type:'terminal',tx:4,ty:3,interact:true,trigger:'INSPECT_MACHINE',
        sceneId:'door',label:'INSPECT CONSOLE',hideAfterFlag:'door_open'}]:[],triggers:[],lamps:[],props:[],drones:[],
-  objective:'Synthetic contract check',objectives:[]});
+  objective:'Synthetic contract check',objectives:[],
+  ...(id==='A00'?{security:{defaultMode:'normal',zones:[{id:'synthetic_security',x:32,y:64,w:128,h:96,
+    mode:'stealth',consequence:'alarm'}]}}:{})});
 const world={schemaVersion:1,campaignRevision:2,status:'authored-blockout-review-candidate',startArea:'A00',
   openingScene:{sceneId:'opening',trigger:'NEW_GAME'},layoutDigest:'synthetic-contract-v2',
   maps:[area('A00','A01','east','west',6),area('A01','A00','west','east',1)],choiceGates:{}};
@@ -77,6 +79,11 @@ try{
   await acknowledge();
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play');
   assert.equal((await inspect()).story,null);
+  await page.waitForFunction(()=>window.__campaign?.inspect().security?.zoneId==='synthetic_security');
+  assert.equal((await inspect()).security.mode,'stealth',
+    'The real campaign loop must persist the authored security zone without triggering combat');
+  assert.equal((await inspect()).security.alert,false,
+    'Entering a source stealth zone must not fabricate drone detection');
   assert.equal(await page.evaluate(()=>window.__gs.sheet.width),448);
   assert.equal((await inspect()).starterId,'sleeper_D');
   // An actual campaign (not the noncanonical lab) must expose the same Ghost
@@ -184,6 +191,8 @@ try{
   }finally{await page.keyboard.up('ArrowRight');}
   await page.waitForFunction(()=>window.__campaign?.inspect().mode==='play',null,{timeout:12000});
   assert.equal((await inspect()).areaCount,2);
+  assert.equal((await inspect()).security?.alert,false,
+    'Alarm state cannot bleed into the next campaign area');
   const arrival=await page.evaluate(()=>({x:window.__gs.player.x,dir:window.__gs.player.dir}));
   assert.equal(arrival.x,48,'Arrival must use the reciprocal portal feet coordinate');
   assert.equal(arrival.dir,'right');
