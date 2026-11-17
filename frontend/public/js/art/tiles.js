@@ -129,6 +129,10 @@ export function bakeMap(map, mission) {
 // Foreground layer drawn above characters: overhead conduits and hanging cables (depth / layered scenery).
 export function bakeOver(map, mission=null) {
   const cv = document.createElement('canvas'); cv.width = map.w * T; cv.height = map.h * T; const c = cv.getContext('2d');
+  // Never paint generic Ghost Signal overhead conduits across real owner
+  // wasteland, shelter or ruins terrain. Keep original demo byte-for-byte
+  // visually unchanged; explicit private foreground art takes its place.
+  if(!mission?.environmentArt){
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const X = x * T, Y = y * T;
@@ -142,6 +146,7 @@ export function bakeOver(map, mission=null) {
       R(c, 'rgba(122,43,43,.9)', X + ox + Math.round(Math.sin(len / 6 + x) * 2), Y + 26 + len, 2, 2);
     }
     if (at(x, y) === 1 && at(x, y - 1) === 2) R(c, 'rgba(0,0,0,.28)', X, Y - 4, T, 4); // lower wall lip shades the floor above it
+  }
   }
   paintCampaignEnvironmentDetails(c,mission?.environmentDetails,'foreground');
   return cv;
