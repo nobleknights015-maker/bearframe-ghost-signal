@@ -21,7 +21,8 @@ function checkedPaths(manifest){
     doorways.set(id,Object.freeze({...pair}));
   }
   for(const [id,pair] of Object.entries(manifest.palettes)){
-    if(!ID.test(id)||!isRecord(pair)||!validImage(pair.floor)||!validImage(pair.wall))
+    if(!ID.test(id)||!isRecord(pair)||!validImage(pair.floor)||!validImage(pair.wall)||
+       (pair.backdrop!==undefined&&pair.backdrop!=='terrain'))
       fail('invalid private terrain palette '+id);
     imagePaths.add(pair.floor);imagePaths.add(pair.wall);
     palettes.set(id,Object.freeze({...pair}));
@@ -68,7 +69,8 @@ export function compileCampaignEnvironmentArt(manifest,images){
       if(!id)return null; // no silent invented biome-to-area mapping
       const pair=palettes.get(id);
       if(!pair)fail('unknown owner terrain palette '+id);
-      return Object.freeze({floor:images.get(pair.floor),wall:images.get(pair.wall),id});
+      return Object.freeze({floor:images.get(pair.floor),wall:images.get(pair.wall),
+        backdrop:pair.backdrop??null,id});
     },
     atlas:id=>{
       const source=objects.get(id);
