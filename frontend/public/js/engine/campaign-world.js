@@ -144,12 +144,18 @@ export function auditCampaignPortalApproaches(world){
 }
 
 export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=()=>{},onInteract=()=>{},
+  environmentArt=null,
   onTrigger=()=>{},onEnter=()=>{},onUpdate=()=>{}}={}){
   const graph=compileCampaignWorld(world),doorways=compileCampaignDoorways(graph),missions=new Map();
   const missionForSync=id=>{
     if(missions.has(id))return missions.get(id);
     const source=graph.get(id);
     if(!source)fail('unknown mission '+id);
+    const visual=source.environmentPalette?environmentArt?.palette(source.environmentPalette):null;
+    if(source.environmentPalette&&!visual)fail('missing source-approved environment art palette '+id);
+    const doorSprites=doorways.forArea(id).map(e=>({
+      ...e,...(environmentArt?{artImages:environmentArt.door(e.type,e.portalArt)}:{})
+    }));
     const col=source.layers.find(l=>l.name==='collision').data;
     const grid=Uint8Array.from(col,x=>x?0:2),w=source.width,h=source.height;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(!grid[y*w+x]&&
@@ -158,15 +164,19 @@ export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=(
     const mission={
       id:source.id,title:source.name,
       start:{...source.start},
+      environmentArt:visual,
       buildMap(){return {w,h,grid:new Uint8Array(grid)};},
       props:source.props||[],lamps:source.lamps||[],drones:source.drones||[],
-      entities(){return [...(source.entities||[]).map(x=>({...x})),...doorways.forArea(source.id)];},
+      entities(){return [...(source.entities||[]).map(x=>({...x})),...doorSprites.map(x=>({...x}))];},
       evidence:{},logs:{},
       objectives(){return (source.objectives||[]).map(x=>({t:x.text,done:!!getWorld()?.flags?.[x.doneFlag]}));},
       objective(){return source.objective||'Explore the area';},
       onStart(g){onEnter(source,g);},
       update(g,dt){
         if(g.mode!=='play'||g.player.hidden)return;
+        // A single source flag change swaps the REAL private closed/open PNG.
+        for(const door of g.ents||[])if(door.portalId)
+          door.open=doorways.canOpen(door,getWorld()?.flags)?1:0;
         const x=g.player.x,y=g.player.y;
         // Real map changes require the INTERACT input on a visible doorway.
         // Standing on the source portal tile never triggers travel.
@@ -182,8 +192,12 @@ export function createCampaignMissionFactory(world,{getWorld=()=>({}),onPortal=(
         const flags=getWorld()?.flags||{};
         for(const e of g.ents)if(e.hideAfterFlag&&flags[e.hideAfterFlag])e.gone=true;
       },
-      doorOpen(id){const e=(source.entities||[]).find(e=>e.id===id);
-        return !e||campaignEntityAvailable(e,getWorld()?.flags);},
+      doorOpen(id){
+        const portal=doorSprites.find(e=>e.id===id);
+        if(portal)return doorways.canOpen(portal,getWorld()?.flags);
+        const e=(source.entities||[]).find(e=>e.id===id);
+        return !e||campaignEntityAvailable(e,getWorld()?.flags);
+      },
       blocked(){return false;},
       label(e){if(e.portalId)return doorways.label(e,getWorld()?.flags);
         if(e.hideAfterFlag&&getWorld()?.flags?.[e.hideAfterFlag])return null;
