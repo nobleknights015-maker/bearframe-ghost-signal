@@ -69,7 +69,7 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
   if(!root||!['review','release'].includes(profile))throw new TypeError('Expected owner asset root and review or release profile');
   root=resolve(root);
   const problems=[],report={profile,pass:false,
-    counts:{characters:0,portraits:0,areas:0,reachableAreas:0,scenes:0,
+    counts:{characters:0,portraits:0,areas:0,sourceAreas:0,reachableAreas:0,scenes:0,
       stagedScenes:0,encounters:0,combatEncounters:0,mandatoryBattles:0},
     problems};
   let manifest,content,world;
@@ -97,6 +97,19 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
   report.counts.scenes=content.scenes?.length||0;
   report.counts.encounters=content.encounters?.length||0;
   report.counts.areas=world.maps?.length||0;
+  report.counts.sourceAreas=content.areas?.length||0;
+  // Source-authored areas not yet mapped are NOT unreachable: they are
+  // absent, and must have their own release blocker (29 vs 5 on recovered
+  // Director's Cut v2). Unknown candidate area IDs also fail closed.
+  if(Array.isArray(content.areas)&&content.areas.length){
+    const sourceIds=new Set(content.areas.map(a=>a.id));
+    const mappedIds=new Set((world.maps||[]).map(m=>m.id));
+    error(problems,'UNKNOWN_STAGED_SOURCE_AREAS',
+      [...mappedIds].filter(id=>!sourceIds.has(id)).length);
+    if(profile==='release')
+      error(problems,'UNSTAGED_SOURCE_AREAS',
+        [...sourceIds].filter(id=>!mappedIds.has(id)).length);
+  }
 
   const entries=Array.isArray(manifest.characters)?manifest.characters:[];
   let missingSheets=0,invalidSheets=0;
@@ -104,8 +117,19 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
     try{
       if(!art||!art.id||!pngPath(art.world?.src)||!pngPath(art.battle?.src))
         throw new Error('Manifest art references not installed');
-      worldSheetSpec(manifest,art.id);
-      mapV5Art(manifest,{['party:'+art.id]:art.id});
+      // The four Sleeper player sheets are exactly 32x56. Other reviewed
+      // actors legitimately use larger world cells (up to 128x176) and must
+      // be validated against THEIR OWN native atlas metadata, not the
+      // player-only sprite contract.
+      const worldMeta=art.world;
+      if(STARTERS.includes(art.id))worldSheetSpec(manifest,art.id);
+      else if(worldMeta.columns!==9||worldMeta.rows!==4||
+         !Number.isInteger(worldMeta.frameWidth)||worldMeta.frameWidth<16||worldMeta.frameWidth>256||
+         !Number.isInteger(worldMeta.frameHeight)||worldMeta.frameHeight<16||worldMeta.frameHeight>256||
+         JSON.stringify(worldMeta.directions)!==JSON.stringify(['down','left','right','up'])||
+         JSON.stringify(worldMeta.walkColumns)!==JSON.stringify([1,2,3,4,5,6,7,8]))
+        throw new Error('Invalid reviewed nonstarter world atlas contract');
+      mapV5Art(manifest,{['enemy:'+art.id]:art.id});
       const w=await pngSize(root,art.world.src);
       const b=await pngSize(root,art.battle.src);
       if(w.width!==art.world.frameWidth*art.world.columns||
@@ -162,8 +186,12 @@ export async function preflightPrivateCampaign({root,profile='review'}={}){
   report.counts.stagedScenes=authored.filter(scene=>triggerNames.has(scene.trigger)).length;
   if(profile==='release')
     error(problems,'UNSTAGED_STORY_SCENES',authored.length-report.counts.stagedScenes);
+  // A review-candidate opening cannot be failed for future screenplay
+  // choices that have not yet been mapped. Production release still requires
+  // every choice's explicit anchor; a staged review scene must pass now.
   let badChoices=0;
   for(const scene of authored){
+    if(profile==='review'&&!triggerNames.has(scene.trigger))continue;
     try{validateNarrativeStaging(content,scene.id,world.choiceGates||{});}
     catch{badChoices++;}
   }
