@@ -1,0 +1,275 @@
+{
+  "schema": "ghost-signal-map-program-v1",
+  "standard": "https://github.com/nobleknights015-maker/Atlas-Warehouse/blob/main/warehouse/studies/ghost-signal-environment-design-and-map-quality-2026-11-18.md",
+  "rules": {
+    "nativeTilePixels": 32,
+    "cameraPixels": [
+      480,
+      270
+    ],
+    "minimumFunctionalZones": 3,
+    "engineAndStoryLocked": [
+      "m1",
+      "m2",
+      "UI",
+      "Wraith",
+      "input",
+      "saves",
+      "Sprite Studio",
+      "original effects"
+    ],
+    "visualAcceptance": "pending-owner-review"
+  },
+  "missions": {
+    "m3": {
+      "place": "Exploration surface survey compound",
+      "operationalChain": "access -> command / Mira -> supply / coupler -> survey route -> ridge relay -> command",
+      "historicalClue": "older relay mount below modern exploration equipment; authorship unverified",
+      "landmarks": [
+        "mira",
+        "coupler",
+        "ridgeRelay"
+      ],
+      "zones": [
+        {
+          "id": "command",
+          "box": [
+            5,
+            8,
+            19,
+            23
+          ],
+          "purpose": "briefing, accountability and survey operations",
+          "anchor": "mira"
+        },
+        {
+          "id": "logistics",
+          "box": [
+            7,
+            24,
+            18,
+            29
+          ],
+          "purpose": "loading, supplies and coupler",
+          "anchor": "coupler"
+        },
+        {
+          "id": "ridge",
+          "box": [
+            42,
+            6,
+            53,
+            23
+          ],
+          "purpose": "weather-exposed telemetry and repair",
+          "anchor": "ridgeRelay"
+        }
+      ],
+      "neededObjectives": [
+        "mira",
+        "outpost",
+        "coupler",
+        "nova",
+        "ridgeRelay",
+        "return"
+      ]
+    },
+    "m4": {
+      "place": "Damaged survey transit and emergency triage complex",
+      "operationalChain": "field staging -> ruined transit -> hazard -> rescue shelter -> escorted return",
+      "historicalClue": "aligned structural collapse and newer emergency kit; source unknown",
+      "landmarks": [
+        "station",
+        "rail",
+        "survivor"
+      ],
+      "zones": [
+        {
+          "id": "staging",
+          "box": [
+            4,
+            7,
+            19,
+            29
+          ],
+          "purpose": "field support and safe extraction",
+          "anchor": "station"
+        },
+        {
+          "id": "transit",
+          "box": [
+            33,
+            11,
+            44,
+            24
+          ],
+          "purpose": "fractured transport and rail access",
+          "anchor": "rail"
+        },
+        {
+          "id": "triage",
+          "box": [
+            45,
+            14,
+            59,
+            29
+          ],
+          "purpose": "sheltered surveyor, medical aid and escort",
+          "anchor": "survivor"
+        }
+      ],
+      "neededObjectives": [
+        "station",
+        "beacon",
+        "cell",
+        "rail",
+        "survivor",
+        "exit"
+      ]
+    },
+    "m5": {
+      "place": "Damaged power and ridge transmission installation",
+      "operationalChain": "generator -> isolator / breaker -> physical gate -> utility passage -> antenna / receiver",
+      "historicalClue": "burn patterns align with power runs; cause unconfirmed",
+      "landmarks": [
+        "breaker",
+        "fieldGate",
+        "uplink"
+      ],
+      "zones": [
+        {
+          "id": "maintenance",
+          "box": [
+            5,
+            9,
+            30,
+            28
+          ],
+          "purpose": "workshop, insulation and breaker",
+          "anchor": "breaker"
+        },
+        {
+          "id": "gated-utility",
+          "box": [
+            31,
+            12,
+            50,
+            24
+          ],
+          "purpose": "controlled utility corridor",
+          "anchor": "fieldGate"
+        },
+        {
+          "id": "transmitter",
+          "box": [
+            50,
+            9,
+            60,
+            26
+          ],
+          "purpose": "receiver, antenna and calibration",
+          "anchor": "uplink"
+        }
+      ],
+      "neededObjectives": [
+        "order",
+        "isolationKit",
+        "breaker",
+        "fieldGate",
+        "uplink",
+        "extraction"
+      ]
+    },
+    "m6": {
+      "place": "Abandoned auxiliary shelter and isolated local archive",
+      "operationalChain": "order -> supplies -> pressure airlock -> power -> archive -> lower receiver -> return loop",
+      "historicalClue": "inconsistent dates on unverified archive; builders unknown",
+      "landmarks": [
+        "airlockDoor",
+        "registry",
+        "receiver"
+      ],
+      "zones": [
+        {
+          "id": "entry",
+          "box": [
+            5,
+            6,
+            20,
+            26
+          ],
+          "purpose": "safety order and pressure management",
+          "anchor": "airlockControl"
+        },
+        {
+          "id": "stores",
+          "box": [
+            5,
+            28,
+            20,
+            35
+          ],
+          "purpose": "equipment and filter",
+          "anchor": "filter"
+        },
+        {
+          "id": "observatory",
+          "box": [
+            22,
+            6,
+            40,
+            15
+          ],
+          "purpose": "local observation and chronology",
+          "anchor": "datePlate"
+        },
+        {
+          "id": "maintenance",
+          "box": [
+            22,
+            17,
+            40,
+            35
+          ],
+          "purpose": "local bus and breaker",
+          "anchor": "breaker"
+        },
+        {
+          "id": "archive",
+          "box": [
+            42,
+            6,
+            58,
+            26
+          ],
+          "purpose": "isolated registry",
+          "anchor": "registry"
+        },
+        {
+          "id": "receiver",
+          "box": [
+            42,
+            28,
+            58,
+            35
+          ],
+          "purpose": "receive-only evidence",
+          "anchor": "receiver"
+        }
+      ],
+      "neededObjectives": [
+        "entrance",
+        "order",
+        "filter",
+        "airlockControl",
+        "airlockDoor",
+        "observatoryDoor",
+        "archiveDoor",
+        "registry",
+        "lowerDoor",
+        "returnDoor",
+        "receiver"
+      ]
+    }
+  }
+}
