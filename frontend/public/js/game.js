@@ -381,6 +381,20 @@ export class Game {
     const lampsOn = !!f.lights, lk = l => f.power ? 1 : flick ? (Math.sin(t * 7 + l.x * 3) > -.6 && Math.sin(t * 23 + l.y) > -.9 ? .75 + .25 * Math.sin(t * 3 + l.x) : .15) : .8;
     for (const l of this.m.lamps) drawLamp(c, l, lampsOn, lk(l));
     for (const e of this.ents) if (!e.hidden && !e.gone && vis((e.tx + e.w / 2) * T, (e.ty + e.h / 2) * T, 80)) drawEntity(c, e, this);
+    // Tutorial objective must be visible as a place/person, not just a line of HUD text.
+    if (this.m.id === 'm3' && !f.briefed) {
+      const mira = this.ent('mira');
+      if(mira && vis((mira.tx+.5)*T,(mira.ty+.5)*T,70)){
+        const x=Math.round(mira.tx*T+16), y=Math.round(mira.ty*T-35);
+        c.save();
+        c.fillStyle='rgba(6,18,19,.88)'; c.fillRect(x-37,y-7,74,13);
+        c.strokeStyle='#83d0bb'; c.lineWidth=1; c.strokeRect(x-37,y-7,74,13);
+        c.font='8px monospace'; c.textBaseline='middle'; c.textAlign='center';
+        c.fillStyle='#b7f0dc'; c.fillText('DIRECTOR MIRA',x,y);
+        c.fillStyle='#8bdbb8'; c.fillRect(x-1,y+7,3,5);
+        c.restore();
+      }
+    }
     for (const e of this.ents) if (e.pingT > t && !e.gone && e.interact) { // scan brackets
       const x0 = e.tx * T, y0 = e.ty * T, x1 = x0 + e.w * T - 1, y1 = y0 + e.h * T - 1; c.fillStyle = `rgba(255,59,48,${Math.min(1, e.pingT - t)})`;
       [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]].forEach(([x, y, sx, sy]) => { c.fillRect(Math.min(x, x + sx * 5), y, 6, 1); c.fillRect(x, Math.min(y, y + sy * 5), 1, 6); });

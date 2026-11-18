@@ -90,7 +90,7 @@ export const mission3 = {
   entities() {
     return [
       { id: 'outpost', type: 'terminal', tx: 9, ty: 12, solid: true, interact: true },
-      { id: 'mira', type: 'npc', role: 'mira', tx: 12, ty: 17, solid: true, interact: true },
+      { id: 'mira', type: 'npc', role: 'mira', tx: 12, ty: 18, solid: true, interact: true },
       { id: 'nova', type: 'npc', role: 'nova', tx: 15, ty: 23, solid: true, interact: true },
       { id: 'kai', type: 'npc', role: 'kai', tx: 24, ty: 17, solid: true, interact: true },
       { id: 'pad', type: 'pad', tx: 8, ty: 22 },
