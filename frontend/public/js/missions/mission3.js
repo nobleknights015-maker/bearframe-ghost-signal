@@ -52,6 +52,17 @@ function fieldMap() {
         }
       if (nextToFloor) grid[y * W + x] = 1;
     }
+ // Authored world structure: a real three-zone survey compound, not open-floor props.
+ // Command headquarters faces the southern briefing apron; supply stores connect
+ // via an open north loading entrance; relay enclosure is entered from the road.
+ const wall=(x0,y0,x1,y1)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)
+  if(grid[y*W+x]===2)grid[y*W+x]=1;};
+ wall(4,8,19,8);wall(4,9,4,18);wall(19,9,19,18);
+ wall(5,17,8,17);wall(15,17,18,17); // command aperture x9–14
+ wall(7,29,18,29);wall(7,24,7,28);wall(18,24,18,28);
+ wall(8,24,10,24);wall(16,24,17,24); // stores opening x11–15
+ wall(42,6,53,6);wall(42,7,42,16);wall(43,23,53,23);
+ wall(44,15,46,15);wall(50,15,52,15); // service bay threshold
   return { w: W, h: H, grid };
 }
 

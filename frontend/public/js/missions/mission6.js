@@ -39,6 +39,14 @@ function buildMap(){
   [14,8,15,11],[7,30,8,32],[25,21,26,22],[35,31,36,33],
   [45,9,46,11],[56,20,57,22],[44,31,45,32],
  ])for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)put(x,y,1);
+ // Interior bulkheads create purposeful service compartments within the
+ // six existing rooms, without moving any of the five scripted doors.
+ // Wide openings preserve scanning/interactions and the full return loop.
+ for(const [x0,y0,x1,y1] of [
+  [5,18,8,18],[13,18,18,18], // west command vestibule, aperture x9–12
+  [22,27,29,27],[34,27,39,27], // maintenance bus gallery
+  [43,20,50,20],[55,20,58,20], // archive catalog to evidence holding
+ ])for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)put(x,y,1);
  return {w:W,h:H,grid};
 }
 const dialogue=(g,lines,done)=>g.say(lines.map(([s,t])=>({s,t})),done);

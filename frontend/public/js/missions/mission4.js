@@ -35,6 +35,21 @@ function map(){
   }
   if(edge)grid[y*W+x]=1;
  }
+ // Survey camp, collapsed transit hall, and the rescue annex now form
+ // three traversable structures along the original eastbound escort road.
+ const wall=(x0,y0,x1,y1)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)
+  if(grid[y*W+x]===2)grid[y*W+x]=1;};
+ wall(4,7,19,7);wall(4,8,4,29);wall(19,8,19,16);wall(19,24,19,29);
+ wall(5,29,18,29); // recovery camp exits east through y17–23
+ wall(33,11,43,11);wall(33,12,33,16);wall(33,22,33,24);
+ wall(44,12,44,16);wall(44,22,44,24);wall(34,24,43,24);
+ wall(46,14,49,14);wall(52,14,58,14); // roof breach over east rescue annex
+ wall(45,15,45,17);wall(45,23,45,28);wall(46,29,58,29);
+ // Damaged inner triage shelter wraps the stranded surveyor, with a wide
+ // west rescue opening at y20–21. The medical pouch remains accessible.
+ wall(47,17,49,17);wall(52,17,56,17);
+ wall(47,18,47,19);wall(47,22,47,23);wall(56,18,56,23);
+ wall(48,24,49,24);wall(54,24,56,24);
  return {w:W,h:H,grid};
 }
 export const mission4={

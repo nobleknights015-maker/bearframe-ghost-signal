@@ -39,6 +39,18 @@ function buildMap(){
   }
   if(near)grid[y*W+x]=1;
  }
+ // Operational power building -> narrow gate -> protected exterior
+ // utility passage -> receiver room. Every structure has a walked opening.
+ const wall=(x0,y0,x1,y1)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)
+  if(grid[y*W+x]===2)grid[y*W+x]=1;};
+ wall(5,9,30,9);wall(4,10,4,16);wall(4,24,4,28);
+ wall(5,28,30,28);wall(30,10,30,15);wall(30,22,30,28);
+ wall(20,10,20,15);wall(20,23,20,27); // west workshop partition
+ wall(34,12,49,12);wall(34,24,49,24);
+ wall(33,13,33,16);wall(33,22,33,23);
+ wall(50,13,50,16);wall(50,22,50,23);
+ wall(51,9,60,9);wall(51,26,60,26);
+ wall(50,10,50,12);wall(50,24,50,26); // receiver dock opens to central roadway
  return {w:W,h:H,grid};
 }
 export const mission5={
