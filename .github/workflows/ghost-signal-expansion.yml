@@ -40,7 +40,7 @@ jobs:
           node --test frontend/character-tools/tests/ghost-signal-expedition.test.mjs frontend/character-tools/tests/character-generator.test.mjs
       - name: Verify complete static build
         run: npm run build --prefix frontend
-      - run: node --test frontend/tests/ghost-signal-expansion.test.mjs frontend/tests/ghost-signal-rescue.test.mjs frontend/tests/ghost-signal-relay.test.mjs frontend/tests/ghost-signal-bunker.test.mjs
+      - run: node --test frontend/tests/ghost-signal-expansion.test.mjs frontend/tests/ghost-signal-rescue.test.mjs frontend/tests/ghost-signal-relay.test.mjs frontend/tests/ghost-signal-bunker.test.mjs frontend/tests/ghost-signal-authored-layout.test.mjs
   chromium-smoke:
     runs-on: ubuntu-24.04
     steps:

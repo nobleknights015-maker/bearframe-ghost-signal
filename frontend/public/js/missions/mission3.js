@@ -67,7 +67,7 @@ export const mission3 = {
     kai: {src:'assets/characters/gs_kai_exp_draft.png'},
   },
   logs: LOGS, evidence: EVIDENCE,
-  start: { x: 7.5 * T, y: 20 * T, dir: 'right' },
+  start: { x: 10.5 * T, y: 20 * T, dir: 'up' },
   buildMap: fieldMap,
   props: [
     { t: 'machine', x: 5, y: 9, w: 4, h: 2, solid: 1 },
