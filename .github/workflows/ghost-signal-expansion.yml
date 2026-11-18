@@ -42,7 +42,7 @@ jobs:
         run: npm run build --prefix frontend
       - name: Enforce location program and reserved-interaction art standard
         run: node frontend/tools/map-quality-gate.mjs
-      - run: node --test frontend/tests/ghost-signal-expansion.test.mjs frontend/tests/ghost-signal-rescue.test.mjs frontend/tests/ghost-signal-relay.test.mjs frontend/tests/ghost-signal-bunker.test.mjs frontend/tests/ghost-signal-authored-layout.test.mjs frontend/tests/ghost-signal-architecture.test.mjs frontend/tests/ghost-signal-map-quality-gate.test.mjs frontend/tests/ghost-signal-research-crossref.test.mjs
+      - run: node --test frontend/tests/ghost-signal-expansion.test.mjs frontend/tests/ghost-signal-rescue.test.mjs frontend/tests/ghost-signal-relay.test.mjs frontend/tests/ghost-signal-bunker.test.mjs frontend/tests/ghost-signal-authored-layout.test.mjs frontend/tests/ghost-signal-architecture.test.mjs frontend/tests/ghost-signal-map-quality-gate.test.mjs frontend/tests/ghost-signal-research-crossref.test.mjs frontend/tests/ghost-signal-electrical-arc.test.mjs
   chromium-smoke:
     runs-on: ubuntu-24.04
     steps:

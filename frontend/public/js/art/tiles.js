@@ -1,4 +1,5 @@
 import {paintPackFloor,paintPackProp,paintPackMarkers,paintPackAuthoredDetail} from './pack-textures.js';
+import {isRelayElectricalArc,drawRelayElectricalArc} from './electrical-arcs.js';
 import {isAuthored,paintAuthoredFloor,paintAuthoredWall,paintAuthoredSites,drawAuthoredMachine} from './authored-environments.js';
 // Procedural environment art: baked 32x32 tile map + dynamic entity / drone drawing.
 const T = 32;
@@ -401,6 +402,10 @@ export function drawEntity(c, e, g) {
     }
     case 'jet': {
       const s = (g.m.hazardsEnabled && !g.m.hazardsEnabled(g)) ? 0 : g.jetState(e);
+      if (isRelayElectricalArc(g.m, e)) {
+        drawRelayElectricalArc(c, e, s, t, !!g.lowFx);
+        break; // M05-only art; keep original M01/M02 steam code untouched.
+      }
       R(c, '#0c1012', X + 9, Y + 9, 14, 14); R(c, '#3b3f2c', X + 9, Y + 9, 14, 1); R(c, '#3b3f2c', X + 9, Y + 22, 14, 1); R(c, '#3b3f2c', X + 9, Y + 9, 1, 14); R(c, '#3b3f2c', X + 22, Y + 9, 1, 14);
       R(c, s ? '#85752c' : '#2a2d20', X + 14, Y + 14, 4, 4);
       if (s) for (let i = 0; i < (s === 2 ? 14 : 3); i++) { const q = (t * 12 | 0) + i * 7; R(c, `rgba(220,230,235,${s === 2 ? .25 + hsh(q, i) * .5 : .3})`, X + 4 + hsh(q, e.tx + i) * (s === 2 ? 22 : 12) + (s === 2 ? 0 : 6), Y + (s === 2 ? -6 : 8) + hsh(e.ty + i, q) * (s === 2 ? 30 : 10), 3 + (i % 3), 3 + (i % 2)); }

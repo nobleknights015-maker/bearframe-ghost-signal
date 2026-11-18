@@ -26,6 +26,8 @@ jobs:
             frontend/public/
             frontend/character-tools/
             frontend/tests/
+            frontend/quality/
+            frontend/tools/
             frontend/serve.js
             frontend/package.json
             android/
@@ -42,7 +44,7 @@ jobs:
       - name: Validate authored location worldbuilding and geometry
         run: |
           node frontend/tools/map-quality-gate.mjs
-          node --test frontend/tests/ghost-signal-map-quality-gate.test.mjs frontend/tests/ghost-signal-architecture.test.mjs frontend/tests/ghost-signal-research-crossref.test.mjs
+          node --test frontend/tests/ghost-signal-map-quality-gate.test.mjs frontend/tests/ghost-signal-architecture.test.mjs frontend/tests/ghost-signal-research-crossref.test.mjs frontend/tests/ghost-signal-electrical-arc.test.mjs
       - name: Install upgraded character generator
         run: npm install --prefix frontend/character-tools --no-audit --no-fund
       - name: Bake real upgraded Studio sprites for M03/M04
