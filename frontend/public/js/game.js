@@ -25,6 +25,32 @@ export class Game {
 
   start(mission, snap, carry) {
     this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission); this.over = bakeOver(this.map, mission); this.cam = null;
+    // Owner-only licensed, flattened mission scenery. Public repository keeps its
+    // original procedural fallback: no paid source tiles or art sheets are exposed.
+    // M01/M02 are unchanged; scripted doors, dynamic lighting, scanner, Wraith,
+    // characters, map collision, audio, save state and UI remain live.
+    this._sceneVersion = (this._sceneVersion || 0) + 1;
+    const sceneVersion = this._sceneVersion;
+    this.environmentArt = { ready: false, source: 'original-engine', path: null };
+    if (/^m[3-6]$/.test(mission.id)) {
+      const path = `assets/environments/m0${mission.id[1]}-base.png`;
+      this.environmentArt = { ready: false, source: 'procedural-fallback', path };
+      const image = new Image();
+      image.onload = () => {
+        if (this._sceneVersion !== sceneVersion || this.m !== mission) return;
+        if (image.naturalWidth !== this.map.w * T || image.naturalHeight !== this.map.h * T) {
+          this.environmentArt.source = 'rejected-size-mismatch';
+          return;
+        }
+        this.base = image;
+        this.environmentArt = { ready: true, source: 'licensed-game-scene', path };
+      };
+      image.onerror = () => {
+        if (this._sceneVersion === sceneVersion && this.m === mission)
+          this.environmentArt = { ready: false, source: 'procedural-fallback', path };
+      };
+      image.src = path;
+    }
     this.ents = mission.entities().map(e => ({ w: 1, h: 1, open: 0, ...e }));
     // Opt-in approved Sprite Studio exports; absence never affects original rendering.
     this.actorSheets = {};
