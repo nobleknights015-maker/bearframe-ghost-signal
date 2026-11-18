@@ -54,6 +54,23 @@ jobs:
           if [[ -z "$SDKMANAGER" ]]; then echo "Android sdkmanager missing"; exit 1; fi
           yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null || true
           "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - name: Stage Android SDK signer for private owner-art APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          mkdir -p "$RUNNER_TEMP/ghost-sign-tools"
+          cp "$SDKROOT/build-tools/35.0.0/zipalign" "$RUNNER_TEMP/ghost-sign-tools/"
+          cp "$SDKROOT/build-tools/35.0.0/apksigner" "$RUNNER_TEMP/ghost-sign-tools/"
+          cp "$SDKROOT/build-tools/35.0.0/lib/apksigner.jar" "$RUNNER_TEMP/ghost-sign-tools/"
+          chmod +x "$RUNNER_TEMP/ghost-sign-tools/zipalign" "$RUNNER_TEMP/ghost-sign-tools/apksigner"
+      - name: Export private owner-build APK signing utilities
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-owner-build-tools
+          path: ${{ runner.temp }}/ghost-sign-tools/
+          retention-days: 7
+          if-no-files-found: error
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
