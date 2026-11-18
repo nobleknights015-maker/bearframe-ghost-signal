@@ -18,6 +18,20 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Export source tree for licensed local asset composition
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-source-snapshot
+          path: |
+            frontend/public/
+            frontend/character-tools/
+            frontend/tests/
+            frontend/serve.js
+            frontend/package.json
+            android/
+            .github/workflows/
+          retention-days: 7
+          if-no-files-found: error
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
