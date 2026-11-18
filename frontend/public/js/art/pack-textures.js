@@ -98,3 +98,16 @@ export function paintPackMarkers(ctx,mission,walkable){
   }
   return count;
 }
+
+/** One real source-pack detail per composed machine. Never tile full panels randomly. */
+export function paintPackAuthoredDetail(ctx,p,theme){
+  if(!available || !GROUND[theme] || !['machine','rack'].includes(p.t))return false;
+  const tile=textures.get(p.t==='rack'?'l8_0':'l5_1');
+  if(!tile)return false;
+  // Source 32x32 stays native; part is clipped by the grounded physical machine.
+  const X=p.x*TILE+(p.w||1)*TILE/2-16;
+  const Y=p.y*TILE+Math.max(8,((p.h||1)*TILE)/2-16);
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=.4;
+  ctx.drawImage(tile,Math.round(X),Math.round(Y));
+  ctx.restore();return true;
+}

@@ -1,4 +1,5 @@
-import {paintPackFloor,paintPackProp,paintPackMarkers} from './pack-textures.js';
+import {paintPackFloor,paintPackProp,paintPackMarkers,paintPackAuthoredDetail} from './pack-textures.js';
+import {isAuthored,paintAuthoredFloor,paintAuthoredWall,paintAuthoredSites,drawAuthoredMachine} from './authored-environments.js';
 // Procedural environment art: baked 32x32 tile map + dynamic entity / drone drawing.
 const T = 32;
 const hsh = (x, y, s = 0) => { const n = Math.sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453; return n - Math.floor(n); };
@@ -216,9 +217,12 @@ export function bakeMap(map, mission) {
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const g = at(x, y);
-    if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'ruins') ruinFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'storm') stormFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'bunker') bunkerFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); paintPackFloor(c,mission.visualTheme,x,y); }
+    if(g === 2 && isAuthored(mission)){paintAuthoredFloor(c,mission,x,y,at);}
+    else if(g === 1 && isAuthored(mission)){paintAuthoredWall(c,mission,x,y,at);}
+    else if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'ruins') ruinFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'storm') stormFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'bunker') bunkerFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); paintPackFloor(c,mission.visualTheme,x,y); }
     else if (g === 1) { if (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins' || mission.visualTheme === 'storm') surfaceEdge(c, x, y, at); else if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
   }
+  if(isAuthored(mission)) paintAuthoredSites(c,mission,at);
   paintPackMarkers(c,mission,(x,y)=>at(x,y)===2);
   // soft ambient occlusion where floor meets side / lower walls
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) if (at(x, y) === 2) {
@@ -229,7 +233,14 @@ export function bakeMap(map, mission) {
   }
   const draw = { machine, crate, debris, cable, hazard, rack };
   for (const p of mission.props) if (p.solid) { R(c, 'rgba(0,0,0,.34)', p.x * T + 5, (p.y + (p.h || 1)) * T - 1, (p.w || 1) * T - 2, 5); R(c, 'rgba(0,0,0,.2)', (p.x + (p.w || 1)) * T - 1, p.y * T + 8, 4, (p.h || 1) * T - 6); }
-  for (const p of mission.props) { draw[p.t](c, p); paintPackProp(c,p,mission.visualTheme); }
+  for (const p of mission.props) {
+    if(isAuthored(mission)){
+      if(!drawAuthoredMachine(c,mission,p))draw[p.t](c,p);
+      paintPackAuthoredDetail(c,p,mission.visualTheme);
+    }else{
+      draw[p.t](c,p);paintPackProp(c,p,mission.visualTheme);
+    }
+  }
   return cv;
 }
 
@@ -237,7 +248,7 @@ export function bakeMap(map, mission) {
 export function bakeOver(map, mission) {
   const cv = document.createElement('canvas'); cv.width = map.w * T; cv.height = map.h * T; const c = cv.getContext('2d');
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
-  if (mission && (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins')) return cv; // no indoor ceiling pipes outdoors
+  if(isAuthored(mission) || (mission && (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins'))) return cv; // authored areas use placed architecture, never random overhead conduits
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const X = x * T, Y = y * T;
     if (at(x, y) === 2 && y % 6 === 2 && hsh(y, 3, 5) > .25) { // overhead conduit run
