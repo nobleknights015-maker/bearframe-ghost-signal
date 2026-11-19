@@ -1,5 +1,6 @@
 import {paintPackFloor,paintPackProp,paintPackMarkers,paintPackAuthoredDetail} from './pack-textures.js';
 import {isRelayElectricalArc,drawRelayElectricalArc} from './electrical-arcs.js';
+import {isHorizontalBunkerDoor,drawHorizontalBunkerDoor} from './bunker-doors.js';
 import {isAuthored,paintAuthoredFloor,paintAuthoredWall,paintAuthoredSites,drawAuthoredMachine} from './authored-environments.js';
 // Procedural environment art: baked 32x32 tile map + dynamic entity / drone drawing.
 const T = 32;
@@ -341,6 +342,7 @@ export function drawEntity(c, e, g) {
       break;
     }
     case 'door': {
+      if (isHorizontalBunkerDoor(g.m, e)) { drawHorizontalBunkerDoor(c, e); break; }
       const h = Math.round(H * (1 - e.open));
       R(c, '#15170f', X + 8, Y - 2, 16, 3); R(c, '#15170f', X + 8, Y + H - 1, 16, 3);
       if (h > 0) {

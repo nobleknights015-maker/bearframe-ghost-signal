@@ -2,10 +2,10 @@ name: Ghost Signal Expanded standalone Android APK
 on:
   push:
     branches: [feature/ghost-signal-expanded-m03-surface-20261117]
-    paths: ['android/**', 'frontend/public/**', 'frontend/character-tools/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
+    paths: ['android/**', 'frontend/public/**', 'frontend/character-tools/**', 'frontend/tests/**', 'frontend/tools/**', 'frontend/quality/**', '.github/workflows/ghost-signal-expanded-apk.yml']
   pull_request:
     branches: [main]
-    paths: ['android/**', 'frontend/public/**', 'frontend/character-tools/**', 'frontend/tests/**', '.github/workflows/ghost-signal-expanded-apk.yml']
+    paths: ['android/**', 'frontend/public/**', 'frontend/character-tools/**', 'frontend/tests/**', 'frontend/tools/**', 'frontend/quality/**', '.github/workflows/ghost-signal-expanded-apk.yml']
   workflow_dispatch:
 concurrency:
   group: ghost-signal-expanded-apk-${{ github.ref }}
@@ -44,7 +44,7 @@ jobs:
       - name: Validate authored location worldbuilding and geometry
         run: |
           node frontend/tools/map-quality-gate.mjs
-          node --test frontend/tests/ghost-signal-map-quality-gate.test.mjs frontend/tests/ghost-signal-architecture.test.mjs frontend/tests/ghost-signal-research-crossref.test.mjs frontend/tests/ghost-signal-electrical-arc.test.mjs
+          node --test frontend/tests/ghost-signal-map-quality-gate.test.mjs frontend/tests/ghost-signal-architecture.test.mjs frontend/tests/ghost-signal-research-crossref.test.mjs frontend/tests/ghost-signal-electrical-arc.test.mjs frontend/tests/ghost-signal-facility-art.test.mjs
       - name: Install upgraded character generator
         run: npm install --prefix frontend/character-tools --no-audit --no-fund
       - name: Bake real upgraded Studio sprites for M03/M04
