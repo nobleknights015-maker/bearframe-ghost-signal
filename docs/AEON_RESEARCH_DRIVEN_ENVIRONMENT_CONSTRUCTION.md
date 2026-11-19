@@ -35,3 +35,14 @@ A20 revision v8 (2026-11-17) is owner-private and noncanonical. Its source-based
 - https://doc.mapeditor.org/en/latest/manual/terrain/
 - https://docs.mapeditor.org/en/latest/manual/layers/
 - https://www.gamedeveloper.com/design/gdc-2018-level-design-workshop-an-expert-roundtable-q-a
+
+## Architectural workstation acceptance (2026-11-19)
+
+The owner's explicit instruction is to improve the *art*, not to mistake more automated tests for a finished place. A review candidate must present coherent architecture, consistent source scale, a readable primary landmark and physical operating clearance. Do not extend the map count until genuine visual approval.
+
+- A large interactable workstation has three distinct contracts: its authored image bounds, collision footprint, and reachable operating approach. The one-location structural validator's requiredInteractive points represent **walkable operating positions**, not the occupied machine's tile. For a solid machine, validate both its blocked footprint (solid equipment gate) and a separate adjacent legal operating approach (one-location gate).
+- Use the original Game.target / Game.use path and real normal input for interaction. Avoid a decorative second terminal occupying the same location. If the QA fixture presents baked source art, a QA-only entity type can retain the authored interaction ID and avoid the original procedural icon without changing the original engine; do not silently promote this adapter to production.
+- The private review build v12 uses a native purchased full-size relay console, a functional repair station, larger deck panel seams, reserved approach space, and the existing deep atmospheric rendering behind cutaway walls. Its geometry change has its own isolated save revision. No canonical story, campaign import, UI/engine replacement or unrelated maps are authorized.
+- Compare actual native-scale and landscape gameplay evidence, including an attempt to enter the solid workstation footprint, a legitimate interaction from the aisle, a sealed/open/return path, save/reload and separate hosted/device evidence. Art and story remain private; a passed structural check is not visual acceptance.
+
+Source cross-reference: Atlas Warehouse two-game handbook sections 01, 05 and 06; Aeon environment/worldbuilding study; current owner instructions and private continuity handoff.
