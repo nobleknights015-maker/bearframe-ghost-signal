@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {verifyUtilityMounts as check} from '../narrative-tools/utility_mount_gate.mjs';
+const fixture=()=>({map:{w:4,h:4,tileSize:32,grid:[0,0,0,0,0,2,2,0,0,2,2,0,0,0,0,0]},runs:[{id:'feed',cells:[[0,0],[1,0],[2,0]]}],modules:[{id:'panel',origin:[3,1],sourceSize:[32,64]}],lamps:[{x:0,y:1}]});
+const has=(report,code)=>report.problems.some(p=>p.code===code);
+test('continuous wall utilities and full native modules match solid grid',()=>assert.equal(check(fixture()).pass,true));
+test('reject disconnected or walkable utility path',()=>{const f=fixture();f.runs[0].cells=[[0,0],[2,1]];const r=check(f);assert.ok(has(r,'RUN_DISCONTINUITY'));assert.ok(has(r,'RUN_OFF_WALL'));});
+test('reject repeated cells and identifiers',()=>{const f=fixture();f.runs[0].cells.push([1,0]);f.modules[0].id='feed';const r=check(f);assert.ok(has(r,'RUN_REPEATED_CELL'));assert.ok(has(r,'BAD_ID'));});
+test('reject wall module that covers walkable cells or exceeds map',()=>{const f=fixture();f.modules[0].origin=[2,1];assert.ok(has(check(f),'MODULE_OVER_WALKABLE'));f.modules[0].origin=[3,3];assert.ok(has(check(f),'MODULE_OUT_OF_BOUNDS'));});
+test('reject floating/duplicate lamps and broken inputs',()=>{const f=fixture();f.lamps=[{x:1,y:1},{x:1,y:1}];const r=check(f);assert.ok(has(r,'LAMP_OFF_WALL'));assert.ok(has(r,'DUPLICATE_LAMP'));assert.equal(check({}).pass,false);});
