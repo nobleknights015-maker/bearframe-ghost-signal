@@ -46,3 +46,9 @@ The owner's explicit instruction is to improve the *art*, not to mistake more au
 - Compare actual native-scale and landscape gameplay evidence, including an attempt to enter the solid workstation footprint, a legitimate interaction from the aisle, a sealed/open/return path, save/reload and separate hosted/device evidence. Art and story remain private; a passed structural check is not visual acceptance.
 
 Source cross-reference: Atlas Warehouse two-game handbook sections 01, 05 and 06; Aeon environment/worldbuilding study; current owner instructions and private continuity handoff.
+
+## Circulation and enclosure review (2026-11-19, round 7)
+
+Do not treat a coherent interaction as a completed environment. From the Warehouse two-game handbook §§01, 05, 06 and environment study: create continuous, readable architectural mass before decorating; distinguish travel lanes and work surfaces through material, not signs everywhere; ground equipment in genuine collision with legal service access. Preserve a dark nonwalkable structural hull and original deep-rendered exterior as separate art roles. Do not let dark hull material suggest walkable floor. Exercise new solid equipment from its normal player approach and prove the entire preexisting gate, return and persistence route again.
+
+Private A20 v13 has a native source parts rack, physically occupied receiving alcove, separate diamond-plate service lane and diagnostic mats, connected dark pressure-hull substrate and localized wear. Changes are confined to the noncanonical owner-private fixture, not the base engine or canonical campaign. No private artwork or screenshots in this public PR. This remains a review candidate pending explicit owner approval; functional tests do not grant artistic acceptance or physical Android acceptance.
