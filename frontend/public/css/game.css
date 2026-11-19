@@ -99,7 +99,7 @@ input[type=range] { width: calc(var(--u) * 120); accent-color: var(--red); touch
 h1 { font-family: 'Silkscreen', monospace; font-weight: 700; font-size: calc(var(--u) * 15); line-height: 1.1; color: var(--silver); }
 h1 span { color: var(--red); font-size: calc(var(--u) * 24); text-shadow: 0 0 calc(var(--u) * 8) rgba(255,59,48,.5); }
 .sub { font-family: 'Silkscreen', monospace; font-size: calc(var(--u) * 6.5); color: #9a959c; }
-.menu { display: flex; flex-direction: column; gap: calc(var(--u) * 4); margin-top: calc(var(--u) * 4); }
+.menu { display: flex; flex-direction: column; gap: calc(var(--u) * 4); margin-top: calc(var(--u) * 4); max-height: calc(var(--u) * 138); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) #090b0e; padding-right: calc(var(--u) * 2); }
 .motto { font-size: calc(var(--u) * 10); color: #9a959c; }
 
 /* Ancient terminal */

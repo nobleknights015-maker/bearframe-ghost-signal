@@ -1,0 +1,106 @@
+{
+  "schema": "ghost-signal-cross-reference-v1",
+  "game": "BEARFRAME: GHOST SIGNAL Expanded",
+  "scope": "M03-M06 approved existing missions only; NO new missions, engine replacement, UI replacement or Aeon Circuit content",
+  "sources": [
+    {
+      "id": "W01",
+      "role": "work-chat two-game deep design production research",
+      "url": "https://github.com/nobleknights015-maker/Atlas-Warehouse/blob/main/warehouse/studies/bearframe-two-game-design-research-2026-11-17.md",
+      "sections": [
+        "01 World and maps",
+        "02 Ghost Signal",
+        "04 Narrative events and cinematics",
+        "05 Presentation",
+        "06 Engineering verification",
+        "07 Authoring cards"
+      ]
+    },
+    {
+      "id": "W02",
+      "role": "Ghost Signal-specific level architecture and art/collision quality",
+      "url": "https://github.com/nobleknights015-maker/Atlas-Warehouse/blob/main/warehouse/studies/ghost-signal-environment-design-and-map-quality-2026-11-18.md"
+    },
+    {
+      "id": "C01",
+      "role": "existing missions, engine and approved direction",
+      "files": [
+        "frontend/public/js/missions/mission3.js",
+        "frontend/public/js/missions/mission4.js",
+        "frontend/public/js/missions/mission5.js",
+        "frontend/public/js/missions/mission6.js",
+        "frontend/public/js/game.js",
+        "frontend/quality/ghost-signal-map-program.json"
+      ]
+    }
+  ],
+  "requiredProof": [
+    "M03 survey site readable at Wraith 480x270 camera",
+    "M04 outbound and escorted return route remains clear",
+    "M05 closed and powered gate physically correct",
+    "M06 all five script doors and return loop function",
+    "private licensed scene fingerprint matches exact map geometry at packaging",
+    "real gameplay frames, full HUD, browser and physical Moto G evidence separately",
+    "no final art approval based on Node passes"
+  ],
+  "sites": {
+    "m3": {
+      "audit": "G01",
+      "viewport": [
+        12,
+        18
+      ],
+      "routeAnchors": [
+        "mira",
+        "outpost",
+        "coupler",
+        "ridgeRelay"
+      ]
+    },
+    "m4": {
+      "audit": "G02",
+      "viewport": [
+        50,
+        20
+      ],
+      "routeAnchors": [
+        "station",
+        "rail",
+        "survivor",
+        "exit"
+      ]
+    },
+    "m5": {
+      "audit": "G03",
+      "viewport": [
+        29,
+        18
+      ],
+      "routeAnchors": [
+        "breaker",
+        "fieldGate",
+        "uplink"
+      ]
+    },
+    "m6": {
+      "audit": "G03",
+      "viewport": [
+        19,
+        20
+      ],
+      "routeAnchors": [
+        "airlockDoor",
+        "observatoryDoor",
+        "archiveDoor",
+        "lowerDoor",
+        "returnDoor"
+      ]
+    }
+  },
+  "approval": {
+    "research": "verified archived source / design proposals",
+    "mapVisuals": "owner approval pending",
+    "hardware": "physical Moto G pending",
+    "engine": "do not change original M01/M02"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "id": "test_relay_01",
+  "name": "Test Relay Frame (Noncanonical)",
+  "kind": "humanoid",
+  "faction": "noncanonical-qa",
+  "body": "ancient-sleeper-test",
+  "preset": "Ancient Frame (weathered)",
+  "seed": 15112026,
+  "variation": true,
+  "appearance": {
+    "head": "mono",
+    "fins": false,
+    "modules": false,
+    "armor": "light",
+    "cloak": "none",
+    "pouches": false,
+    "harness": false,
+    "backpack": true,
+    "antenna": true
+  },
+  "colors": {
+    "armor": "#9eae9f",
+    "trim": "#434c49",
+    "under": "#161b21",
+    "glow": "#7bd2dc",
+    "cloak": "#5c6063",
+    "leather": "#615247"
+  },
+  "damage": 2,
+  "malfunction": true,
+  "overgrowth": 0,
+  "wear": 2,
+  "equipment": {
+    "primary": "noncanonical scanner"
+  },
+  "accessories": {
+    "antenna": true
+  },
+  "frameSizes": {
+    "world": {
+      "width": 32,
+      "height": 56
+    },
+    "battle": {
+      "width": 64,
+      "height": 64
+    }
+  },
+  "collisionTiles": [
+    1,
+    1
+  ],
+  "storyStatus": "noncanonical-test-no-lore"
+}

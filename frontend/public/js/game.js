@@ -24,9 +24,45 @@ export class Game {
   }
 
   start(mission, snap, carry) {
-    this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission); this.over = bakeOver(this.map); this.cam = null;
+    this.m = mission; this.map = mission.buildMap(); this.base = bakeMap(this.map, mission); this.over = bakeOver(this.map, mission); this.cam = null;
+    // Owner-only licensed, flattened mission scenery. Public repository keeps its
+    // original procedural fallback: no paid source tiles or art sheets are exposed.
+    // M01/M02 are unchanged; scripted doors, dynamic lighting, scanner, Wraith,
+    // characters, map collision, audio, save state and UI remain live.
+    this._sceneVersion = (this._sceneVersion || 0) + 1;
+    const sceneVersion = this._sceneVersion;
+    this.environmentArt = { ready: false, source: 'original-engine', path: null };
+    if (/^m[3-6]$/.test(mission.id)) {
+      const path = `assets/environments/m0${mission.id[1]}-base.png`;
+      this.environmentArt = { ready: false, source: 'procedural-fallback', path };
+      const image = new Image();
+      image.onload = () => {
+        if (this._sceneVersion !== sceneVersion || this.m !== mission) return;
+        if (image.naturalWidth !== this.map.w * T || image.naturalHeight !== this.map.h * T) {
+          this.environmentArt.source = 'rejected-size-mismatch';
+          return;
+        }
+        this.base = image;
+        this.environmentArt = { ready: true, source: 'licensed-game-scene', path };
+      };
+      image.onerror = () => {
+        if (this._sceneVersion === sceneVersion && this.m === mission)
+          this.environmentArt = { ready: false, source: 'procedural-fallback', path };
+      };
+      image.src = path;
+    }
     this.ents = mission.entities().map(e => ({ w: 1, h: 1, open: 0, ...e }));
-    this.flags = {}; this.inv = {}; this.stats = { scans: 0, hits: 0, restores: 0, logs: 0, ev: 0 };
+    // Opt-in approved Sprite Studio exports; absence never affects original rendering.
+    this.actorSheets = {};
+    for (const [id, spec] of Object.entries(mission.actorAssets || {})) {
+      if (!spec || !/^assets\/characters\/[a-z0-9_-]+\.png$/i.test(spec.src)) continue;
+      const image = new Image(), item = { image, ready: false };
+      this.actorSheets[id] = item;
+      image.onload = () => { item.ready = image.naturalWidth >= 12 * 32 && image.naturalHeight >= 4 * 56; };
+      image.onerror = () => { item.ready = false; };
+      image.src = spec.src;
+    }
+    this._escortTrail = null; this.flags = {}; this.inv = {}; this.stats = { scans: 0, hits: 0, restores: 0, logs: 0, ev: 0 };
     this.caseFile = carry ? clone(carry) : { ev: [], logs: [] };
     this.player = { x: mission.start.x, y: mission.start.y, dir: mission.start.dir, energy: 100, light: false, moving: false, anim: 0, hurt: 0, scanT: 0, hidden: null };
     this.time = 0; this.hist = []; this.scan = null; this.scanCd = 0; this.plateT = 0; this.onPad = null; this.echo = null; this.detectFx = 0; this.onGrate = null;
@@ -36,6 +72,8 @@ export class Game {
     this.drones = this.makeDrones();
     this.mode = 'play'; this.ui.show('hud', true);
     if (snap) this.applySnap(snap); else { this.checkpoint(true); mission.onStart(this); }
+    // The new chapter HUD must not show the previous mission's default status during opening dialogue.
+    this.refreshHud();
   }
   get drone() { return this.drones[0]; }
 
@@ -69,6 +107,11 @@ export class Game {
   finish() {
     this.mode = 'ending'; const pr = this.store.loadProgress();
     pr.done[this.m.id] = true; if (this.m.next) pr.unlocked[this.m.next] = true; pr.case = clone(this.caseFile);
+    // Opt-in chapter outcome journal; original save keys and M01/M02 snapshots stay compatible.
+    if (typeof this.m.outcome === 'function') {
+      pr.outcomes = pr.outcomes || {};
+      pr.outcomes[this.m.id] = clone(this.m.outcome(this));
+    }
     this.store.saveProgress(pr); this.store.clear(); this.ui.show('hud', false); this.onEnd(this);
   }
 
@@ -84,7 +127,7 @@ export class Game {
     this.caseFile = s.case ? clone(s.case) : { ev: [], logs: [] };
     Object.assign(this.player, s.player, { energy: Math.max(s.player.energy, minEnergy), hurt: 0, moving: false, hidden: null, scanT: 0 });
     for (const e of this.ents) { e.pingT = 0; e.offT = 0; if (s.es && s.es[e.id]) Object.assign(e, s.es[e.id]); if (e.type === 'door') e.open = this.m.doorOpen(e.id, this) ? 1 : 0; }
-    this.hist = []; this.scan = null; this.plateT = 0; this.drones = this.makeDrones(); this.onPad = null; this.echo = null; this.detectFx = 0; this.cam = null;
+    this._escortTrail = null; this.hist = []; this.scan = null; this.plateT = 0; this.drones = this.makeDrones(); this.onPad = null; this.echo = null; this.detectFx = 0; this.cam = null;
     if (this.m.migrate) this.m.migrate(this);
   }
   restore() {
@@ -155,7 +198,7 @@ export class Game {
       } else if (e.type === 'pad') { if (this.onEnt(e, p)) pad = e; }
       else if (e.type === 'grate') { if (this.onEnt(e, p)) grate = e; }
       else if (e.type === 'jet') {
-        if (this.jetState(e) === 2 && p.hurt <= 0 && this.onEnt(e, p)) { p.hurt = 1; this.drain(8); this.sfx.spark(); this.toast('STEAM VENT — ENERGY −8', 1.5); }
+        if ((!this.m.hazardsEnabled || this.m.hazardsEnabled(this)) && this.jetState(e) === 2 && p.hurt <= 0 && this.onEnt(e, p)) { p.hurt = 1; this.drain(8); this.sfx.spark(); this.toast(this.m.weather === 'electrical' ? 'ARC DISCHARGE — ENERGY −8' : 'STEAM VENT — ENERGY −8', 1.5); }
       } else if (e.type === 'lens') {
         if (e.offT > this.time) continue;
         const ex = e.tx * T + 16, ey = e.ty * T + 16, a = e.base + Math.sin(this.time * .7 + e.tx) * e.sweep, dd = dist(ex, ey, p.x, p.y - 6); e.ang = a;
@@ -183,6 +226,7 @@ export class Game {
     }
   }
   stealth() {
+    if (this.m.hideStealth) return [this.m.statusLabel || 'FIELD SURVEY', 'safe'];
     const p = this.player;
     if (this.drones.some(d => d.state === 'chase')) return ['DETECTED', 'hot'];
     if (p.hidden) return ['HIDDEN', 'safe'];
@@ -192,7 +236,7 @@ export class Game {
   }
   refreshHud() {
     const p = this.player, e = this.mode === 'play' && !p.hidden ? this.target() : null, key = this.touchMode() ? '' : '<b>[E]</b> ';
-    const st = `LIGHT ${p.light ? '<b>ON</b>' : 'OFF'} &middot; SCAN ${this.scanCd > 0 ? '...' : p.energy > SCAN_COST ? '<b>READY</b>' : 'LOW'}${this.inv.cell ? ' &middot; <b>POWER CELL</b>' : ''}${this.inv.spindle ? ' &middot; <b>RECORD SPINDLE</b>' : ''}`;
+    const st = `LIGHT ${p.light ? '<b>ON</b>' : 'OFF'} &middot; SCAN ${this.scanCd > 0 ? '...' : p.energy > SCAN_COST ? '<b>READY</b>' : 'LOW'}${this.inv.cell ? ' &middot; <b>POWER CELL</b>' : ''}${this.inv.spindle ? ' &middot; <b>RECORD SPINDLE</b>' : ''}${this.inv.surveyCoupler ? ' &middot; <b>SURVEY COUPLER</b>' : ''}${this.inv.regulatorCell ? ' &middot; <b>REGULATOR CELL</b>' : ''}${this.inv.isolator ? ' &middot; <b>INSULATOR</b>' : ''}`;
     this.ui.hud(p.energy, this.m.objective(this), st, p.hidden ? key + 'LEAVE ALCOVE' : e ? key + this.label(e) : '', this.stealth());
   }
   frame() { const p = this.player; return p.scanT > 0 ? SCAN0 + (p.scanT > .3 ? 0 : 1) : p.moving ? Math.floor(p.anim) % WALK : IDLE0 + (Math.floor(this.time / .32) % IDLEN); }
@@ -363,6 +407,20 @@ export class Game {
     const lampsOn = !!f.lights, lk = l => f.power ? 1 : flick ? (Math.sin(t * 7 + l.x * 3) > -.6 && Math.sin(t * 23 + l.y) > -.9 ? .75 + .25 * Math.sin(t * 3 + l.x) : .15) : .8;
     for (const l of this.m.lamps) drawLamp(c, l, lampsOn, lk(l));
     for (const e of this.ents) if (!e.hidden && !e.gone && vis((e.tx + e.w / 2) * T, (e.ty + e.h / 2) * T, 80)) drawEntity(c, e, this);
+    // Tutorial objective must be visible as a place/person, not just a line of HUD text.
+    if (this.m.id === 'm3' && !f.briefed) {
+      const mira = this.ent('mira');
+      if(mira && vis((mira.tx+.5)*T,(mira.ty+.5)*T,70)){
+        const x=Math.round(mira.tx*T+16), y=Math.round(mira.ty*T-35);
+        c.save();
+        c.fillStyle='rgba(6,18,19,.88)'; c.fillRect(x-37,y-7,74,13);
+        c.strokeStyle='#83d0bb'; c.lineWidth=1; c.strokeRect(x-37,y-7,74,13);
+        c.font='8px monospace'; c.textBaseline='middle'; c.textAlign='center';
+        c.fillStyle='#b7f0dc'; c.fillText('DIRECTOR MIRA',x,y);
+        c.fillStyle='#8bdbb8'; c.fillRect(x-1,y+7,3,5);
+        c.restore();
+      }
+    }
     for (const e of this.ents) if (e.pingT > t && !e.gone && e.interact) { // scan brackets
       const x0 = e.tx * T, y0 = e.ty * T, x1 = x0 + e.w * T - 1, y1 = y0 + e.h * T - 1; c.fillStyle = `rgba(255,59,48,${Math.min(1, e.pingT - t)})`;
       [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]].forEach(([x, y, sx, sy]) => { c.fillRect(Math.min(x, x + sx * 5), y, 6, 1); c.fillRect(x, Math.min(y, y + sy * 5), 1, 6); });
@@ -386,10 +444,22 @@ export class Game {
     for (const d of this.drones) if (d.y >= p.y) drawDrone(c, d, t);
     c.restore();
     c.drawImage(this.over, cx, cy, VW, VH, 0, 0, VW, VH);
+    if (this.m.weather === 'electrical' && !this.lowFx) {
+      c.save(); c.fillStyle = 'rgba(100,155,180,.12)';
+      const shift=Math.floor(t*13);
+      for(let i=0;i<22;i++){
+        const rx=(i*83+shift*7)%VW,ry=(i*47+shift*11)%VH;
+        c.fillRect(rx,ry,1,4);
+      }
+      if (f.calibrated && flick && Math.sin(t*3.7)>.99) {
+        c.fillStyle='rgba(145,180,205,.1)'; c.fillRect(0,0,VW,VH);
+      }
+      c.restore();
+    }
 
     // darkness + light sources
     const lc = this.lc, sx = p.x - cx, sy = p.y - cy - 24;
-    lc.globalCompositeOperation = 'source-over'; lc.clearRect(0, 0, VW, VH); lc.fillStyle = `rgba(2,4,7,${f.power ? .45 : .9})`; lc.fillRect(0, 0, VW, VH);
+    lc.globalCompositeOperation = 'source-over'; lc.clearRect(0, 0, VW, VH); lc.fillStyle = `rgba(2,4,7,${this.m.ambient === 'daylight' ? .12 : this.m.ambient === 'dusk' ? .32 : f.power ? .45 : .9})`; lc.fillRect(0, 0, VW, VH);
     lc.globalCompositeOperation = 'destination-out';
     const hole = (x, y, r, a) => { if (x < -r || y < -r || x > VW + r || y > VH + r) return; const gr = lc.createRadialGradient(x, y, 2, x, y, r); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); lc.fillStyle = gr; lc.fillRect(x - r, y - r, r * 2, r * 2); };
     hole(sx, sy, p.hidden ? 40 : 62, .9);

@@ -1,0 +1,141 @@
+name: Ghost Signal Expanded standalone Android APK
+on:
+  push:
+    branches: [feature/ghost-signal-expanded-m03-surface-20261117]
+    paths: ['android/**', 'frontend/public/**', 'frontend/character-tools/**', 'frontend/tests/**', 'frontend/tools/**', 'frontend/quality/**', '.github/workflows/ghost-signal-expanded-apk.yml']
+  pull_request:
+    branches: [main]
+    paths: ['android/**', 'frontend/public/**', 'frontend/character-tools/**', 'frontend/tests/**', 'frontend/tools/**', 'frontend/quality/**', '.github/workflows/ghost-signal-expanded-apk.yml']
+  workflow_dispatch:
+concurrency:
+  group: ghost-signal-expanded-apk-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  assemble:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export source tree for licensed local asset composition
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-source-snapshot
+          path: |
+            frontend/public/
+            frontend/character-tools/
+            frontend/tests/
+            frontend/quality/
+            frontend/tools/
+            frontend/serve.js
+            frontend/package.json
+            android/
+            .github/workflows/
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate authored location worldbuilding and geometry
+        run: |
+          node frontend/tools/map-quality-gate.mjs
+          node --test frontend/tests/ghost-signal-map-quality-gate.test.mjs frontend/tests/ghost-signal-architecture.test.mjs frontend/tests/ghost-signal-research-crossref.test.mjs frontend/tests/ghost-signal-electrical-arc.test.mjs frontend/tests/ghost-signal-facility-art.test.mjs
+      - name: Install upgraded character generator
+        run: npm install --prefix frontend/character-tools --no-audit --no-fund
+      - name: Bake real upgraded Studio sprites for M03/M04
+        run: node frontend/character-tools/generate-ghost-signal-expedition.mjs
+      - name: Validate upgraded Sprite Studio art is embedded
+        run: node --test frontend/character-tools/tests/ghost-signal-expedition.test.mjs
+      - name: Install supported Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$ANDROID_SDK_ROOT/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | sort -V | tail -n1)"
+          if [[ -z "$SDKMANAGER" ]]; then echo "Android sdkmanager missing"; exit 1; fi
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - name: Stage Android SDK signer for private owner-art APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          mkdir -p "$RUNNER_TEMP/ghost-sign-tools"
+          cp "$SDKROOT/build-tools/35.0.0/zipalign" "$RUNNER_TEMP/ghost-sign-tools/"
+          cp "$SDKROOT/build-tools/35.0.0/apksigner" "$RUNNER_TEMP/ghost-sign-tools/"
+          cp "$SDKROOT/build-tools/35.0.0/lib/apksigner.jar" "$RUNNER_TEMP/ghost-sign-tools/"
+          chmod +x "$RUNNER_TEMP/ghost-sign-tools/zipalign" "$RUNNER_TEMP/ghost-sign-tools/apksigner"
+      - name: Export private owner-build APK signing utilities
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-owner-build-tools
+          path: ${{ runner.temp }}/ghost-sign-tools/
+          retention-days: 7
+          if-no-files-found: error
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build standalone Ghost Signal app
+        run: gradle -p android :app:assembleDebug --no-daemon
+      - name: Verify exact UI, source and missions are in the APK
+        run: bash android/ci/verify-apk-assets.sh
+      - name: Upload upgraded generator editable sources, battlers, previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-upgraded-generator-review
+          path: frontend/character-output/ghost-signal-expedition/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload exact upgraded NPC runtime sprite sheets for APK parity
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-upgraded-npc-sheets
+          path: frontend/public/assets/characters/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Publish test APK build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-expanded-android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+  emulator:
+    needs: assemble
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ghost-signal-expanded-android-apk
+          path: android/app/build/outputs/apk/debug
+      - uses: actions/download-artifact@v4
+        with:
+          name: ghost-signal-upgraded-npc-sheets
+          path: frontend/public/assets/characters
+      - name: Verify exact APK from assemble job
+        run: bash android/ci/verify-apk-assets.sh
+      - name: Android 35 emulator install and lifecycle smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -camera-front none
+          emulator-boot-timeout: 900
+          script: bash android/ci/emulator-smoke.sh
+      - name: Store emulator screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-expanded-emulator-evidence
+          path: ghost-signal-expanded-*.png
+          if-no-files-found: ignore
+          retention-days: 30

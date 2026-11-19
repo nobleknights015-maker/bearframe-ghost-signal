@@ -1,0 +1,14 @@
+{
+  "name": "aeon-character-tools",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "generate:test": "node cli.mjs generate requests/test_relay_01.json",
+    "verify:test": "node cli.mjs validate test_relay_01"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.1.1"
+  }
+}

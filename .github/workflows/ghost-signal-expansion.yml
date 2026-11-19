@@ -1,0 +1,76 @@
+name: Ghost Signal surface expansion regression
+on:
+  push:
+    branches:
+      - feature/ghost-signal-expanded-m03-surface-20261117
+  pull_request:
+    paths:
+      - 'frontend/public/**'
+      - 'frontend/tests/**'
+      - 'frontend/tools/**'
+      - 'frontend/quality/**'
+      - '.github/workflows/ghost-signal-expansion.yml'
+concurrency:
+  group: ghost-signal-expanded-regression-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  surface-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check modified module syntax
+        run: |
+          node --check frontend/public/js/main.js
+          node --check frontend/public/js/game.js
+          node --check frontend/public/js/ui.js
+          node --check frontend/public/js/art/tiles.js
+          node --check frontend/public/js/art/authored-environments.js
+          node --check frontend/public/js/art/pack-textures.js
+          node --check frontend/public/js/missions/index.js
+          node --check frontend/public/js/missions/mission2.js
+          node --check frontend/public/js/missions/mission3.js
+          node --check frontend/public/js/missions/mission4.js
+          node --check frontend/public/js/missions/mission5.js
+          node --check frontend/public/js/missions/mission6.js
+      - name: Install and run upgraded Sprite Studio renderer tests
+        run: |
+          npm install --prefix frontend/character-tools --no-audit --no-fund
+          node frontend/character-tools/generate-ghost-signal-expedition.mjs
+          node --test frontend/character-tools/tests/ghost-signal-expedition.test.mjs frontend/character-tools/tests/character-generator.test.mjs
+      - name: Verify complete static build
+        run: npm run build --prefix frontend
+      - name: Enforce location program and reserved-interaction art standard
+        run: node frontend/tools/map-quality-gate.mjs
+      - run: node --test frontend/tests/ghost-signal-expansion.test.mjs frontend/tests/ghost-signal-rescue.test.mjs frontend/tests/ghost-signal-relay.test.mjs frontend/tests/ghost-signal-bunker.test.mjs frontend/tests/ghost-signal-authored-layout.test.mjs frontend/tests/ghost-signal-architecture.test.mjs frontend/tests/ghost-signal-map-quality-gate.test.mjs frontend/tests/ghost-signal-research-crossref.test.mjs frontend/tests/ghost-signal-electrical-arc.test.mjs frontend/tests/ghost-signal-facility-art.test.mjs
+  chromium-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser runner
+        run: npm install --no-save playwright@1.56.1 --prefix frontend
+      - name: Install upgraded Studio and bake character art
+        run: |
+          npm install --prefix frontend/character-tools --no-audit --no-fund
+          node frontend/character-tools/generate-ghost-signal-expedition.mjs
+      - name: Install Chromium
+        run: npx --prefix frontend playwright install --with-deps chromium
+      - name: Exercise original and expansion in real browser
+        run: node --test frontend/tests/ghost-signal-browser.test.mjs
+      - name: Store landscape screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-signal-surface-chromium
+          path: |
+            frontend/test_reports/ghost-signal-m03-chromium.png
+            frontend/test_reports/ghost-signal-m04-chromium.png
+            frontend/test_reports/ghost-signal-m05-chromium.png
+            frontend/test_reports/ghost-signal-m05-gate-chromium.png
+            frontend/test_reports/ghost-signal-m06-chromium.png
+          if-no-files-found: ignore

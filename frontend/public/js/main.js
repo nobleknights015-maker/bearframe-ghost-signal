@@ -29,7 +29,20 @@ function refreshTouch() { ui.show('touch', touchMode() && game.mode !== 'title' 
 function showTitle() {
   game.mode = 'title'; ['pause', 'settings', 'ending', 'hud', 'dialog', 'terminal'].forEach(id => ui.show(id, false));
   ['casefile'].forEach(id => ui.show(id, false));
-  ui.show('title', true); $('btn-continue').disabled = !store.load(); ui.show('btn-m2', !!store.loadProgress().unlocked.m2); refreshTouch();
+  ui.show('title', true); $('btn-continue').disabled = !store.load(); const progress = store.loadProgress();
+  // Pre-expansion owners may already have completed M02 before M03 was introduced.
+  let migrated = false;
+  if (progress.done.m2 && !progress.unlocked.m3) { progress.unlocked.m3 = true; migrated = true; }
+  if (progress.done.m3 && !progress.unlocked.m4) { progress.unlocked.m4 = true; migrated = true; }
+  if (progress.done.m4 && !progress.unlocked.m5) { progress.unlocked.m5 = true; migrated = true; }
+  if (progress.done.m5 && !progress.unlocked.m6) { progress.unlocked.m6 = true; migrated = true; }
+  if (migrated) store.saveProgress(progress);
+  ui.show('btn-m2', !!progress.unlocked.m2);
+  ui.show('btn-m3', !!progress.unlocked.m3);
+  ui.show('btn-m4', !!progress.unlocked.m4);
+  ui.show('btn-m5', !!progress.unlocked.m5);
+  ui.show('btn-m6', !!progress.unlocked.m6);
+  refreshTouch();
 }
 function titleSprite(now) {
   const c = $('title-sprite').getContext('2d'), f = IDLE0 + (Math.floor(now / 320) % IDLEN); c.clearRect(0, 0, FW, FH); c.drawImage(game.sheet, f * FW, 0, FW, FH, 0, 0, FW, FH);
@@ -37,11 +50,12 @@ function titleSprite(now) {
 function begin(snap, missionId) {
   sfx.init(); ui.show('title', false); ui.show('ending', false);
   const id = (snap && snap.mission) || missionId || FIRST_MISSION; let carry = null;
+  if (!MISSIONS[id]) { showTitle(); return; }
   if (!snap && id !== FIRST_MISSION) { const pc = store.loadProgress().case; if (pc) carry = { ev: pc.ev.filter(e => e.m !== id), logs: pc.logs.filter(l => l.m !== id) }; }
   ui.fade(true);
   game.start(MISSIONS[id], snap, carry); refreshTouch();
   setTimeout(() => ui.fade(false), 120);
-  if (!snap) { $('card-num').textContent = 'MISSION ' + (id === 'm2' ? '02' : '01'); $('card-title').textContent = MISSIONS[id].title; const cd = $('card'); cd.classList.remove('play'); void cd.offsetWidth; cd.classList.add('play'); }
+  if (!snap) { $('card-num').textContent = 'MISSION ' + (id.slice(1).padStart(2, '0')); $('card-title').textContent = MISSIONS[id].title; const cd = $('card'); cd.classList.remove('play'); void cd.offsetWidth; cd.classList.add('play'); }
   try { if (coarse && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {}); } catch (_) {}
 }
 
@@ -52,6 +66,7 @@ game.onEnd = (g) => {
   const mm = String(Math.floor(time / 60)).padStart(2, '0'), ss = String(Math.floor(time % 60)).padStart(2, '0');
   $('ending-title').textContent = e.title;
   $('ending-stats').textContent = `TIME INSIDE ............. ${mm}:${ss}\nSCANNER PULSES .......... ${stats.scans}\nSECURITY UNIT CONTACTS .. ${stats.hits}\nCHECKPOINT RESTORES ..... ${stats.restores}\n` + e.lines.join('\n');
+  if (g.m.next) $('btn-next').textContent = 'PROCEED TO MISSION ' + (g.m.next.slice(1).padStart(2, '0'));
   ui.show('btn-next', !!g.m.next); ui.show('ending', true); refreshTouch();
 };
 
@@ -63,6 +78,10 @@ $('btn-save').onclick = () => { $('pause-note').textContent = game.checkpoint(tr
 $('btn-quit').onclick = () => { game.checkpoint(true); showTitle(); };
 $('btn-ending-title').onclick = showTitle;
 $('btn-m2').onclick = () => begin(null, 'm2');
+$('btn-m3').onclick = () => begin(null, 'm3');
+$('btn-m4').onclick = () => begin(null, 'm4');
+$('btn-m5').onclick = () => begin(null, 'm5');
+$('btn-m6').onclick = () => begin(null, 'm6');
 $('btn-next').onclick = () => begin(null, game.m.next);
 $('btn-case').onclick = () => game.openCase();
 $('btn-pause-case').onclick = () => game.openCase();
@@ -83,7 +102,14 @@ $('set-touch').onclick = () => { settings.touch = { auto: 'on', on: 'off', off: 
 
 input.bindPad($('dpad'));
 input.bindButton($('t-act'), 'interact'); input.bindButton($('t-light'), 'light'); input.bindButton($('t-scan'), 'scan');
-document.addEventListener('visibilitychange', () => { if (document.hidden && game.mode === 'play') game.onPause(); });
+function safeBackgroundPause() {
+  if (game.mode !== 'play') return;
+  game.checkpoint(true);
+  game.onPause();
+  input.release();
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) safeBackgroundPause(); });
+addEventListener('ghost-signal-host-pause', safeBackgroundPause);
 
 let last = performance.now(), slow = 0, frames = 0;
 function loop(now) {

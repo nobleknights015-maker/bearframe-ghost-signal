@@ -1,3 +1,7 @@
+import {paintPackFloor,paintPackProp,paintPackMarkers,paintPackAuthoredDetail} from './pack-textures.js';
+import {isRelayElectricalArc,drawRelayElectricalArc} from './electrical-arcs.js';
+import {isHorizontalBunkerDoor,drawHorizontalBunkerDoor} from './bunker-doors.js';
+import {isAuthored,paintAuthoredFloor,paintAuthoredWall,paintAuthoredSites,drawAuthoredMachine} from './authored-environments.js';
 // Procedural environment art: baked 32x32 tile map + dynamic entity / drone drawing.
 const T = 32;
 const hsh = (x, y, s = 0) => { const n = Math.sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453; return n - Math.floor(n); };
@@ -7,6 +11,124 @@ function rust(c, X, Y, x, y, s, n = 20, spread = 12) {
   const cx = 6 + hsh(x, y, s) * 20, cy = 6 + hsh(x, y, s + 1) * 20;
   for (let i = 0; i < n; i++) R(c, i % 3 ? '#4a2a1c' : '#6b3a22', X + cx + (hsh(x, y, s + 10 + i) - .5) * spread, Y + cy + (hsh(x, y, s + 40 + i) - .5) * spread * .7, 2, 1);
 }
+
+
+function stormFloor(c,x,y,shadow) {
+  const X=x*T,Y=y*T,v=hsh(x,y,716);
+  R(c,v>.55?'#1a2930':'#202e34',X,Y,T,T);
+  R(c,'#45515b',X,Y,T,1);
+  for(let i=0;i<18;i++){
+    const px=Math.floor(hsh(x,y,i+3200)*30),py=Math.floor(hsh(x,y,i+3900)*30);
+    R(c,i%3===0?'#58666b':i%3===1?'#344e52':'#122127',X+px,Y+py,i%4===0?3:1,1);
+  }
+  if(v<.12) {
+    R(c,'#121a20',X+4,Y+12,25,7);
+    R(c,'#677c7f',X+4,Y+12,25,1);
+    R(c,'#2e444b',X+7,Y+17,20,2);
+  }
+  if(v>.68) for(let i=0;i<5;i++){
+    const px=5+Math.floor(hsh(x,y,i+4400)*22),py=6+Math.floor(hsh(x,y,i+4700)*21);
+    R(c,'#475f56',X+px,Y+py,2,3);
+  }
+  if(shadow)R(c,'rgba(0,0,0,.24)',X,Y,T,4);
+}
+
+function bunkerFloor(c,x,y,shadow){
+  // Archival service bunker: engineered steel decking with worn seam masks.
+  // Genuine Lab and Robot Warfare cells are composited as rare worn panels
+  // by paintPackFloor, not substituted for the room's structural tile grid.
+  const X=x*T,Y=y*T,v=hsh(x,y,813),base=v>.74?'#25353b':v<.22?'#1c282e':'#202e34';
+  R(c,base,X,Y,T,T);
+  R(c,'#43545a',X,Y,T,1);R(c,'#111a20',X,Y+T-2,T,2);
+  R(c,'#354b50',X,Y,1,T);R(c,'#111a1f',X+T-2,Y,2,T);
+  if((x+y)%5===0){
+    R(c,'#4b5652',X+5,Y+7,22,2);R(c,'#2a3d40',X+5,Y+9,22,7);
+    for(let i=0;i<4;i++)R(c,'#5c6a62',X+7+i*5,Y+12,2,1);
+  }else if(v>.55){
+    R(c,'#2e4145',X+7,Y+6,18,18);
+    R(c,'#415459',X+7,Y+6,18,1);
+    R(c,'#17262a',X+7,Y+23,18,1);
+  }
+  for(const [px,py]of [[3,3],[27,3],[3,27],[27,27]])R(c,'#56655e',X+px,Y+py,2,2);
+  if(shadow)R(c,'rgba(0,0,0,.26)',X,Y,T,4);
+}
+function ruinFloor(c,x,y,shadow) {
+  const X=x*T,Y=y*T,v=hsh(x,y,427);
+  R(c,v>.5?'#252e30':'#283130',X,Y,T,T);
+  R(c,'#3b4946',X,Y,T,1);
+  for(let i=0;i<18;i++){
+   const px=Math.floor(hsh(x,y,i+1500)*30),py=Math.floor(hsh(x,y,i+2100)*30);
+   R(c,i%3===0?'#4c574e':i%3===1?'#395248':'#1c2529',X+px,Y+py,1+(i%3),1+(i%2));
+  }
+  if(v>.6)for(let i=0;i<7;i++){
+   const ox=4+Math.floor(hsh(x,y,i+600)*22);
+   const oy=6+Math.floor(hsh(x,y,i+800)*20);
+   R(c,i%2?'#4f775d':'#7c8461',X+ox,Y+oy,2,4);
+  }
+  if(v<.22){R(c,'#11181c',X+8,Y+10,15,12);R(c,'#535c58',X+8,Y+10,15,1);}
+  if(shadow)R(c,'rgba(0,0,0,.23)',X,Y,T,4);
+}
+
+function surfaceFloor(c, x, y, shadow) {
+  // Deterministic field palette: slate path, dust, moss, scattered basalt.
+  // Only used for the expedition surface; original indoor missions are untouched.
+  const X = x * T, Y = y * T, v = hsh(x, y, 91);
+  const path = (x < 19 && y > 12 && y < 26) || (y > 15 && y < 21 && x < 48);
+  R(c, path ? (v > .42 ? '#343b3a' : '#303a38') : (v > .5 ? '#253b36' : '#283f38'), X, Y, T, T);
+  R(c, path ? '#41494a' : '#334c42', X, Y, T, 1);
+  for (let i = 0; i < 20; i++) {
+    const px = Math.floor(hsh(x + 3, y + 8, i + 120) * 30);
+    const py = Math.floor(hsh(x + 7, y + 2, i + 160) * 30);
+    R(c, path ? (i % 4 ? '#4f534d' : '#1d2b2b') : (i % 3 ? '#375c4c' : '#172d2b'), X + px, Y + py, 1 + i % 3, 1);
+  }
+  if (v > .56 && !path) {
+    for (let i = 0; i < 6; i++) {
+      const px = 4 + Math.floor(hsh(x, y, i + 211) * 23);
+      const py = 9 + Math.floor(hsh(x, y, i + 311) * 16);
+      R(c, i % 3 ? '#4c6750' : '#738461', X + px, Y + py, 2, 3);
+      R(c, '#172e2a', X + px + 1, Y + py + 3, 1, 2);
+    }
+  }
+  if (v < .12) { R(c, '#1b2629', X + 8, Y + 13, 15, 7); R(c, '#66716a', X + 8, Y + 12, 15, 1); }
+  if (shadow) R(c, 'rgba(0,0,0,.18)', X, Y, T, 4);
+}
+function surfaceEdge(c, x, y, at) {
+  const X = x * T, Y = y * T;
+  R(c, '#0e1c1e', X, Y, T, T);
+  for (let i = 0; i < 13; i++) {
+    const px = Math.floor(hsh(x, y, i + 500) * 29), py = Math.floor(hsh(x, y, i + 550) * 29);
+    R(c, i % 3 ? '#304a40' : '#415650', X + px, Y + py, 2, 1 + (i % 3));
+  }
+  if (at(x, y + 1) === 2) { R(c, '#56675c', X, Y + 21, T, 4); R(c, '#1e3131', X, Y + 25, T, 7); }
+  if (at(x - 1, y) === 2) R(c, '#5e6d61', X, Y, 3, T);
+  if (at(x + 1, y) === 2) R(c, '#5e6d61', X + 29, Y, 3, T);
+}
+function expeditionFrame(c, e, t) {
+  // Original procedural humanoids with required Bearframe chest and ear displays.
+  // Owner-created Sprite Studio exports can replace these once privately staged.
+  const X = e.tx * T + 6, Y = e.ty * T - 16, role = e.role;
+  const col = role === 'mira' ? '#c3a46b' : role === 'nova' ? '#69a8b0' : '#7d9e82';
+  const dark = role === 'mira' ? '#564e45' : role === 'nova' ? '#35505c' : '#354a41';
+  const eye = role === 'mira' ? '#ffe0aa' : role === 'nova' ? '#92f2ff' : '#b8f6c6';
+  const bob = Math.sin(t * 1.8 + e.tx) > .65 ? 1 : 0;
+  R(c, 'rgba(0,0,0,.3)', X + 1, Y + 42, 19, 3);
+  R(c, '#11191d', X + 3, Y + 29 + bob, 5, 14); R(c, '#11191d', X + 12, Y + 29 + bob, 5, 14);
+  R(c, dark, X + 4, Y + 30 + bob, 3, 12); R(c, dark, X + 13, Y + 30 + bob, 3, 12);
+  R(c, '#131a1e', X + 1, Y + 13 + bob, 18, 20);
+  R(c, dark, X + 3, Y + 14 + bob, 14, 17); R(c, col, X + 4, Y + 14 + bob, 12, 3);
+  R(c, '#171e23', X - 2, Y + 15 + bob, 4, 17); R(c, '#171e23', X + 18, Y + 15 + bob, 4, 17);
+  R(c, dark, X - 1, Y + 17 + bob, 2, 12); R(c, dark, X + 19, Y + 17 + bob, 2, 12);
+  R(c, '#0a1216', X + 5, Y + 20 + bob, 10, 8); R(c, col, X + 6, Y + 21 + bob, 8, 1);
+  R(c, eye, X + 8, Y + 23 + bob, 4, 3); // luminous chest display
+  R(c, '#131a20', X + 2, Y + bob, 16, 15); R(c, dark, X + 4, Y + 1 + bob, 12, 11);
+  R(c, '#090f14', X + 4, Y + 5 + bob, 12, 4); R(c, eye, X + 6, Y + 6 + bob, 8, 1);
+  R(c, '#111b20', X, Y + 4 + bob, 3, 7); R(c, '#111b20', X + 17, Y + 4 + bob, 3, 7);
+  R(c, eye, X + 1, Y + 6 + bob, 1, 3); R(c, eye, X + 18, Y + 6 + bob, 1, 3); // ear displays
+  if (role === 'mira') { R(c, col, X + 6, Y - 1 + bob, 8, 2); R(c, '#1a2020', X + 3, Y + 29 + bob, 14, 2); }
+  if (role === 'nova') R(c, eye, X + 3, Y + 18 + bob, 2, 4); // cartography probe
+  if (role === 'kai') R(c, '#8eaf80', X + 17, Y + 17 + bob, 4, 7); // utility mount
+}
+
 function floor(c, x, y, shadow) {
   const X = x * T, Y = y * T, v = hsh(x, y);
   R(c, v < .5 ? '#1e272b' : '#1b2327', X, Y, T, T);
@@ -97,9 +219,13 @@ export function bakeMap(map, mission) {
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const g = at(x, y);
-    if (g === 2) floor(c, x, y, at(x, y - 1) === 1);
-    else if (g === 1) { if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
+    if(g === 2 && isAuthored(mission)){paintAuthoredFloor(c,mission,x,y,at);}
+    else if(g === 1 && isAuthored(mission)){paintAuthoredWall(c,mission,x,y,at);}
+    else if (g === 2) { if (mission.visualTheme === 'surface') surfaceFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'ruins') ruinFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'storm') stormFloor(c, x, y, at(x, y - 1) === 1); else if (mission.visualTheme === 'bunker') bunkerFloor(c, x, y, at(x, y - 1) === 1); else floor(c, x, y, at(x, y - 1) === 1); paintPackFloor(c,mission.visualTheme,x,y); }
+    else if (g === 1) { if (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins' || mission.visualTheme === 'storm') surfaceEdge(c, x, y, at); else if (at(x, y + 1) === 2) wallFace(c, x, y); else wallTop(c, x, y, at); }
   }
+  if(isAuthored(mission)) paintAuthoredSites(c,mission,at);
+  paintPackMarkers(c,mission,(x,y)=>at(x,y)===2);
   // soft ambient occlusion where floor meets side / lower walls
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) if (at(x, y) === 2) {
     const X = x * T, Y = y * T;
@@ -109,14 +235,22 @@ export function bakeMap(map, mission) {
   }
   const draw = { machine, crate, debris, cable, hazard, rack };
   for (const p of mission.props) if (p.solid) { R(c, 'rgba(0,0,0,.34)', p.x * T + 5, (p.y + (p.h || 1)) * T - 1, (p.w || 1) * T - 2, 5); R(c, 'rgba(0,0,0,.2)', (p.x + (p.w || 1)) * T - 1, p.y * T + 8, 4, (p.h || 1) * T - 6); }
-  for (const p of mission.props) draw[p.t](c, p);
+  for (const p of mission.props) {
+    if(isAuthored(mission)){
+      if(!drawAuthoredMachine(c,mission,p))draw[p.t](c,p);
+      paintPackAuthoredDetail(c,p,mission.visualTheme);
+    }else{
+      draw[p.t](c,p);paintPackProp(c,p,mission.visualTheme);
+    }
+  }
   return cv;
 }
 
 // Foreground layer drawn above characters: overhead conduits and hanging cables (depth / layered scenery).
-export function bakeOver(map) {
+export function bakeOver(map, mission) {
   const cv = document.createElement('canvas'); cv.width = map.w * T; cv.height = map.h * T; const c = cv.getContext('2d');
   const at = (x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.grid[y * map.w + x];
+  if(isAuthored(mission) || (mission && (mission.visualTheme === 'surface' || mission.visualTheme === 'ruins'))) return cv; // authored areas use placed architecture, never random overhead conduits
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
     const X = x * T, Y = y * T;
     if (at(x, y) === 2 && y % 6 === 2 && hsh(y, 3, 5) > .25) { // overhead conduit run
@@ -208,6 +342,7 @@ export function drawEntity(c, e, g) {
       break;
     }
     case 'door': {
+      if (isHorizontalBunkerDoor(g.m, e)) { drawHorizontalBunkerDoor(c, e); break; }
       const h = Math.round(H * (1 - e.open));
       R(c, '#15170f', X + 8, Y - 2, 16, 3); R(c, '#15170f', X + 8, Y + H - 1, 16, 3);
       if (h > 0) {
@@ -268,7 +403,11 @@ export function drawEntity(c, e, g) {
       break;
     }
     case 'jet': {
-      const s = g.jetState(e);
+      const s = (g.m.hazardsEnabled && !g.m.hazardsEnabled(g)) ? 0 : g.jetState(e);
+      if (isRelayElectricalArc(g.m, e)) {
+        drawRelayElectricalArc(c, e, s, t, !!g.lowFx);
+        break; // M05-only art; keep original M01/M02 steam code untouched.
+      }
       R(c, '#0c1012', X + 9, Y + 9, 14, 14); R(c, '#3b3f2c', X + 9, Y + 9, 14, 1); R(c, '#3b3f2c', X + 9, Y + 22, 14, 1); R(c, '#3b3f2c', X + 9, Y + 9, 1, 14); R(c, '#3b3f2c', X + 22, Y + 9, 1, 14);
       R(c, s ? '#85752c' : '#2a2d20', X + 14, Y + 14, 4, 4);
       if (s) for (let i = 0; i < (s === 2 ? 14 : 3); i++) { const q = (t * 12 | 0) + i * 7; R(c, `rgba(220,230,235,${s === 2 ? .25 + hsh(q, i) * .5 : .3})`, X + 4 + hsh(q, e.tx + i) * (s === 2 ? 22 : 12) + (s === 2 ? 0 : 6), Y + (s === 2 ? -6 : 8) + hsh(e.ty + i, q) * (s === 2 ? 30 : 10), 3 + (i % 3), 3 + (i % 2)); }
@@ -315,6 +454,14 @@ export function drawEntity(c, e, g) {
       break;
     }
     case 'npc': {
+      const actor = g.actorSheets && g.actorSheets[e.id];
+      if (actor && actor.ready) {
+        const row = {down:0,up:1,right:2,left:3}[e.dir] ?? 0;
+        const frame = e.moving ? Math.floor(t * 8) % 6 : 6 + Math.floor(t * 3) % 4;
+        c.drawImage(actor.image, frame * 32, row * 56, 32, 56, X, Y + 32 - 56, 32, 56);
+        break;
+      }
+      if (e.role === 'mira' || e.role === 'nova' || e.role === 'kai' || e.role === 'surveyor') { expeditionFrame(c, e, t); break; }
       const sw = Math.round(Math.sin(t * 1.1) * 1), bx = X + 6 + sw, by = Y - 16, k = .55 + .45 * Math.sin(t * 1.7);
       R(c, 'rgba(0,0,0,.45)', X + 6, Y + 27, 20, 4);
       R(c, '#1d2a26', bx + 4, by + 12, 12, 24); R(c, '#4f6b5c', bx + 5, by + 13, 10, 12); R(c, '#6b8a78', bx + 5, by + 13, 2, 12); R(c, '#3d5448', bx + 6, by + 25, 8, 10);

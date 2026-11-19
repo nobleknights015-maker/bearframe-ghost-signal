@@ -41,7 +41,7 @@ export class UI {
     list.innerHTML = ''; $('case-detail').textContent = items.length ? '' : (tab === 'ev' ? 'No evidence recorded.\n\nSCAN to mark anomalies, then EXAMINE them to log evidence.' : 'No terminal logs recovered yet.');
     items.forEach((it, i) => {
       const li = document.createElement('li'), b = document.createElement('button'); b.className = 'case-item'; b.dataset.testid = 'case-item-' + it.id;
-      b.textContent = `${it.m === 'm2' ? 'M02' : 'M01'} ${it.cat ? '[' + it.cat + '] ' : ''}${it.title}`;
+      b.textContent = `${it.m === 'm4' ? 'M04' : it.m === 'm3' ? 'M03' : it.m === 'm2' ? 'M02' : 'M01'} ${it.cat ? '[' + it.cat + '] ' : ''}${it.title}`;
       const open = () => { [...list.querySelectorAll('.case-item')].forEach(x => x.classList.remove('active')); b.classList.add('active'); $('case-detail').textContent = it.title + '\n' + '-'.repeat(Math.min(34, it.title.length)) + '\n\n' + it.text; };
       b.addEventListener('click', open); li.appendChild(b); list.appendChild(li); if (i === items.length - 1) open();
     });
