@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { verifyExtractedPayloads } from './helpers/private-zip-payload-integrity.mjs';
+const a = Buffer.from('synthetic art A');
+const b = Buffer.from('synthetic art B');
+const entry = (name, bytes) => ({ name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
+const entries = [entry('art/a.png',a),entry('art/b.png',b)];
+const good = () => ({ entries, expectedNames: ['art/b.png','art/a.png'], payloads: new Map([['art/a.png',a],['art/b.png',b]]) });
+test('verifies actual payload bytes and hashes',()=>assert.deepEqual(verifyExtractedPayloads(good()),{entryCount:2,verifiedBytes:a.length+b.length}));
+test('rejects corrupted same-length payload',()=>{const v=good();v.payloads.set('art/a.png',Buffer.from('synthetic art X'));assert.throws(()=>verifyExtractedPayloads(v),/digest/);});
+test('rejects truncated payload',()=>{const v=good();v.payloads.set('art/a.png',a.subarray(1));assert.throws(()=>verifyExtractedPayloads(v),/length/);});
+test('rejects absent payload',()=>{const v=good();v.payloads.delete('art/a.png');assert.throws(()=>verifyExtractedPayloads(v));});
+test('rejects extra payload',()=>{const v=good();v.payloads.set('art/extra.png',b);assert.throws(()=>verifyExtractedPayloads(v));});
+test('rejects non-buffer payload',()=>{const v=good();v.payloads.set('art/a.png',new Uint8Array(a));assert.throws(()=>verifyExtractedPayloads(v),/non-buffer/);});
+test('enforces manifest budgets before hashing',()=>assert.throws(()=>verifyExtractedPayloads(good(),{maxTotalBytes:1}),/size/));
+test('rejects malicious manifest paths',()=>{const v=good();v.entries=[entry('../a.png',a),entries[1]];v.expectedNames=['../a.png','art/b.png'];assert.throws(()=>verifyExtractedPayloads(v));});

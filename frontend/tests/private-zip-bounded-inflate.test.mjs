@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { deflateRawSync } from 'node:zlib';
+import { decodeBoundedZipEntry as decode } from './helpers/private-zip-bounded-inflate.mjs';
+const data=Buffer.from('synthetic entry payload');
+const packed=deflateRawSync(data);
+test('stored payload',()=>assert.deepEqual(decode({method:0,compressed:data,uncompressedBytes:data.length}),data));
+test('deflate payload',()=>assert.deepEqual(decode({method:8,compressed:packed,uncompressedBytes:data.length}),data));
+test('reject unknown compression',()=>assert.throws(()=>decode({method:99,compressed:packed,uncompressedBytes:data.length})));
+test('reject declared oversized output',()=>assert.throws(()=>decode({method:8,compressed:packed,uncompressedBytes:100},{maxEntryBytes:50})));
+test('reject compressed oversized entry',()=>assert.throws(()=>decode({method:8,compressed:packed,uncompressedBytes:data.length},{maxCompressedBytes:1})));
+test('reject high compression ratio',()=>{const bomb=Buffer.alloc(20000,65);assert.throws(()=>decode({method:8,compressed:deflateRawSync(bomb),uncompressedBytes:bomb.length},{maxRatio:10}));});
+test('reject decompression exceeding declared output',()=>assert.throws(()=>decode({method:8,compressed:packed,uncompressedBytes:3})));
+test('reject declared output larger than actual',()=>assert.throws(()=>decode({method:8,compressed:packed,uncompressedBytes:data.length+1})));
+test('reject truncated deflate',()=>assert.throws(()=>decode({method:8,compressed:packed.subarray(0,2),uncompressedBytes:data.length})));
+test('reject stored mismatch',()=>assert.throws(()=>decode({method:0,compressed:data,uncompressedBytes:2})));
+test('reject invalid limits',()=>assert.throws(()=>decode({method:0,compressed:data,uncompressedBytes:data.length},{maxRatio:0})));
+test('reject non-buffer',()=>assert.throws(()=>decode({method:0,compressed:new Uint8Array(data),uncompressedBytes:data.length})));
